@@ -18,10 +18,10 @@ func TestSameOriginAliasesAndLegacyOrigin(t *testing.T) {
 		t.Fatal(err)
 	}
 	for input, expected := range map[string]string{
-		"../../../mic/uploads/a.png?x=1#p":          "/miic/uploads/a.png?x=1#p",
+		"../../../mic/uploads/a.png?x=1#p":        "/miic/uploads/a.png?x=1#p",
 		"/miic/uploads/a.png":                     "/miic/uploads/a.png",
 		"https://demo.miic.com.cn/miic/uploads/a": "/miic/uploads/a",
-		"https://cdn.example.com/a.png":            "https://cdn.example.com/a.png",
+		"https://cdn.example.com/a.png":           "https://cdn.example.com/a.png",
 	} {
 		if actual := resolver.Resolve(input); actual != expected {
 			t.Errorf("Resolve(%q) = %q, want %q", input, actual, expected)

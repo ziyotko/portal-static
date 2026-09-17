@@ -115,6 +115,9 @@ func (r *Resolver) Resolve(raw string) string {
 	if strings.HasPrefix(parsed.Path, "/") {
 		return r.applyMode(parsed)
 	}
+	if r.mode == ModeCDN {
+		return r.applyMode(parsed)
+	}
 	return parsed.String()
 }
 

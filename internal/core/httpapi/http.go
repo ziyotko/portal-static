@@ -33,6 +33,7 @@ func NewWithOperations(service context.Context, operations Operations, token str
 	if logger == nil {
 		logger = slog.Default()
 	}
+	operations.Messages = operations.Messages.withDefaults()
 	api := &API{operations: operations, token: token, timeout: timeout, logger: logger, jobs: newJobManager(service, idle, max)}
 	mux := http.NewServeMux()
 	mux.HandleFunc("/healthz", api.health)
@@ -68,7 +69,7 @@ func (a *API) batch(kind string, grayAllowed bool, run Operation) http.HandlerFu
 		if !ok {
 			return
 		}
-		gray, ok := parseGray(w, r, grayAllowed)
+		gray, ok := a.parseGray(w, r, grayAllowed)
 		if !ok {
 			return
 		}
@@ -110,7 +111,7 @@ func (a *API) page(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusBadRequest, map[string]any{"ok": false, "error": message})
 		return
 	}
-	gray, ok := parseGray(w, r, true)
+	gray, ok := a.parseGray(w, r, true)
 	if !ok {
 		return
 	}
@@ -135,7 +136,7 @@ func (a *API) list(w http.ResponseWriter, r *http.Request) {
 	name := strings.TrimSpace(r.URL.Query().Get("column_name"))
 	rawID := strings.TrimSpace(r.URL.Query().Get("column_id"))
 	if name == "" && rawID == "" {
-		writeJSON(w, http.StatusBadRequest, map[string]any{"ok": false, "error": "column_name 不能为空"})
+		writeJSON(w, http.StatusBadRequest, map[string]any{"ok": false, "error": a.operations.Messages.ListRequired})
 		return
 	}
 	ctx, cancel := context.WithTimeout(r.Context(), a.timeout)
@@ -149,18 +150,18 @@ func (a *API) list(w http.ResponseWriter, r *http.Request) {
 	var err error
 	if name != "" {
 		if a.operations.GenerateListByName == nil {
-			writeJSON(w, http.StatusServiceUnavailable, map[string]any{"ok": false, "error": "list generation unavailable"})
+			writeJSON(w, http.StatusServiceUnavailable, map[string]any{"ok": false, "error": a.operations.Messages.ContentUnavailable})
 			return
 		}
 		result, err = a.operations.GenerateListByName(ctx, name)
 	} else {
 		id, parseErr := strconv.ParseInt(rawID, 10, 64)
 		if parseErr != nil || id <= 0 {
-			writeJSON(w, http.StatusBadRequest, map[string]any{"ok": false, "error": "column_id 必须是正整数"})
+			writeJSON(w, http.StatusBadRequest, map[string]any{"ok": false, "error": a.operations.Messages.InvalidColumnID})
 			return
 		}
 		if a.operations.GenerateList == nil {
-			writeJSON(w, http.StatusServiceUnavailable, map[string]any{"ok": false, "error": "list generation unavailable"})
+			writeJSON(w, http.StatusServiceUnavailable, map[string]any{"ok": false, "error": a.operations.Messages.ContentUnavailable})
 			return
 		}
 		result, err = a.operations.GenerateList(ctx, id)
@@ -180,12 +181,16 @@ func (a *API) article(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	raw := strings.TrimSpace(r.URL.Query().Get("id"))
-	id, err := strconv.ParseInt(raw, 10, 64)
-	if err != nil || id <= 0 {
-		writeJSON(w, http.StatusBadRequest, map[string]any{"ok": false, "error": "id 必须是正整数"})
+	if raw == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]any{"ok": false, "error": a.operations.Messages.ArticleIDRequired})
 		return
 	}
-	refreshRelated, ok := requestArticleRefresh(w, r)
+	id, err := strconv.ParseInt(raw, 10, 64)
+	if err != nil || id <= 0 {
+		writeJSON(w, http.StatusBadRequest, map[string]any{"ok": false, "error": a.operations.Messages.InvalidArticleID})
+		return
+	}
+	refreshRelated, ok := a.requestArticleRefresh(w, r)
 	if !ok {
 		return
 	}
@@ -215,14 +220,14 @@ func (a *API) article(w http.ResponseWriter, r *http.Request) {
 	a.writeResult(w, result, err)
 }
 
-func requestArticleRefresh(w http.ResponseWriter, r *http.Request) (bool, bool) {
+func (a *API) requestArticleRefresh(w http.ResponseWriter, r *http.Request) (bool, bool) {
 	switch strings.TrimSpace(r.URL.Query().Get("refresh")) {
 	case "none":
 		return false, true
 	case "", "related":
 		return true, true
 	default:
-		writeJSON(w, http.StatusBadRequest, map[string]any{"ok": false, "error": "refresh 只允许 related 或 none"})
+		writeJSON(w, http.StatusBadRequest, map[string]any{"ok": false, "error": a.operations.Messages.InvalidRefresh})
 		return false, false
 	}
 }
@@ -265,7 +270,7 @@ func (a *API) job(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true, "job": job})
 }
 
-func parseGray(w http.ResponseWriter, r *http.Request, allowed bool) (bool, bool) {
+func (a *API) parseGray(w http.ResponseWriter, r *http.Request, allowed bool) (bool, bool) {
 	raw := strings.TrimSpace(r.URL.Query().Get("gray"))
 	if raw == "" || raw == "2" {
 		return false, true
@@ -273,7 +278,7 @@ func parseGray(w http.ResponseWriter, r *http.Request, allowed bool) (bool, bool
 	if allowed && raw == "1" {
 		return true, true
 	}
-	writeJSON(w, http.StatusBadRequest, map[string]any{"ok": false, "error": "gray 必须是字符串 1 或 2"})
+	writeJSON(w, http.StatusBadRequest, map[string]any{"ok": false, "error": a.operations.Messages.InvalidGray})
 	return false, false
 }
 
@@ -288,7 +293,7 @@ func (a *API) requestOutputPath(w http.ResponseWriter, r *http.Request) (string,
 		clean = raw
 	}
 	if (!filepath.IsAbs(clean) && !windowsAbsolute) || (!windowsAbsolute && filepath.Dir(clean) == clean) {
-		writeJSON(w, http.StatusBadRequest, map[string]any{"ok": false, "error": "path 必须是非根目录的绝对路径"})
+		writeJSON(w, http.StatusBadRequest, map[string]any{"ok": false, "error": a.operations.Messages.InvalidOutputPath})
 		return "", false
 	}
 	if a.operations.ValidateOutputPath != nil {

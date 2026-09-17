@@ -31,6 +31,46 @@ type Operations struct {
 	PageNameError          string
 	ValidateOutputPath     func(string) error
 	ClassifyError          func(error) (int, string, bool)
+	Messages               Messages
+}
+
+type Messages struct {
+	ListRequired       string
+	InvalidColumnID    string
+	ArticleIDRequired  string
+	InvalidArticleID   string
+	InvalidRefresh     string
+	InvalidGray        string
+	InvalidOutputPath  string
+	ContentUnavailable string
+}
+
+func (m Messages) withDefaults() Messages {
+	if m.ListRequired == "" {
+		m.ListRequired = "column_name 不能为空"
+	}
+	if m.InvalidColumnID == "" {
+		m.InvalidColumnID = "column_id 必须是正整数"
+	}
+	if m.ArticleIDRequired == "" {
+		m.ArticleIDRequired = "id 必须是正整数"
+	}
+	if m.InvalidArticleID == "" {
+		m.InvalidArticleID = "id 必须是正整数"
+	}
+	if m.InvalidRefresh == "" {
+		m.InvalidRefresh = "refresh 只允许 related 或 none"
+	}
+	if m.InvalidGray == "" {
+		m.InvalidGray = "gray 必须是字符串 1 或 2"
+	}
+	if m.InvalidOutputPath == "" {
+		m.InvalidOutputPath = "path 必须是非根目录的绝对路径"
+	}
+	if m.ContentUnavailable == "" {
+		m.ContentUnavailable = "content generation unavailable"
+	}
+	return m
 }
 
 func OperationsForGenerator(generator contracts.Generator, normalize func(string) (string, bool), pageNameError string) Operations {
