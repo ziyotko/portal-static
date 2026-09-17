@@ -23,9 +23,12 @@ func OutputPath(ctx context.Context) string {
 	if ctx == nil {
 		return ""
 	}
-	value, _ := ctx.Value(outputPathContextKey{}).(string)
-	if value = strings.TrimSpace(value); value != "" {
-		return value
+	// An explicitly stored empty value suppresses the request-level option.
+	// This is required while an operation delegates to a staging generator:
+	// otherwise the nested generator sees the original requested deployment
+	// path again and writes outside its staging directory.
+	if value, ok := ctx.Value(outputPathContextKey{}).(string); ok {
+		return strings.TrimSpace(value)
 	}
 	return strings.TrimSpace(contracts.OptionsFrom(ctx).OutputPath)
 }

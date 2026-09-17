@@ -6,6 +6,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"portal-static/internal/contracts"
 )
 
 func TestSiteGeneratorDeleteArticleUsesRequestedOutputPath(t *testing.T) {
@@ -55,5 +57,36 @@ func TestSiteGeneratorRejectsOutputPathOverlappingSource(t *testing.T) {
 	site := NewSiteGenerator(cfg, fakePageSource{}, fakeAboutSource{}, pages, nil, nil)
 	if err := site.ValidateOutputPath(filepath.Join(cfg.Site.OutputRoot, "nested")); !errors.Is(err, ErrInvalidOutputPath) {
 		t.Fatalf("unexpected validation error: %v", err)
+	}
+}
+
+func TestGenerateSiteUsesRequestedOutputPathThroughStaging(t *testing.T) {
+	cfg, aboutSource, homeSource := siteTestFixture(t)
+	cfg.Site.AllowEmptyStats = true
+	pageCfg := cfg
+	pageCfg.Site.OutputRoot = cfg.Site.DistRoot
+	pages, err := NewPageGenerator(pageCfg, homeSource, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	home, err := New(cfg, homeSource, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	site := NewSiteGenerator(cfg, homeSource, aboutSource, pages, home, nil)
+	requestedOutput := filepath.Join(t.TempDir(), "custom-output")
+	ctx := contracts.WithOptions(context.Background(), requestedOutput, false)
+
+	result, err := site.GenerateSite(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if filepath.Clean(result.Output) != filepath.Clean(requestedOutput) {
+		t.Fatalf("output = %q, want %q", result.Output, requestedOutput)
+	}
+	for _, name := range []string{"index.html", "about.html", "work.html", "stats.html", "members.html", "party.html"} {
+		if _, err := os.Stat(filepath.Join(requestedOutput, name)); err != nil {
+			t.Fatalf("requested output is missing %s: %v", name, err)
+		}
 	}
 }
