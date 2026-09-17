@@ -2,6 +2,19 @@
 
 `portal-static` 是所有门户项目共用的静态化生成平台，不是 MIIC 与 CAAM 的合并工程。MIIC、CAAM 只是首批适配器；后续门户继续接入同一个二进制、命令、HTTP API 和任务模型。
 
+## 文档导航
+
+- [完整文档目录](docs/README.md)
+- [部署指南](docs/deployment.md)
+- [管理后台使用指南](docs/admin-workflow.md)
+- [总体设计](docs/architecture.md)
+- [配置参考](docs/configuration.md)
+- [HTTP API 契约](docs/api-contract.md)
+- [新门户接入指南](docs/adapter-development.md)
+- [运维与排障手册](docs/operations.md)
+
+README 保留平台定位和快速入口；部署、使用、设计和接入细节以上述专题文档为准。
+
 页面模板、栏目结构、数据来源和生成规则可以不同，外部操作流程必须一致：
 
 - 一个程序：所有站点使用 `portal-static` 二进制。
