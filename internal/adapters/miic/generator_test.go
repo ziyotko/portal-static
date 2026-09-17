@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"portal-static/internal/cms/demo"
-	"portal-static/internal/cms/model"
+	"portal-static/internal/adapters/miic/demo"
+	"portal-static/internal/adapters/miic/model"
 )
 
 func TestMergeArticlesDeduplicatesAndSorts(t *testing.T) {
@@ -22,7 +22,7 @@ func TestMergeArticlesDeduplicatesAndSorts(t *testing.T) {
 }
 
 func TestSanitizerRemovesScriptsAndUnsafeURLs(t *testing.T) {
-	cfg, err := LoadLegacyConfig(filepath.Join("..", "..", "..", "miic-backend-seed", "config.example.yaml"))
+	cfg, err := LoadLegacyConfig(filepath.Join("testdata", "config.yaml"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -72,7 +72,7 @@ func TestMediaURLNormalizesLegacyUploadPrefix(t *testing.T) {
 }
 
 func TestPreviewGeneratesCompleteSite(t *testing.T) {
-	cfg, err := LoadLegacyConfig(filepath.Join("..", "..", "..", "miic-backend-seed", "config.example.yaml"))
+	cfg, err := LoadLegacyConfig(filepath.Join("testdata", "config.yaml"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -125,7 +125,7 @@ func TestPreviewGeneratesCompleteSite(t *testing.T) {
 }
 
 func TestGenerateAllListsPreservesPublishedRootFiles(t *testing.T) {
-	cfg, err := LoadLegacyConfig(filepath.Join("..", "..", "..", "miic-backend-seed", "config.example.yaml"))
+	cfg, err := LoadLegacyConfig(filepath.Join("testdata", "config.yaml"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -190,7 +190,7 @@ func TestGenerateAllListsPreservesPublishedRootFiles(t *testing.T) {
 }
 
 func TestOutputPathRejectsUnsafeSourceChild(t *testing.T) {
-	cfg, err := LoadLegacyConfig(filepath.Join("..", "..", "..", "miic-backend-seed", "config.example.yaml"))
+	cfg, err := LoadLegacyConfig(filepath.Join("testdata", "config.yaml"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -226,7 +226,7 @@ func (failingSource) FetchAllArticles(context.Context) ([]model.Article, error) 
 }
 
 func TestFailedSiteGenerationKeepsPublishedDirectory(t *testing.T) {
-	cfg, err := LoadLegacyConfig(filepath.Join("..", "..", "..", "miic-backend-seed", "config.example.yaml"))
+	cfg, err := LoadLegacyConfig(filepath.Join("testdata", "config.yaml"))
 	if err != nil {
 		t.Fatal(err)
 	}

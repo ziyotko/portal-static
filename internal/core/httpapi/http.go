@@ -12,31 +12,34 @@ import (
 	"strings"
 	"time"
 
-	"portal-static/internal/cms/repository"
 	"portal-static/internal/contracts"
 )
 
 type StaticGenerator = contracts.Generator
 
 type API struct {
-	generator StaticGenerator
-	token     string
-	timeout   time.Duration
-	logger    *slog.Logger
-	jobs      *jobManager
+	operations Operations
+	token      string
+	timeout    time.Duration
+	logger     *slog.Logger
+	jobs       *jobManager
 }
 
 func New(service context.Context, g StaticGenerator, token string, timeout, idle, max time.Duration, logger *slog.Logger) http.Handler {
+	return NewWithOperations(service, OperationsForGenerator(g, normalizeMIICPageName, "页面名必须是：资讯动态、核心业务、服务平台或关于我们"), token, timeout, idle, max, logger)
+}
+
+func NewWithOperations(service context.Context, operations Operations, token string, timeout, idle, max time.Duration, logger *slog.Logger) http.Handler {
 	if logger == nil {
 		logger = slog.Default()
 	}
-	api := &API{generator: g, token: token, timeout: timeout, logger: logger, jobs: newJobManager(service, idle, max)}
+	api := &API{operations: operations, token: token, timeout: timeout, logger: logger, jobs: newJobManager(service, idle, max)}
 	mux := http.NewServeMux()
 	mux.HandleFunc("/healthz", api.health)
-	mux.HandleFunc("/api/static/site", api.batch("site", true, g.GenerateSite))
-	mux.HandleFunc("/api/static/pages", api.batch("pages", true, g.GeneratePages))
-	mux.HandleFunc("/api/static/lists", api.batch("lists", false, g.GenerateAllLists))
-	mux.HandleFunc("/api/static/articles", api.batch("articles", false, g.GenerateAllArticles))
+	mux.HandleFunc("/api/static/site", api.batch("site", true, operations.GenerateSite))
+	mux.HandleFunc("/api/static/pages", api.batch("pages", true, operations.GeneratePages))
+	mux.HandleFunc("/api/static/lists", api.batch("lists", false, operations.GenerateAllLists))
+	mux.HandleFunc("/api/static/articles", api.batch("articles", false, operations.GenerateAllArticles))
 	mux.HandleFunc("/api/static/page", api.page)
 	mux.HandleFunc("/api/static/list", api.list)
 	mux.HandleFunc("/api/static/article", api.article)
@@ -52,12 +55,16 @@ func (a *API) health(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
 }
 
-func (a *API) batch(kind string, grayAllowed bool, run func(context.Context) (contracts.GenerationResult, error)) http.HandlerFunc {
+func (a *API) batch(kind string, grayAllowed bool, run Operation) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if !a.authorize(w, r, http.MethodPost) {
 			return
 		}
-		output, ok := a.requestOutputPath(w, r, a.generator)
+		if run == nil {
+			writeJSON(w, http.StatusServiceUnavailable, map[string]any{"ok": false, "error": "generation unavailable"})
+			return
+		}
+		output, ok := a.requestOutputPath(w, r)
 		if !ok {
 			return
 		}
@@ -90,11 +97,17 @@ func (a *API) page(w http.ResponseWriter, r *http.Request) {
 	if a.rejectWhileBatchActive(w) {
 		return
 	}
-	name := strings.TrimSpace(r.URL.Query().Get("name"))
-	switch name {
-	case "资讯动态", "news", "核心业务", "business", "服务平台", "platforms", "关于我们", "about":
-	default:
-		writeJSON(w, http.StatusBadRequest, map[string]any{"ok": false, "error": "页面名必须是：资讯动态、核心业务、服务平台或关于我们"})
+	requestedName := strings.TrimSpace(r.URL.Query().Get("name"))
+	name, valid := requestedName, requestedName != ""
+	if a.operations.NormalizePageName != nil {
+		name, valid = a.operations.NormalizePageName(requestedName)
+	}
+	if !valid || a.operations.GeneratePage == nil {
+		message := a.operations.PageNameError
+		if message == "" {
+			message = "unsupported page"
+		}
+		writeJSON(w, http.StatusBadRequest, map[string]any{"ok": false, "error": message})
 		return
 	}
 	gray, ok := parseGray(w, r, true)
@@ -103,12 +116,12 @@ func (a *API) page(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx, cancel := context.WithTimeout(r.Context(), a.timeout)
 	defer cancel()
-	output, ok := a.requestOutputPath(w, r, a.generator)
+	output, ok := a.requestOutputPath(w, r)
 	if !ok {
 		return
 	}
 	ctx = contracts.WithOptions(ctx, output, gray)
-	result, err := a.generator.GeneratePage(ctx, name)
+	result, err := a.operations.GeneratePage(ctx, name)
 	a.writeResult(w, result, err)
 }
 
@@ -127,22 +140,30 @@ func (a *API) list(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx, cancel := context.WithTimeout(r.Context(), a.timeout)
 	defer cancel()
-	output, ok := a.requestOutputPath(w, r, a.generator)
+	output, ok := a.requestOutputPath(w, r)
 	if !ok {
 		return
 	}
 	ctx = contracts.WithOptions(ctx, output, false)
-	var result contracts.ListResult
+	var result any
 	var err error
 	if name != "" {
-		result, err = a.generator.GenerateListByName(ctx, name)
+		if a.operations.GenerateListByName == nil {
+			writeJSON(w, http.StatusServiceUnavailable, map[string]any{"ok": false, "error": "list generation unavailable"})
+			return
+		}
+		result, err = a.operations.GenerateListByName(ctx, name)
 	} else {
 		id, parseErr := strconv.ParseInt(rawID, 10, 64)
 		if parseErr != nil || id <= 0 {
 			writeJSON(w, http.StatusBadRequest, map[string]any{"ok": false, "error": "column_id 必须是正整数"})
 			return
 		}
-		result, err = a.generator.GenerateList(ctx, id)
+		if a.operations.GenerateList == nil {
+			writeJSON(w, http.StatusServiceUnavailable, map[string]any{"ok": false, "error": "list generation unavailable"})
+			return
+		}
+		result, err = a.operations.GenerateList(ctx, id)
 	}
 	a.writeResult(w, result, err)
 }
@@ -170,26 +191,26 @@ func (a *API) article(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx, cancel := context.WithTimeout(r.Context(), a.timeout)
 	defer cancel()
-	output, ok := a.requestOutputPath(w, r, a.generator)
+	output, ok := a.requestOutputPath(w, r)
 	if !ok {
 		return
 	}
 	ctx = contracts.WithOptions(ctx, output, false)
 	if r.Method == http.MethodDelete {
-		var result contracts.DeleteArticleResult
+		var result any
 		if refreshRelated {
-			result, err = a.generator.DeleteArticleRelated(ctx, id)
+			result, err = a.operations.DeleteArticleRelated(ctx, id)
 		} else {
-			result, err = a.generator.DeleteArticle(ctx, id)
+			result, err = a.operations.DeleteArticle(ctx, id)
 		}
 		a.writeResult(w, result, err)
 		return
 	}
-	var result contracts.ArticleResult
+	var result any
 	if refreshRelated {
-		result, err = a.generator.GenerateArticleRelated(ctx, id)
+		result, err = a.operations.GenerateArticleRelated(ctx, id)
 	} else {
-		result, err = a.generator.GenerateArticle(ctx, id)
+		result, err = a.operations.GenerateArticle(ctx, id)
 	}
 	a.writeResult(w, result, err)
 }
@@ -256,11 +277,7 @@ func parseGray(w http.ResponseWriter, r *http.Request, allowed bool) (bool, bool
 	return false, false
 }
 
-type outputPathValidator interface {
-	ValidateOutputPath(string) error
-}
-
-func (a *API) requestOutputPath(w http.ResponseWriter, r *http.Request, service any) (string, bool) {
+func (a *API) requestOutputPath(w http.ResponseWriter, r *http.Request) (string, bool) {
 	raw := strings.TrimSpace(r.URL.Query().Get("path"))
 	if raw == "" {
 		return "", true
@@ -274,8 +291,8 @@ func (a *API) requestOutputPath(w http.ResponseWriter, r *http.Request, service 
 		writeJSON(w, http.StatusBadRequest, map[string]any{"ok": false, "error": "path 必须是非根目录的绝对路径"})
 		return "", false
 	}
-	if validator, ok := service.(outputPathValidator); ok {
-		if err := validator.ValidateOutputPath(clean); err != nil {
+	if a.operations.ValidateOutputPath != nil {
+		if err := a.operations.ValidateOutputPath(clean); err != nil {
 			if errors.Is(err, contracts.ErrInvalidOutputPath) {
 				writeJSON(w, http.StatusBadRequest, map[string]any{"ok": false, "error": err.Error()})
 				return "", false
@@ -317,27 +334,32 @@ func (a *API) writeResult(w http.ResponseWriter, result any, err error) {
 		writeJSON(w, http.StatusOK, map[string]any{"ok": true, "result": result})
 		return
 	}
-	status := http.StatusInternalServerError
-	message := "static generation failed"
-	switch {
-	case errors.Is(err, contracts.ErrBusy):
-		status = http.StatusConflict
-		message = err.Error()
-	case errors.Is(err, contracts.ErrArticleStillPublished):
-		status = http.StatusConflict
-		message = "文章仍处于可发布状态，请先在数据库下架"
-	case errors.Is(err, repository.ErrColumnNotUnique):
-		status = http.StatusConflict
-		message = err.Error()
-	case errors.Is(err, repository.ErrColumnNotFound), errors.Is(err, repository.ErrArticleNotPublished):
-		status = http.StatusNotFound
-		message = err.Error()
-	case errors.Is(err, contracts.ErrInvalidOutputPath), strings.Contains(err.Error(), "output path"), strings.Contains(err.Error(), "unsupported page"):
-		status = http.StatusBadRequest
-		message = err.Error()
+	status, message, classified := defaultErrorClassification(err)
+	if a.operations.ClassifyError != nil {
+		if customStatus, customMessage, ok := a.operations.ClassifyError(err); ok {
+			status, message, classified = customStatus, customMessage, true
+		}
+	}
+	if !classified {
+		status, message = http.StatusInternalServerError, "static generation failed"
 	}
 	a.logger.Error("静态化请求失败", "error", err)
 	writeJSON(w, status, map[string]any{"ok": false, "error": message})
+}
+
+func normalizeMIICPageName(name string) (string, bool) {
+	switch strings.TrimSpace(name) {
+	case "资讯动态", "news":
+		return "news", true
+	case "核心业务", "business":
+		return "business", true
+	case "服务平台", "platforms":
+		return "platforms", true
+	case "关于我们", "about":
+		return "about", true
+	default:
+		return "", false
+	}
 }
 
 func methodNotAllowed(w http.ResponseWriter, allow string) {

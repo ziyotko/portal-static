@@ -10,6 +10,11 @@ var (
 	ErrBusy                  = errors.New("static generation is already running")
 	ErrInvalidOutputPath     = errors.New("invalid output path")
 	ErrArticleStillPublished = errors.New("article is still publishable")
+	ErrPageNotFound          = errors.New("page not found")
+	ErrPageNotUnique         = errors.New("page name is not unique")
+	ErrColumnNotFound        = errors.New("column not found")
+	ErrColumnNotUnique       = errors.New("column name is not unique")
+	ErrArticleNotPublished   = errors.New("article not found or not published")
 )
 
 type Generator interface {
@@ -41,6 +46,8 @@ type GenerationResult struct {
 	Gray              string    `json:"gray,omitempty"`
 }
 
+func (r GenerationResult) GeneratedFileCount() int { return r.GeneratedFiles }
+
 type ArticleResult struct {
 	GeneratedAt        time.Time `json:"generated_at"`
 	DurationSeconds    float64   `json:"duration_seconds"`
@@ -53,6 +60,8 @@ type ArticleResult struct {
 	RefreshedColumnIDs []int64   `json:"refreshed_column_ids,omitempty"`
 	RefreshedPages     []string  `json:"refreshed_pages,omitempty"`
 }
+
+func (r ArticleResult) GeneratedFileCount() int { return r.GeneratedFiles }
 
 type DeleteArticleResult struct {
 	DeletedAt          time.Time `json:"deleted_at"`
@@ -67,6 +76,8 @@ type DeleteArticleResult struct {
 	RefreshedPages     []string  `json:"refreshed_pages,omitempty"`
 }
 
+func (r DeleteArticleResult) GeneratedFileCount() int { return r.GeneratedFiles }
+
 type ListResult struct {
 	GeneratedAt      time.Time `json:"generated_at"`
 	DurationSeconds  float64   `json:"duration_seconds"`
@@ -79,6 +90,8 @@ type ListResult struct {
 	PageSize         int       `json:"page_size"`
 	Output           string    `json:"output"`
 }
+
+func (r ListResult) GeneratedFileCount() int { return r.GeneratedFiles }
 
 type Progress struct {
 	Stage            string `json:"stage"`

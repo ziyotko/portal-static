@@ -15,8 +15,8 @@ import (
 	"strings"
 	"time"
 
-	"portal-static/internal/cms/model"
-	"portal-static/internal/cms/repository"
+	"portal-static/internal/adapters/miic/model"
+	"portal-static/internal/adapters/miic/repository"
 	"portal-static/internal/contracts"
 	"portal-static/internal/core/media"
 

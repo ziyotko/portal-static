@@ -9,14 +9,14 @@ import (
 	"strings"
 	"testing"
 
-	"portal-static/internal/cms/demo"
-	"portal-static/internal/cms/model"
-	"portal-static/internal/cms/repository"
+	"portal-static/internal/adapters/miic/demo"
+	"portal-static/internal/adapters/miic/model"
+	"portal-static/internal/adapters/miic/repository"
 )
 
 func relatedTestGenerator(t *testing.T, source Source) (*Generator, Config) {
 	t.Helper()
-	cfg, err := LoadLegacyConfig(filepath.Join("..", "..", "..", "miic-backend-seed", "config.example.yaml"))
+	cfg, err := LoadLegacyConfig(filepath.Join("testdata", "config.yaml"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -149,7 +149,7 @@ func TestGenerateArticleRelatedConflictsWithSiteLock(t *testing.T) {
 }
 
 func TestUnsupportedArticleTypeDoesNotProduceLocalDetailLink(t *testing.T) {
-	cfg, err := LoadLegacyConfig(filepath.Join("..", "..", "..", "miic-backend-seed", "config.example.yaml"))
+	cfg, err := LoadLegacyConfig(filepath.Join("testdata", "config.yaml"))
 	if err != nil {
 		t.Fatal(err)
 	}

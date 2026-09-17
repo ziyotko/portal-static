@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"portal-static/internal/cms/demo"
-	"portal-static/internal/cms/model"
+	"portal-static/internal/adapters/miic/demo"
+	"portal-static/internal/adapters/miic/model"
 )
 
 type missingRelationsSource struct{ Source }

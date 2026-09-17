@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"portal-static/internal/cms/model"
+	"portal-static/internal/adapters/miic/model"
 	"portal-static/internal/core/media"
 )
 

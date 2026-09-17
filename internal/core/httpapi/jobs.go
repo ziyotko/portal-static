@@ -202,13 +202,8 @@ func (m *jobManager) finish(id string, jobCtx context.Context, outcome jobOutcom
 }
 
 func completedGeneratedFiles(result any) (int, bool) {
-	switch value := result.(type) {
-	case contracts.GenerationResult:
-		return value.GeneratedFiles, true
-	case *contracts.GenerationResult:
-		if value != nil {
-			return value.GeneratedFiles, true
-		}
+	if value, ok := result.(interface{ GeneratedFileCount() int }); ok {
+		return value.GeneratedFileCount(), true
 	}
 	return 0, false
 }

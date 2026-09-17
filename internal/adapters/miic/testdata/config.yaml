@@ -1,0 +1,23 @@
+site:
+  source_root: .
+  dist_root: ../dist/miic-test
+  preview_root: ../dist/miic-preview
+  news_template: templates/news.html.tmpl
+  list_template: templates/list.html.tmpl
+  article_template: templates/article.html.tmpl
+  page_size: 10
+  media_base_url: ""
+  timezone: Asia/Shanghai
+  lock_stale_after: 30m
+  fallback_cover: assets/miic-placeholder.png
+  page_name: 资讯动态
+news:
+  important: { key: important, title: 中心重要动态, name: 中心重要动态, limit: 3 }
+  dynamic_columns: true
+  exclude_columns: [中心重要动态]
+business:
+  page_name: 核心业务
+about:
+  page_name: 关于我们
+  recruitment_name: 招聘信息
+  disclosure_name: 信息公开

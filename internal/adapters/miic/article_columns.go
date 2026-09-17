@@ -13,7 +13,7 @@ import (
 	"strings"
 
 	nethtml "golang.org/x/net/html"
-	"portal-static/internal/cms/model"
+	"portal-static/internal/adapters/miic/model"
 )
 
 // Resolve before replacing any output: a removed publication relationship may

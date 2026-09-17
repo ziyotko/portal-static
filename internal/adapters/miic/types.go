@@ -4,7 +4,7 @@ import (
 	"context"
 	"html/template"
 
-	"portal-static/internal/cms/model"
+	"portal-static/internal/adapters/miic/model"
 	"portal-static/internal/contracts"
 )
 
