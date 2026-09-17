@@ -3,6 +3,7 @@ package httpapi
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -43,6 +44,40 @@ type Messages struct {
 	InvalidGray        string
 	InvalidOutputPath  string
 	ContentUnavailable string
+}
+
+// Validate verifies the platform contract before a site starts serving work.
+// Every adapter must expose the same workflow even when its templates and data
+// model are different.
+func (o Operations) Validate() error {
+	required := []struct {
+		name string
+		set  bool
+	}{
+		{"GenerateSite", o.GenerateSite != nil},
+		{"GeneratePages", o.GeneratePages != nil},
+		{"GenerateAllLists", o.GenerateAllLists != nil},
+		{"GenerateAllArticles", o.GenerateAllArticles != nil},
+		{"GeneratePage", o.GeneratePage != nil},
+		{"GenerateList", o.GenerateList != nil},
+		{"GenerateListByName", o.GenerateListByName != nil},
+		{"GenerateArticle", o.GenerateArticle != nil},
+		{"DeleteArticle", o.DeleteArticle != nil},
+		{"GenerateArticleRelated", o.GenerateArticleRelated != nil},
+		{"DeleteArticleRelated", o.DeleteArticleRelated != nil},
+		{"NormalizePageName", o.NormalizePageName != nil},
+		{"ValidateOutputPath", o.ValidateOutputPath != nil},
+		{"ClassifyError", o.ClassifyError != nil},
+	}
+	for _, operation := range required {
+		if !operation.set {
+			return fmt.Errorf("incomplete static generation operations: %s is required", operation.name)
+		}
+	}
+	if strings.TrimSpace(o.PageNameError) == "" {
+		return errors.New("incomplete static generation operations: PageNameError is required")
+	}
+	return nil
 }
 
 func (m Messages) withDefaults() Messages {
@@ -88,6 +123,7 @@ func OperationsForGenerator(generator contracts.Generator, normalize func(string
 		DeleteArticleRelated:   func(ctx context.Context, id int64) (any, error) { return generator.DeleteArticleRelated(ctx, id) },
 		NormalizePageName:      normalize,
 		PageNameError:          pageNameError,
+		ClassifyError:          defaultErrorClassification,
 	}
 	if validator, ok := generator.(interface{ ValidateOutputPath(string) error }); ok {
 		operations.ValidateOutputPath = validator.ValidateOutputPath

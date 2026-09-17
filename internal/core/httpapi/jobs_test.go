@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	generator "portal-static/internal/adapters/miic"
+	generator "portal-static/internal/contracts"
 )
 
 func TestJobManagerIdleTimeoutInterruptsJobAndReleasesSlot(t *testing.T) {
