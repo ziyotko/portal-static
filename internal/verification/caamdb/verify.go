@@ -29,6 +29,7 @@ import (
 type Options struct {
 	DumpPath   string
 	ConfigPath string
+	OutputPath string
 	Logger     *slog.Logger
 }
 
@@ -116,6 +117,20 @@ func Verify(ctx context.Context, options Options) (Summary, error) {
 	}
 	snapshot := manager.Bootstrap()
 	output := filepath.Join(tempRoot, "generated")
+	if strings.TrimSpace(options.OutputPath) != "" {
+		output, err = filepath.Abs(options.OutputPath)
+		if err != nil {
+			return Summary{}, fmt.Errorf("resolve verification output: %w", err)
+		}
+		if filepath.Dir(output) == output {
+			return Summary{}, errors.New("CAAM verification output must not be a filesystem root")
+		}
+		if _, statErr := os.Stat(output); statErr == nil {
+			return Summary{}, fmt.Errorf("CAAM verification output already exists: %s", output)
+		} else if !errors.Is(statErr, os.ErrNotExist) {
+			return Summary{}, statErr
+		}
+	}
 	snapshot.Paths.DistRoot = output
 	snapshot.Paths.PreviewRoot = filepath.Join(tempRoot, "preview")
 	const dsnEnv = "CAAM_VERIFY_DB_DSN"
@@ -157,7 +172,7 @@ func Verify(ctx context.Context, options Options) (Summary, error) {
 	summary.GeneratedFiles = metrics.GeneratedFiles
 	summary.GeneratedDetails = metrics.GeneratedDetails
 	summary.GeneratedLists = metrics.GeneratedLists
-	summary.OutputScanned = "temporary isolated directory"
+	summary.OutputScanned = output
 	if err := validateOutput(output, summary.PublishedArticles, excludedIDs); err != nil {
 		return Summary{}, err
 	}

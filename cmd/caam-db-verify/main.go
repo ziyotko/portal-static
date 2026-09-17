@@ -24,7 +24,7 @@ func main() {
 		logOutput = os.Stdout
 	}
 	summary, err := caamdb.Verify(ctx, caamdb.Options{
-		DumpPath: os.Getenv("CAAM_SQL_DUMP"), ConfigPath: os.Getenv("CAAM_VERIFY_CONFIG"),
+		DumpPath: os.Getenv("CAAM_SQL_DUMP"), ConfigPath: os.Getenv("CAAM_VERIFY_CONFIG"), OutputPath: os.Getenv("CAAM_VERIFY_OUTPUT"),
 		Logger: slog.New(slog.NewJSONHandler(logOutput, nil)),
 	})
 	if err != nil {

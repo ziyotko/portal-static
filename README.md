@@ -124,6 +124,12 @@ go run ./cmd/caam-db-verify
 CAAM_VERIFY_VERBOSE=1 go run ./cmd/caam-db-verify
 ```
 
+默认生成目录随验收临时目录一起清理。如需保留页面供人工检查，指定一个尚不存在的目录：
+
+```bash
+CAAM_VERIFY_OUTPUT="$PWD/dist/caam-db-preview" go run ./cmd/caam-db-verify
+```
+
 工具会验证真实页面、栏目、发布关系、草稿排除、首页与六类页面、栏目列表、详情数量和媒体重写，并扫描以下禁止内容：
 
 - dump 中的内网 IP；
@@ -131,7 +137,7 @@ CAAM_VERIFY_VERBOSE=1 go run ./cmd/caam-db-verify
 - `demo.miic.com.cn` 等旧 origin；
 - `caamm/uploads` 错误路径。
 
-容器、凭据、提取 SQL 和生成目录在成功或失败后都会删除。Docker 未启动时只返回明确错误，常规测试不依赖 Docker。
+容器、凭据和提取 SQL 在成功或失败后都会删除；未设置 `CAAM_VERIFY_OUTPUT` 时生成目录也会删除。Docker 未启动时只返回明确错误，常规测试不依赖 Docker。
 
 ## 测试与上线
 
