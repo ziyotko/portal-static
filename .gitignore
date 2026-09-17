@@ -3,4 +3,4 @@ dist/
 *.lock
 *.previous
 .DS_Store
-portal-static
+/portal-static

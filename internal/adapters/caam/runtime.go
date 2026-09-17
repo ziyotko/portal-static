@@ -9,11 +9,18 @@ import (
 	"path/filepath"
 
 	"portal-static/internal/adapters/caam/config"
+	"portal-static/internal/adapters/caam/demo"
 	"portal-static/internal/adapters/caam/generator"
 	"portal-static/internal/adapters/caam/repository"
 	coreconfig "portal-static/internal/core/config"
 	"portal-static/internal/core/httpapi"
 )
+
+type runtimeSource interface {
+	repository.ArticleSource
+	generator.PageSource
+	generator.AboutSource
+}
 
 func NewProduction(snapshot coreconfig.Snapshot, database *sql.DB, logger *slog.Logger) (config.Config, *generator.SiteGenerator, error) {
 	cfg, err := config.FromSnapshot(snapshot)
@@ -25,19 +32,37 @@ func NewProduction(snapshot coreconfig.Snapshot, database *sql.DB, logger *slog.
 		return config.Config{}, nil, err
 	}
 	source := repository.NewArticleRepository(database, pageID)
+	site, err := newSiteGenerator(cfg, source, logger)
+	return cfg, site, err
+}
+
+func NewPreview(snapshot coreconfig.Snapshot, logger *slog.Logger) (config.Config, *generator.SiteGenerator, error) {
+	cfg, err := config.FromSnapshot(snapshot)
+	if err != nil {
+		return config.Config{}, nil, err
+	}
+	cfg.Site.DistRoot = snapshot.Paths.PreviewRoot
+	site, err := newSiteGenerator(cfg, demo.NewSiteSource(cfg), logger)
+	return cfg, site, err
+}
+
+func newSiteGenerator(cfg config.Config, source runtimeSource, logger *slog.Logger) (*generator.SiteGenerator, error) {
 	distConfig := cfg
 	distConfig.Site.OutputRoot = cfg.Site.DistRoot
 	distConfig.Site.Output = filepath.Join(cfg.Site.DistRoot, "index.html")
 	pages, err := generator.NewPageGenerator(distConfig, source, logger)
 	if err != nil {
-		return config.Config{}, nil, err
+		return nil, err
 	}
 	home, err := generator.New(distConfig, source, logger)
 	if err != nil {
-		return config.Config{}, nil, err
+		return nil, err
 	}
-	return cfg, generator.NewSiteGenerator(cfg, source, source, pages, home, logger), nil
+	return generator.NewSiteGenerator(cfg, source, source, pages, home, logger), nil
 }
+
+var _ runtimeSource = (*repository.ArticleRepository)(nil)
+var _ runtimeSource = (*demo.SiteSource)(nil)
 
 func Operations(site *generator.SiteGenerator) httpapi.Operations {
 	return withHTTPContract(httpapi.Operations{

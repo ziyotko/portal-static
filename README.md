@@ -13,7 +13,7 @@ go run ./cmd/portal-static preview --config configs/miic.example.yaml
 go run ./cmd/portal-static preview --config configs/caam.example.yaml
 ```
 
-输出分别位于 `dist/miic-preview` 和 `dist/caam-preview`。CAAM 保留原命令语义，`preview` 只生成演示首页。
+输出分别位于 `dist/miic-preview` 和 `dist/caam-preview`。两个站点都执行完整的演示站点生成流程：复制只读脚手架，并生成主页面、栏目列表和文章详情。
 
 ## 生产运行
 
@@ -33,7 +33,7 @@ export CAAM_STATIC_TOKEN='replace-with-a-random-token'
 go run ./cmd/portal-static serve --config configs/caam.yaml
 ```
 
-MIIC 默认监听 `127.0.0.1:9143`，CAAM 默认监听 `127.0.0.1:9142`。一次性 `generate` 保留站点原有语义：MIIC 生成整站，CAAM 生成首页。
+MIIC 默认监听 `127.0.0.1:9143`，CAAM 默认监听 `127.0.0.1:9142`。两个站点的 `generate` 都生成完整生产站点。
 
 ```bash
 go run ./cmd/portal-static generate --config configs/miic.yaml
@@ -63,3 +63,7 @@ go vet ./...
 ```
 
 上线 CAAM 前，先通过 `preview` 或 API 的 `path` 参数生成到隔离目录，比较文件集合和关键 HTML，再切换 9142 端口上的旧静态化进程。
+
+## 统一工作流约束
+
+站点可以使用不同模板、栏目模型和数据仓储，但外部操作流程必须一致：`preview` 使用演示数据生成整站，`generate` 使用生产数据生成整站，`serve` 提供相同的 HTTP 路由、鉴权和任务管理。新增站点适配器不得在命令层引入站点专用语义。
