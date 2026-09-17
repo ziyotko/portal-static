@@ -69,13 +69,13 @@ type Snapshot struct {
 }
 
 type Info struct {
-	Path             string    `json:"path"`
-	CurrentHash      string    `json:"current_hash"`
-	CurrentModTime   time.Time `json:"current_modified_at"`
-	LastUsedHash     string    `json:"last_used_hash,omitempty"`
-	LastUsedAt       time.Time `json:"last_used_at,omitempty"`
-	RestartRequired  bool      `json:"restart_required"`
-	ValidationError  string    `json:"validation_error,omitempty"`
+	Path            string    `json:"path"`
+	CurrentHash     string    `json:"current_hash"`
+	CurrentModTime  time.Time `json:"current_modified_at"`
+	LastUsedHash    string    `json:"last_used_hash,omitempty"`
+	LastUsedAt      time.Time `json:"last_used_at,omitempty"`
+	RestartRequired bool      `json:"restart_required"`
+	ValidationError string    `json:"validation_error,omitempty"`
 }
 
 type Manager struct {
@@ -168,15 +168,11 @@ func (d Document) Validate() error {
 	if _, err := time.LoadLocation(d.Site.Timezone); err != nil {
 		return fmt.Errorf("invalid site.timezone: %w", err)
 	}
-	if d.Database.DSNEnv == "" || !identifierPattern.MatchString(d.Database.Schema) {
-		return errors.New("database.dsn_env and a safe database.schema are required")
-	}
 	if d.Server.Addr == "" || d.Server.TokenEnv == "" {
 		return errors.New("server.addr and server.token_env are required")
 	}
 	for label, raw := range map[string]string{
-		"database.conn_max_lifetime": d.Database.ConnMaxLifetime,
-		"server.request_timeout": d.Server.RequestTimeout,
+		"server.request_timeout":    d.Server.RequestTimeout,
 		"server.batch_idle_timeout": d.Server.BatchIdleTimeout,
 		"server.batch_max_duration": d.Server.BatchMaxDuration,
 	} {
@@ -192,6 +188,25 @@ func (d Document) Validate() error {
 	}
 	if _, err := media.New(d.Media); err != nil {
 		return err
+	}
+	return nil
+}
+
+// ValidateMySQL validates the optional shared CMS MySQL configuration. It is
+// deliberately separate from Document.Validate so preview and future adapters
+// backed by other data sources do not inherit a MySQL requirement.
+func (d DatabaseConfig) ValidateMySQL() error {
+	if strings.TrimSpace(d.DSNEnv) == "" || !identifierPattern.MatchString(d.Schema) {
+		return errors.New("database.dsn_env and a safe database.schema are required for portal CMS MySQL")
+	}
+	if d.MaxOpenConns <= 0 {
+		return errors.New("database.max_open_conns must be positive")
+	}
+	if d.MaxIdleConns < 0 || d.MaxIdleConns > d.MaxOpenConns {
+		return errors.New("database.max_idle_conns must be between zero and max_open_conns")
+	}
+	if _, err := time.ParseDuration(d.ConnMaxLifetime); err != nil {
+		return fmt.Errorf("parse database.conn_max_lifetime: %w", err)
 	}
 	return nil
 }

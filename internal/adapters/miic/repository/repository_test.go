@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"portal-static/internal/sources/portalcms"
 )
 
 func TestFetchArticleRelatedColumnsIncludesOfflineAndRemovedRelations(t *testing.T) {
@@ -87,6 +88,26 @@ func TestResolvePageIDRejectsDuplicate(t *testing.T) {
 	mock.ExpectQuery(regexp.QuoteMeta("SELECT id FROM page WHERE name=? AND status=1 AND deleted_at IS NULL ORDER BY id LIMIT 2")).WithArgs("资讯动态").WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1).AddRow(2))
 	if _, err := ResolvePageID(context.Background(), db, "资讯动态"); err != ErrPageNotUnique {
 		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestResolvePageIDUsesConfiguredSchema(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	store, err := portalcms.NewStore(db, "tenant_portal", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT id FROM tenant_portal.page WHERE name=? AND status=1 AND deleted_at IS NULL ORDER BY id LIMIT 2")).
+		WithArgs("资讯动态").WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(7))
+	if id, err := ResolvePageIDWithStore(context.Background(), store, "资讯动态"); err != nil || id != 7 {
+		t.Fatalf("id=%d err=%v", id, err)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
 	}
 }
 

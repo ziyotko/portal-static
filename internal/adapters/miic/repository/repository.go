@@ -9,6 +9,7 @@ import (
 
 	"portal-static/internal/adapters/miic/model"
 	"portal-static/internal/contracts"
+	"portal-static/internal/sources/portalcms"
 )
 
 var (
@@ -20,12 +21,20 @@ var (
 )
 
 type Repository struct {
-	db     *sql.DB
+	db     *portalcms.Store
 	pageID int64
 }
 
 func ResolvePageID(ctx context.Context, db *sql.DB, name string) (int64, error) {
-	rows, err := db.QueryContext(ctx, "SELECT id FROM page WHERE name=? AND status=1 AND deleted_at IS NULL ORDER BY id LIMIT 2", strings.TrimSpace(name))
+	store, err := portalcms.NewStore(db, "", false)
+	if err != nil {
+		return 0, err
+	}
+	return ResolvePageIDWithStore(ctx, store, name)
+}
+
+func ResolvePageIDWithStore(ctx context.Context, store *portalcms.Store, name string) (int64, error) {
+	rows, err := store.QueryContext(ctx, "SELECT id FROM {{schema}}.page WHERE name=? AND status=1 AND deleted_at IS NULL ORDER BY id LIMIT 2", strings.TrimSpace(name))
 	if err != nil {
 		return 0, fmt.Errorf("resolve page: %w", err)
 	}
@@ -47,7 +56,17 @@ func ResolvePageID(ctx context.Context, db *sql.DB, name string) (int64, error) 
 	return ids[0], rows.Err()
 }
 
-func New(db *sql.DB, pageID int64) *Repository { return &Repository{db: db, pageID: pageID} }
+func New(db *sql.DB, pageID int64) *Repository {
+	store, err := portalcms.NewStore(db, "", false)
+	if err != nil {
+		panic(err)
+	}
+	return NewWithStore(store, pageID)
+}
+
+func NewWithStore(store *portalcms.Store, pageID int64) *Repository {
+	return &Repository{db: store, pageID: pageID}
+}
 
 func (r *Repository) FetchByColumnName(ctx context.Context, name string, limit int) (model.Column, []model.Article, error) {
 	column, err := r.resolvePageColumn(ctx, r.pageID, name)
@@ -59,7 +78,7 @@ func (r *Repository) FetchByColumnName(ctx context.Context, name string, limit i
 }
 
 func (r *Repository) FetchPageColumnArticles(ctx context.Context, pageName, columnName string, limit int) (model.Column, []model.Article, error) {
-	pageID, err := ResolvePageID(ctx, r.db, pageName)
+	pageID, err := ResolvePageIDWithStore(ctx, r.db, pageName)
 	if err != nil {
 		return model.Column{}, nil, err
 	}
@@ -72,12 +91,12 @@ func (r *Repository) FetchPageColumnArticles(ctx context.Context, pageName, colu
 }
 
 func (r *Repository) FetchPageColumns(ctx context.Context, pageName string, parentID int64) ([]model.Column, error) {
-	pageID, err := ResolvePageID(ctx, r.db, pageName)
+	pageID, err := ResolvePageIDWithStore(ctx, r.db, pageName)
 	if err != nil {
 		return nil, err
 	}
 	rows, err := r.db.QueryContext(ctx, `SELECT id,name,code,page_id,parent_id,COALESCE(description,''),sort
-FROM `+"`column`"+` WHERE page_id=? AND parent_id=? AND status=1 AND deleted_at IS NULL ORDER BY sort,id`, pageID, parentID)
+FROM {{schema}}.`+"`column`"+` WHERE page_id=? AND parent_id=? AND status=1 AND deleted_at IS NULL ORDER BY sort,id`, pageID, parentID)
 	if err != nil {
 		return nil, err
 	}
@@ -105,7 +124,7 @@ FROM `+"`column`"+` WHERE page_id=? AND parent_id=? AND status=1 AND deleted_at 
 }
 
 func (r *Repository) ResolveGlobalColumnID(ctx context.Context, name string) (int64, error) {
-	rows, err := r.db.QueryContext(ctx, "SELECT id FROM `column` WHERE name=? AND status=1 AND deleted_at IS NULL ORDER BY id LIMIT 2", strings.TrimSpace(name))
+	rows, err := r.db.QueryContext(ctx, "SELECT id FROM {{schema}}.`column` WHERE name=? AND status=1 AND deleted_at IS NULL ORDER BY id LIMIT 2", strings.TrimSpace(name))
 	if err != nil {
 		return 0, err
 	}
@@ -129,7 +148,7 @@ func (r *Repository) ResolveGlobalColumnID(ctx context.Context, name string) (in
 
 func (r *Repository) FetchColumns(ctx context.Context) ([]model.Column, error) {
 	rows, err := r.db.QueryContext(ctx, `SELECT c.id,c.name,c.code,c.page_id,p.name,c.parent_id,COALESCE(c.description,''),c.sort
-FROM `+"`column`"+` c INNER JOIN page p ON p.id=c.page_id AND p.status=1 AND p.deleted_at IS NULL
+FROM {{schema}}.`+"`column`"+` c INNER JOIN {{schema}}.page p ON p.id=c.page_id AND p.status=1 AND p.deleted_at IS NULL
 WHERE c.status=1 AND c.deleted_at IS NULL ORDER BY c.page_id,c.parent_id,c.sort,c.id`)
 	if err != nil {
 		return nil, err
@@ -160,9 +179,9 @@ func (r *Repository) fetchColumnArticles(ctx context.Context, id int64, limit in
 COALESCE(NULLIF(acp.author,''),a.author,''),COALESCE(NULLIF(acp.source,''),a.source,''),
 COALESCE(acp.is_bold,0),COALESCE(acp.is_top,0),COALESCE(NULLIF(acp.color,''),a.default_color,''),
 COALESCE(a.url,''),a.publish_time
-FROM article_column_publish acp INNER JOIN article a ON a.id=acp.article_id
-INNER JOIN ` + "`column`" + ` c ON c.id=acp.column_id AND c.status=1 AND c.deleted_at IS NULL
-INNER JOIN page p ON p.id=c.page_id AND p.status=1 AND p.deleted_at IS NULL
+FROM {{schema}}.article_column_publish acp INNER JOIN {{schema}}.article a ON a.id=acp.article_id
+INNER JOIN {{schema}}.` + "`column`" + ` c ON c.id=acp.column_id AND c.status=1 AND c.deleted_at IS NULL
+INNER JOIN {{schema}}.page p ON p.id=c.page_id AND p.status=1 AND p.deleted_at IS NULL
 WHERE acp.column_id=? AND acp.deleted_at IS NULL AND a.status=1 AND a.audit_status=2 AND a.deleted_at IS NULL
 AND a.type IN (1,2) ORDER BY acp.is_top DESC,a.publish_time DESC,a.id DESC`
 	args := []any{id}
@@ -183,9 +202,9 @@ a.id,a.type,a.title,COALESCE(a.summary,''),COALESCE(a.content,''),COALESCE(a.cov
 COALESCE(NULLIF(acp.author,''),a.author,''),COALESCE(NULLIF(acp.source,''),a.source,''),
 COALESCE(acp.is_bold,0),COALESCE(acp.is_top,0),COALESCE(NULLIF(acp.color,''),a.default_color,''),
 COALESCE(a.url,''),a.publish_time
-FROM article a INNER JOIN article_column_publish acp ON acp.article_id=a.id
-INNER JOIN ` + "`column`" + ` c ON c.id=acp.column_id AND c.status=1 AND c.deleted_at IS NULL
-INNER JOIN page p ON p.id=c.page_id AND p.status=1 AND p.deleted_at IS NULL
+FROM {{schema}}.article a INNER JOIN {{schema}}.article_column_publish acp ON acp.article_id=a.id
+INNER JOIN {{schema}}.` + "`column`" + ` c ON c.id=acp.column_id AND c.status=1 AND c.deleted_at IS NULL
+INNER JOIN {{schema}}.page p ON p.id=c.page_id AND p.status=1 AND p.deleted_at IS NULL
 WHERE a.id=? AND acp.deleted_at IS NULL AND a.status=1 AND a.audit_status=2 AND a.deleted_at IS NULL AND a.type IN (1,2)
 ORDER BY acp.is_top DESC,c.sort,c.id LIMIT 1`
 	var c model.Column
@@ -207,9 +226,9 @@ ORDER BY acp.is_top DESC,c.sort,c.id LIMIT 1`
 // article's current list and main-page references.
 func (r *Repository) FetchArticleColumns(ctx context.Context, articleID int64) ([]model.Column, error) {
 	rows, err := r.db.QueryContext(ctx, `SELECT DISTINCT c.id,c.name,c.code,c.page_id,p.name,c.parent_id,COALESCE(c.description,''),c.sort
-FROM article a INNER JOIN article_column_publish acp ON acp.article_id=a.id AND acp.deleted_at IS NULL
-INNER JOIN `+"`column`"+` c ON c.id=acp.column_id AND c.status=1 AND c.deleted_at IS NULL
-INNER JOIN page p ON p.id=c.page_id AND p.status=1 AND p.deleted_at IS NULL
+FROM {{schema}}.article a INNER JOIN {{schema}}.article_column_publish acp ON acp.article_id=a.id AND acp.deleted_at IS NULL
+INNER JOIN {{schema}}.`+"`column`"+` c ON c.id=acp.column_id AND c.status=1 AND c.deleted_at IS NULL
+INNER JOIN {{schema}}.page p ON p.id=c.page_id AND p.status=1 AND p.deleted_at IS NULL
 WHERE a.id=? AND a.status=1 AND a.audit_status=2 AND a.deleted_at IS NULL AND a.type IN (1,2)
 ORDER BY c.id`, articleID)
 	if err != nil {
@@ -238,9 +257,9 @@ ORDER BY c.id`, articleID)
 // Only columns and pages that can still be rendered are returned.
 func (r *Repository) FetchArticleRelatedColumns(ctx context.Context, articleID int64) ([]model.Column, error) {
 	rows, err := r.db.QueryContext(ctx, `SELECT DISTINCT c.id,c.name,c.code,c.page_id,p.name,c.parent_id,COALESCE(c.description,''),c.sort
-FROM article_column_publish acp
-INNER JOIN `+"`column`"+` c ON c.id=acp.column_id AND c.status=1 AND c.deleted_at IS NULL
-INNER JOIN page p ON p.id=c.page_id AND p.status=1 AND p.deleted_at IS NULL
+FROM {{schema}}.article_column_publish acp
+INNER JOIN {{schema}}.`+"`column`"+` c ON c.id=acp.column_id AND c.status=1 AND c.deleted_at IS NULL
+INNER JOIN {{schema}}.page p ON p.id=c.page_id AND p.status=1 AND p.deleted_at IS NULL
 WHERE acp.article_id=? ORDER BY c.id`, articleID)
 	if err != nil {
 		return nil, fmt.Errorf("query article %d related columns: %w", articleID, err)
@@ -261,14 +280,14 @@ func (r *Repository) FetchAllArticles(ctx context.Context) ([]model.Article, err
 	query := `SELECT a.id,a.type,a.title,COALESCE(a.summary,''),COALESCE(a.content,''),COALESCE(a.cover,''),
 COALESCE(a.author,''),COALESCE(a.source,''),COALESCE(a.is_bold,0),COALESCE(a.is_top,0),
 COALESCE(a.default_color,''),COALESCE(a.url,''),a.publish_time
-FROM article a WHERE a.status=1 AND a.audit_status=2 AND a.deleted_at IS NULL AND a.type IN (1,2)
-AND EXISTS(SELECT 1 FROM article_column_publish acp INNER JOIN ` + "`column`" + ` c ON c.id=acp.column_id AND c.status=1 AND c.deleted_at IS NULL INNER JOIN page p ON p.id=c.page_id AND p.status=1 AND p.deleted_at IS NULL WHERE acp.article_id=a.id AND acp.deleted_at IS NULL)
+FROM {{schema}}.article a WHERE a.status=1 AND a.audit_status=2 AND a.deleted_at IS NULL AND a.type IN (1,2)
+AND EXISTS(SELECT 1 FROM {{schema}}.article_column_publish acp INNER JOIN {{schema}}.` + "`column`" + ` c ON c.id=acp.column_id AND c.status=1 AND c.deleted_at IS NULL INNER JOIN {{schema}}.page p ON p.id=c.page_id AND p.status=1 AND p.deleted_at IS NULL WHERE acp.article_id=a.id AND acp.deleted_at IS NULL)
 ORDER BY a.id`
 	return r.queryArticles(ctx, query)
 }
 
 func (r *Repository) FetchAttachments(ctx context.Context, articleID int64) ([]model.Attachment, error) {
-	rows, err := r.db.QueryContext(ctx, "SELECT id,article_id,name,url,size FROM article_attachment WHERE article_id=? ORDER BY id", articleID)
+	rows, err := r.db.QueryContext(ctx, "SELECT id,article_id,name,url,size FROM {{schema}}.article_attachment WHERE article_id=? ORDER BY id", articleID)
 	if err != nil {
 		return nil, err
 	}
@@ -285,7 +304,7 @@ func (r *Repository) FetchAttachments(ctx context.Context, articleID int64) ([]m
 }
 
 func (r *Repository) resolvePageColumn(ctx context.Context, pageID int64, name string) (model.Column, error) {
-	rows, err := r.db.QueryContext(ctx, `SELECT id,name,code,page_id,parent_id,COALESCE(description,''),sort FROM `+"`column`"+`
+	rows, err := r.db.QueryContext(ctx, `SELECT id,name,code,page_id,parent_id,COALESCE(description,''),sort FROM {{schema}}.`+"`column`"+`
 WHERE page_id=? AND name=? AND status=1 AND deleted_at IS NULL ORDER BY id LIMIT 2`, pageID, strings.TrimSpace(name))
 	if err != nil {
 		return model.Column{}, err
@@ -311,7 +330,7 @@ WHERE page_id=? AND name=? AND status=1 AND deleted_at IS NULL ORDER BY id LIMIT
 func (r *Repository) resolveColumnByID(ctx context.Context, id int64) (model.Column, error) {
 	var c model.Column
 	err := r.db.QueryRowContext(ctx, `SELECT c.id,c.name,c.code,c.page_id,c.parent_id,COALESCE(c.description,''),c.sort
-FROM `+"`column`"+` c INNER JOIN page p ON p.id=c.page_id AND p.status=1 AND p.deleted_at IS NULL
+FROM {{schema}}.`+"`column`"+` c INNER JOIN {{schema}}.page p ON p.id=c.page_id AND p.status=1 AND p.deleted_at IS NULL
 WHERE c.id=? AND c.status=1 AND c.deleted_at IS NULL`, id).Scan(&c.ID, &c.Name, &c.Code, &c.PageID, &c.ParentID, &c.Description, &c.Sort)
 	if errors.Is(err, sql.ErrNoRows) {
 		return model.Column{}, ErrColumnNotFound

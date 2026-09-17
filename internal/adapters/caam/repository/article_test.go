@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"portal-static/internal/adapters/caam/config"
+	"portal-static/internal/sources/portalcms"
 
 	"github.com/DATA-DOG/go-sqlmock"
 )
@@ -45,6 +46,26 @@ func TestResolvePageIDUsesActivePageName(t *testing.T) {
 	id, err := ResolvePageID(context.Background(), db, " 首页 ")
 	if err != nil || id != 3 {
 		t.Fatalf("ResolvePageID() = %d, %v", id, err)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestResolvePageIDUsesConfiguredSchema(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	store, err := portalcms.NewStore(db, "tenant_portal", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	mock.ExpectQuery(`(?s)SELECT id.*FROM tenant_portal\.page.*name = \?.*status = 1.*LIMIT 2`).
+		WithArgs("首页").WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(3))
+	if id, err := ResolvePageIDWithStore(context.Background(), store, "首页"); err != nil || id != 3 {
+		t.Fatalf("id=%d err=%v", id, err)
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Fatal(err)

@@ -41,6 +41,25 @@ func TestManagerReloadsGenerationConfigAndDetectsBootstrapChanges(t *testing.T) 
 	}
 }
 
+func TestCommonConfigAllowsAdapterWithoutMySQL(t *testing.T) {
+	config := Document{
+		Version: 1,
+		Driver:  "external-api",
+		Site:    SiteConfig{ID: "external", Timezone: "Asia/Shanghai"},
+		Server: ServerConfig{
+			Addr: "127.0.0.1:9999", TokenEnv: "EXTERNAL_TOKEN",
+			RequestTimeout: "1m", BatchIdleTimeout: "1m", BatchMaxDuration: "1h",
+		},
+		Paths: PathsConfig{SourceRoot: "/source", DistRoot: "/dist", Templates: map[string]string{"home": "/source/home.tmpl"}},
+	}
+	if err := config.Validate(); err != nil {
+		t.Fatal(err)
+	}
+	if err := config.Database.ValidateMySQL(); err == nil {
+		t.Fatal("expected MySQL-specific validation to reject empty database config")
+	}
+}
+
 const exampleConfig = `version: 1
 driver: miic
 site:

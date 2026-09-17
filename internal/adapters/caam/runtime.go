@@ -14,6 +14,7 @@ import (
 	"portal-static/internal/adapters/caam/repository"
 	coreconfig "portal-static/internal/core/config"
 	"portal-static/internal/core/httpapi"
+	"portal-static/internal/sources/portalcms"
 )
 
 type runtimeSource interface {
@@ -23,15 +24,23 @@ type runtimeSource interface {
 }
 
 func NewProduction(snapshot coreconfig.Snapshot, database *sql.DB, logger *slog.Logger) (config.Config, *generator.SiteGenerator, error) {
+	store, err := portalcms.NewStore(database, "caam_portal", false)
+	if err != nil {
+		return config.Config{}, nil, err
+	}
+	return NewProductionWithStore(snapshot, store, logger)
+}
+
+func NewProductionWithStore(snapshot coreconfig.Snapshot, store *portalcms.Store, logger *slog.Logger) (config.Config, *generator.SiteGenerator, error) {
 	cfg, err := config.FromSnapshot(snapshot)
 	if err != nil {
 		return config.Config{}, nil, err
 	}
-	pageID, err := repository.ResolvePageID(context.Background(), database, cfg.Site.PageName)
+	pageID, err := repository.ResolvePageIDWithStore(context.Background(), store, cfg.Site.PageName)
 	if err != nil {
 		return config.Config{}, nil, err
 	}
-	source := repository.NewArticleRepository(database, pageID)
+	source := repository.NewArticleRepositoryWithStore(store, pageID)
 	site, err := newSiteGenerator(cfg, source, logger)
 	return cfg, site, err
 }
