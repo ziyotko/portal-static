@@ -33,7 +33,7 @@ func main() {
 
 func run(args []string) error {
 	if len(args) < 2 {
-		return errors.New("用法: portal-static <preview|generate|serve> --config configs/miic.yaml")
+		return errors.New("用法: portal-static <preview|generate|serve> --config configs/<site>.yaml")
 	}
 	command := args[1]
 	flags := flag.NewFlagSet(command, flag.ContinueOnError)
