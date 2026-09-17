@@ -119,6 +119,6 @@ columns:
   topics: { key: topics, title: 专题子站, name: 首页专题子站, limit: 4, types: [1, 2], href: ../first-version/topics.html, fallback_cover: assets/images/content-placeholder.png }
   videos: { key: videos, title: 推荐视频, name: 首页推荐视频, limit: 4, types: [2], fallback_cover: assets/images/content-placeholder.png }
   footer_links:
-    - { key: friend-associations, title: 合作协会, name: 首页友链合作协会, limit: 100, types: [1, 2] }
-    - { key: friend-related, title: 相关链接, name: 首页友链相关链接, limit: 100, types: [1, 2] }
-    - { key: friend-media, title: 合作媒体, name: 首页友链合作媒体, limit: 100, types: [1, 2] }
+    - { key: friend-associations, title: 合作协会, name: 首页合作协会, limit: 100, types: [1, 2] }
+    - { key: friend-related, title: 相关链接, name: 首页相关链接, limit: 100, types: [1, 2] }
+    - { key: friend-media, title: 合作媒体, name: 首页合作媒体, limit: 100, types: [1, 2] }

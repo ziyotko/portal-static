@@ -18,7 +18,7 @@ func TestExampleConfigLoadsWithProductionColumnNames(t *testing.T) {
 	if cfg.Site.PageName != "首页" || !cfg.Site.AllowEmptyStats {
 		t.Fatalf("unexpected homepage generation settings: %#v", cfg.Site)
 	}
-	if len(cfg.Columns.FooterLinks) != 3 || cfg.Columns.FooterLinks[0].Name != "首页友链合作协会" {
+	if len(cfg.Columns.FooterLinks) != 3 || cfg.Columns.FooterLinks[0].Name != "首页合作协会" {
 		t.Fatalf("unexpected footer link mapping: %#v", cfg.Columns.FooterLinks)
 	}
 	if !filepath.IsAbs(cfg.Site.Template) || !filepath.IsAbs(cfg.Site.Output) ||

@@ -280,9 +280,9 @@ func Default() Config {
 			Topics: slot("topics", "专题子站", "首页专题子站", 4, []int{1, 2}, "../first-version/topics.html", defaultContentPlaceholder),
 			Videos: slot("videos", "推荐视频", "首页推荐视频", 4, []int{2}, "", defaultContentPlaceholder),
 			FooterLinks: []SlotConfig{
-				slot("friend-associations", "合作协会", "首页友链合作协会", 100, []int{1, 2}, "", ""),
-				slot("friend-related", "相关链接", "首页友链相关链接", 100, []int{1, 2}, "", ""),
-				slot("friend-media", "合作媒体", "首页友链合作媒体", 100, []int{1, 2}, "", ""),
+				slot("friend-associations", "合作协会", "首页合作协会", 100, []int{1, 2}, "", ""),
+				slot("friend-related", "相关链接", "首页相关链接", 100, []int{1, 2}, "", ""),
+				slot("friend-media", "合作媒体", "首页合作媒体", 100, []int{1, 2}, "", ""),
 			},
 		},
 	}
