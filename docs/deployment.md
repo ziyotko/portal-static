@@ -157,11 +157,19 @@ server {
     root /srv/portal-static/caam/site;
     index index.html;
 
+    # 后台上传文件不属于静态化产物，必须单独映射或代理。
+    # 路径要与后台 server.upload_dir_prefix 及生成 HTML 保持一致。
+    location ^~ /business_portal/uploads/ {
+        alias /srv/dia-platform/portal/uploads/;
+    }
+
     location / {
         try_files $uri $uri/ =404;
     }
 }
 ```
+
+直接通过 `file://` 打开生成后的 HTML 无法正确解析 `/business_portal/uploads/...` 这类同源绝对路径。人工验收也应通过配置了上传目录映射的 HTTP 站点访问。若生产环境选择对象存储/CDN，则应把 `media` 配置为相应策略，并确保上传地址在生成页面所在域名下可达。
 
 如果采用对象存储/CDN，应把本地产物同步作为发布步骤，并保证同步完成后再切换版本，不能让 CDN 读取正在生成的临时目录。
 
