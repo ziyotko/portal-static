@@ -1,0 +1,40 @@
+database:
+  dsn_env: MIIC_DB_DSN
+  max_open_conns: 10
+  max_idle_conns: 5
+  conn_max_lifetime: 5m
+
+server:
+  addr: 127.0.0.1:9143
+  token_env: MIIC_STATIC_TOKEN
+  request_timeout: 10m
+  batch_idle_timeout: 15m
+  batch_max_duration: 6h
+
+site:
+  # 仅把原站点当作只读脚手架；生成结果仍写入本工程的 dist。
+  source_root: ../../miic-portal
+  dist_root: ../dist/miic-portal
+  preview_root: ../dist/miic-preview
+  news_template: templates/news.html.tmpl
+  list_template: templates/list.html.tmpl
+  article_template: templates/article.html.tmpl
+  page_size: 10
+  media_base_url: ""
+  timezone: Asia/Shanghai
+  lock_stale_after: 30m
+  fallback_cover: assets/miic-placeholder.png
+  page_name: 资讯动态
+
+news:
+  important: { key: important, title: 中心重要动态, name: 中心重要动态, limit: 3 }
+  dynamic_columns: true
+  exclude_columns: [中心重要动态]
+
+business:
+  page_name: 核心业务
+
+about:
+  page_name: 关于我们
+  recruitment_name: 招聘信息
+  disclosure_name: 信息公开

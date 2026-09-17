@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="{{.Column.Name}} - 机械工业信息中心">
+  <title>{{.Column.Name}} - 机械工业信息中心</title>
+  <link rel="icon" type="image/png" href="{{.RootPrefix}}assets/miic-favicon.png">
+  <link rel="stylesheet" href="{{.RootPrefix}}styles.css">
+</head>
+<body data-page="list" data-root-prefix="{{.RootPrefix}}" data-generated-at="{{.GeneratedAt}}">
+  <header class="site-header" id="site-header"></header>
+  <main>
+    <section class="page-hero static-page-hero"><img class="page-hero__backdrop" src="{{.RootPrefix}}assets/unsplash-newsroom-2.jpg" alt="行业资讯编辑与发布"><div class="shell page-hero__inner"><div><h1>{{.Column.Name}}</h1><p class="page-hero__lead">查看该栏目的已发布内容</p></div></div></section>
+    <section class="page-content"><div class="shell static-list-shell">
+      <div class="static-list">
+        {{range .Items}}<article><div><span>{{.Category}}</span><time datetime="{{.DateISO}}">{{.DateCN}}</time></div><h2><a href="{{.Href}}"{{if .External}} target="_blank" rel="noopener noreferrer"{{end}}>{{.Title}}</a></h2>{{if .Summary}}<p>{{.Summary}}</p>{{end}}</article>{{else}}<p class="static-empty">该栏目暂无已发布内容</p>{{end}}
+      </div>
+      <nav class="static-pagination" aria-label="分页">
+        {{if .Previous}}<a href="{{.Previous}}">上一页</a>{{end}}
+        {{range .Pages}}<a href="{{.}}.html"{{if eq . $.Page}} aria-current="page"{{end}}>{{.}}</a>{{end}}
+        {{if .Next}}<a href="{{.Next}}">下一页</a>{{end}}
+      </nav>
+    </div></section>
+  </main>
+  <footer class="site-footer" id="site-footer"></footer>
+  <script src="{{.RootPrefix}}generated-content.js"></script>
+  <script src="{{.RootPrefix}}script.js"></script>
+</body>
+</html>

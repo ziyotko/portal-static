@@ -1,0 +1,57 @@
+version: 1
+driver: miic
+
+site:
+  id: miic
+  timezone: Asia/Shanghai
+
+database:
+  dsn_env: MIIC_DB_DSN
+  schema: miic_portal
+  max_open_conns: 10
+  max_idle_conns: 5
+  conn_max_lifetime: 5m
+
+server:
+  addr: 127.0.0.1:9143
+  token_env: MIIC_STATIC_TOKEN
+  request_timeout: 10m
+  batch_idle_timeout: 15m
+  batch_max_duration: 6h
+
+paths:
+  # 原工程只作为只读页面脚手架；portal-static 不会写入该目录。
+  source_root: ../../miic-portal
+  dist_root: ../dist/miic-portal
+  preview_root: ../dist/miic-preview
+  templates:
+    news: backend/templates/news.html.tmpl
+    list: backend/templates/list.html.tmpl
+    article: backend/templates/article.html.tmpl
+
+media:
+  # 同源模式避免把生产域名写死在生成结果中。
+  mode: same_origin
+  aliases:
+    mic/uploads: /miic/uploads
+    miic/uploads: /miic/uploads
+  # 数据库中若仍保存旧域名，会先去掉旧 origin，再按当前模式输出。
+  rewrite_origins:
+    - https://demo.miic.com.cn
+
+adapter:
+  site:
+    page_size: 10
+    lock_stale_after: 30m
+    fallback_cover: assets/miic-placeholder.png
+    page_name: 资讯动态
+  news:
+    important: { key: important, title: 中心重要动态, name: 中心重要动态, limit: 3 }
+    dynamic_columns: true
+    exclude_columns: [中心重要动态]
+  business:
+    page_name: 核心业务
+  about:
+    page_name: 关于我们
+    recruitment_name: 招聘信息
+    disclosure_name: 信息公开

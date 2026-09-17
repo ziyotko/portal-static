@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="{{.Article.Summary}}">
+  <title>{{.Article.Title}} - 机械工业信息中心</title>
+  <link rel="icon" type="image/png" href="{{.RootPrefix}}assets/miic-favicon.png">
+  <link rel="stylesheet" href="{{.RootPrefix}}styles.css">
+</head>
+<body data-page="article" data-active-root="{{.ActiveRoot}}" data-root-prefix="{{.RootPrefix}}" data-generated-at="{{.GeneratedAt}}">
+  <header class="site-header" id="site-header"></header>
+  <main>
+    <section class="page-hero"><img class="page-hero__backdrop" src="{{if .Article.Cover}}{{.Article.Cover}}{{else}}{{.RootPrefix}}assets/unsplash-data-dashboard.jpg{{end}}" alt="{{.Article.Title}}"><div class="shell page-hero__inner"><div><h1>{{.Article.Title}}</h1>{{if .Article.Summary}}<p class="page-hero__lead">{{.Article.Summary}}</p>{{end}}</div></div></section>
+    <section class="page-content"><div class="shell detail-layout">
+      <aside class="detail-aside"><span class="detail-label">{{.Column.Name}}</span><h2>{{if .Article.Source}}{{.Article.Source}}{{else}}机械工业信息中心{{end}}</h2><p>{{.Article.DateCN}}</p><a class="detail-back" href="{{.BackHref}}">{{.BackLabel}}</a></aside>
+      <article class="detail-article static-article" data-static-article>
+        {{if .Article.Cover}}<figure class="detail-cover"><img src="{{.Article.Cover}}" alt="{{.Article.Title}}"></figure>{{end}}
+        <div class="static-article__content">{{.Article.Content}}</div>
+      </article>
+    </div></section>
+  </main>
+  <footer class="site-footer" id="site-footer"></footer>
+  <script src="{{.RootPrefix}}generated-content.js"></script>
+  <script src="{{.RootPrefix}}script.js"></script>
+</body>
+</html>
