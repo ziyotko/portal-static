@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>中国汽车工业协会</title>
+  <link rel="stylesheet" href="css/style.css?v=20260810-4">
+</head>
+<body data-generated-at="{{.GeneratedAt}}">
+  <header class="site-header">
+    <div class="header-visual" aria-label="中国汽车工业协会">
+      <div class="container header-branding">
+        <img class="header-rating-image" src="assets/slice/header-rating@2x.png" alt="中国社会组织评估等级 AAAAA">
+        <img class="header-logo-image" src="assets/slice/header-logo@2x.png" alt="中国汽车工业协会">
+        <img class="header-slogan-image" src="assets/slice/header-slogan@2x.png" alt="求真、务实、创新、高效">
+      </div>
+      <div class="container header-tools">
+        <div class="lang" aria-label="语言切换"><strong>中文</strong><span>|</span><a href="https://www.caam.org.cn/english">English</a></div>
+      </div>
+    </div>
+    <nav class="main-nav" aria-label="主导航">
+      <div class="container nav-inner">
+        <a class="active" href="index.html">首页</a>
+        <a href="about.html">协会概况</a>
+        <a href="work.html">协会工作</a>
+        <a href="stats.html">统计数据</a>
+        <a href="members.html">会员专区</a>
+        <a class="party" href="party.html">党建专区</a>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero-section">
+      <div class="container hero-wrap">
+        {{with .Headline}}
+        <h1>{{if .Clickable}}<a{{if .Bold}} class="is-bold"{{end}} href="{{.Href}}"{{if .ExternalLink}} rel="noopener noreferrer"{{end}}{{if .Color}} style="color:{{.Color}}"{{end}}>{{.Title}}</a>{{else}}<span class="headline-title{{if .Bold}} is-bold{{end}}"{{if .Color}} style="color:{{.Color}}"{{end}}>{{.Title}}</span>{{end}} <span class="new-badge">NEW</span></h1>
+        <p class="hero-meta">{{if .Published}}发布时间：{{.DateISO}}　　{{end}}{{if .Source}}来源：{{.Source}}{{end}}</p>
+        {{else}}
+        <h1>暂无头条新闻</h1>
+        <p class="hero-meta">栏目暂无已发布内容</p>
+        {{end}}
+
+        {{if .Carousel}}
+        <article class="hero-card" data-banner>
+          <ul class="banner-slide-list">
+            {{range .Carousel}}
+            <li class="banner-slide{{if eq .Index 1}} active{{end}}">
+              {{if .Clickable}}<a href="{{.Href}}"{{if .ExternalLink}} rel="noopener noreferrer"{{end}}>{{else}}<div class="hero-slide is-disabled">{{end}}
+                <img src="{{.Cover}}" alt="{{.Title}}">
+                <span class="hero-caption">
+                  <strong{{if .Bold}} class="is-bold"{{end}}{{if .Color}} style="color:{{.Color}}"{{end}}>{{.Title}}</strong>
+                  <small>{{if .Published}}发布时间：{{.DateISO}}{{end}}{{if .Source}}　　　　来源：{{.Source}}{{end}}</small>
+                </span>
+              {{if .Clickable}}</a>{{else}}</div>{{end}}
+            </li>
+            {{end}}
+          </ul>
+          {{if gt (len .Carousel) 1}}
+          <button class="banner-arrow banner-arrow-prev" type="button" aria-label="上一条新闻"></button>
+          <button class="banner-arrow banner-arrow-next" type="button" aria-label="下一条新闻"></button>
+          <ol class="banner-dots" aria-label="轮播分页">
+            {{range .Carousel}}<li><button{{if eq .Index 1}} class="active"{{end}} type="button" aria-label="第{{.Index}}条"></button></li>{{end}}
+          </ol>
+          {{end}}
+        </article>
+        {{end}}
+
+        <aside class="quick-service" aria-label="快捷服务">
+          <img class="quick-logo" src="assets/slice/quick-logo.png" srcset="assets/slice/quick-logo@2x.png 2x, assets/slice/quick-logo.png 1x" alt="">
+          <a href="https://member.caam.org.cn/" target="_blank" rel="noopener noreferrer"><img src="assets/slice/quick-member.png" srcset="assets/slice/quick-member@2x.png 2x, assets/slice/quick-member.png 1x" alt="">会员服务</a>
+          <a href="https://oa.caam.org.cn/seeyon/index.jsp" target="_blank" rel="noopener noreferrer"><img src="assets/slice/quick-office.png" srcset="assets/slice/quick-office@2x.png 2x, assets/slice/quick-office.png 1x" alt="">网上办公</a>
+          <a href="https://exmail.qq.com/cgi-bin/loginpage?autologin=n&amp;errtype=1&amp;login_from=&amp;t=dm_loginpage" target="_blank" rel="noopener noreferrer"><img src="assets/slice/quick-mail.png" srcset="assets/slice/quick-mail@2x.png 2x, assets/slice/quick-mail.png 1x" alt="">邮箱</a>
+          <a href="search.html" aria-label="站内搜索"><img src="assets/slice/quick-search.png" srcset="assets/slice/quick-search@2x.png 2x, assets/slice/quick-search.png 1x" alt="">搜索</a>
+        </aside>
+
+        <div class="top-news-grid">
+          {{range .TopNews}}
+          <article>
+            <h2><a href="{{.Href}}">{{.Title}}</a></h2>
+            {{with .Lead}}
+              {{if .Clickable}}<a class="top-news-lead{{if .Bold}} is-bold{{end}}" href="{{.Href}}"{{if .ExternalLink}} rel="noopener noreferrer"{{end}}{{if .Color}} style="color:{{.Color}}"{{end}}>{{.Title}}</a>{{else}}<span class="top-news-lead is-disabled{{if .Bold}} is-bold{{end}}"{{if .Color}} style="color:{{.Color}}"{{end}}>{{.Title}}</span>{{end}}
+            {{else}}<p class="empty-state">暂无数据</p>{{end}}
+            {{if .Items}}
+            <ul class="top-news-list">
+              {{range .Items}}
+              <li>{{if .Clickable}}<a class="news-link{{if .Bold}} is-bold{{end}}" href="{{.Href}}"{{if .ExternalLink}} rel="noopener noreferrer"{{end}}{{if .Color}} style="color:{{.Color}}"{{end}}>{{.Title}}</a>{{else}}<span class="news-link is-disabled{{if .Bold}} is-bold{{end}}"{{if .Color}} style="color:{{.Color}}"{{end}}>{{.Title}}</span>{{end}}</li>
+              {{end}}
+            </ul>
+            {{end}}
+          </article>
+          {{end}}
+        </div>
+      </div>
+    </section>
+
+    <section class="work-section">
+      <div class="container">
+        <h2 class="section-title section-title-feature align-left"><a href="work.html">协会工作</a></h2>
+        <nav class="line-tabs" aria-label="协会工作分类">
+          {{range $index, $tab := .Work}}<a{{if eq $index 0}} class="active"{{end}} href="{{$tab.Href}}" data-work-target="{{$tab.Key}}" data-work-cover="{{$tab.Cover}}" data-work-cover-alt="{{$tab.CoverAlt}}">{{$tab.Title}}</a>{{end}}
+        </nav>
+        <div class="work-body">
+          <div class="work-lists">
+            {{range $index, $tab := .Work}}
+            <ul class="work-list{{if eq $index 0}} active{{end}}" id="{{$tab.Key}}">
+              {{if $tab.Items}}
+                {{range $tab.Items}}
+                <li>{{if .Clickable}}<a class="{{if .Bold}}is-bold{{end}}" href="{{.Href}}"{{if .ExternalLink}} rel="noopener noreferrer"{{end}}{{if .Color}} style="color:{{.Color}}"{{end}}>{{.Title}}</a>{{else}}<span class="work-link is-disabled{{if .Bold}} is-bold{{end}}"{{if .Color}} style="color:{{.Color}}"{{end}}>{{.Title}}</span>{{end}}{{if .Published}}<time datetime="{{.DateISO}}">{{.DateCN}}</time>{{end}}</li>
+                {{end}}
+              {{else}}<li class="empty-state">暂无数据</li>{{end}}
+            </ul>
+            {{end}}
+          </div>
+          {{with index .Work 0}}<img class="work-photo" data-work-photo src="{{.Cover}}" alt="{{.CoverAlt}}">{{end}}
+        </div>
+      </div>
+    </section>
+
+    <section class="industry-section">
+      <div class="container">
+        <h2 class="section-title section-title-feature">行业新闻</h2>
+        <nav class="center-tabs" aria-label="行业新闻分类">
+          {{range $index, $tab := .Industry}}<a{{if eq $index 0}} class="active"{{end}} href="{{$tab.Href}}" data-industry-tab="{{$tab.Key}}">{{$tab.Title}}</a>{{end}}
+        </nav>
+        {{range $index, $tab := .Industry}}
+        <div class="industry-grid industry-panel{{if eq $index 0}} active{{end}}" data-industry-panel="{{$tab.Key}}">
+          {{if $tab.Items}}
+            {{range $tab.Items}}
+            <article>
+              <img src="{{.Cover}}" alt="{{.Title}}">
+              <div>
+                <h3>{{if .Clickable}}<a href="{{.Href}}"{{if .ExternalLink}} rel="noopener noreferrer"{{end}}{{if .Color}} style="color:{{.Color}}"{{end}}>{{.Title}}</a>{{else}}<span class="is-disabled{{if .Bold}} is-bold{{end}}"{{if .Color}} style="color:{{.Color}}"{{end}}>{{.Title}}</span>{{end}}</h3>
+                {{if .DateISO}}<time datetime="{{.DateISO}}">{{.DateCN}}</time>{{end}}
+              </div>
+            </article>
+            {{end}}
+          {{else}}<p class="empty-state">暂无数据</p>{{end}}
+        </div>
+        {{end}}
+      </div>
+    </section>
+
+    <section class="statistics-section">
+      <div class="container stats-inner">
+        <h2 class="section-title section-title-feature">统计数据</h2>
+        <div class="stats-content">
+          <article class="stats-chart">
+            <section class="tab-panel active" id="statistics-local">
+              <p class="chart-label">{{.InitialStat.Label}} <span>单位/{{.InitialStat.Unit}}</span></p>
+              <div class="stats-legend">
+                <span><i class="cyan"></i>{{.InitialStat.LegendA}}</span>
+                <span><i class="blue"></i>{{.InitialStat.LegendB}}</span>
+              </div>
+              <div class="numbers"><b>{{.InitialStat.ValueA}}<em>{{.InitialStat.Unit}}</em></b><b>{{.InitialStat.ValueB}}<em>{{.InitialStat.Unit}}</em></b></div>
+              <ol class="bar-chart">
+                {{range .InitialStat.Bars}}<li{{if .Active}} class="active"{{end}} style="{{.Style}}"><span>{{.Label}}</span></li>{{end}}
+              </ol>
+            </section>
+          </article>
+          <aside class="stats-news">
+            {{range $index, $stat := .Stats}}
+            <button{{if eq $index 0}} class="active" aria-pressed="true"{{else}} aria-pressed="false"{{end}} type="button" data-stats-news data-label="{{$stat.Label}}" data-unit="{{$stat.Unit}}" data-legend-a="{{$stat.LegendA}}" data-legend-b="{{$stat.LegendB}}" data-value-a="{{$stat.ValueA}}" data-value-b="{{$stat.ValueB}}" data-bars-a="{{$stat.BarsA}}" data-bars-b="{{$stat.BarsB}}" data-report-month="{{$stat.ReportMonth}}">{{$stat.Title}}</button>
+            {{end}}
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <section class="topics-section">
+      <div class="container">
+        <h2 class="section-title section-title-feature">专题子站</h2>
+        <div class="topic-grid">
+          {{if .Topics}}
+            {{range .Topics}}
+              {{if .Clickable}}<a class="topic-card" href="{{.Href}}"{{if .ExternalLink}} target="_blank" rel="noopener noreferrer"{{end}}>{{else}}<div class="topic-card is-disabled">{{end}}
+                <img src="{{.Cover}}" alt="{{.Title}}">
+                <span><b{{if .Bold}} class="is-bold"{{end}}{{if .Color}} style="color:{{.Color}}"{{end}}>{{.Title}}</b><em>{{if .Summary}}{{.Summary}}{{else}}暂无摘要{{end}}</em></span>
+              {{if .Clickable}}</a>{{else}}</div>{{end}}
+            {{end}}
+          {{else}}<p class="empty-state">暂无数据</p>{{end}}
+        </div>
+      </div>
+    </section>
+
+    <section class="video-section">
+      <div class="container">
+        <h2 class="section-title section-title-feature">推荐视频</h2>
+        <section class="video-carousel" data-video-carousel>
+          <ul class="video-page active">
+            {{if .Videos}}
+              {{range .Videos}}
+              <li>{{if .Clickable}}<a class="video-card" href="{{.Href}}"{{if .ExternalLink}} rel="noopener noreferrer"{{end}}>{{else}}<div class="video-card is-disabled">{{end}}<img src="{{.Cover}}" alt="{{.Title}}"><strong{{if .Bold}} class="is-bold"{{end}}{{if .Color}} style="color:{{.Color}}"{{end}}>{{.Title}}</strong>{{if .Published}}<time datetime="{{.DateISO}}">{{.DateShort}}</time>{{end}}{{if .Clickable}}</a>{{else}}</div>{{end}}</li>
+              {{end}}
+            {{else}}<li class="empty-state">暂无数据</li>{{end}}
+          </ul>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-main">
+      <div class="footer-top">
+        <img class="footer-logo" src="assets/slice/logo.png" alt="中国汽车工业协会">
+        <div class="footer-selects">
+          {{range .FooterLinks}}
+          <label class="footer-link-select">
+            <select data-footer-link aria-label="{{.Title}}"{{if not .Items}} disabled{{end}}>
+              <option value="" selected disabled hidden>{{.Title}}</option>
+              {{range .Items}}<option value="{{.Href}}">{{.Title}}</option>{{end}}
+            </select>
+          </label>
+          {{end}}
+        </div>
+        <div class="qr"><span role="img" aria-label="中国汽车工业协会微信公众号二维码"></span></div>
+      </div>
+      <div class="footer-info">
+        <p>地址：北京市丰台区汽车博物馆东路诺德中心11号楼33层</p>
+        <p>电话：010-63979900 | E-mail:caam@caam.org.cn | 邮编：100160</p>
+        <p class="qr-labels"><span>微信公众号</span></p>
+      </div>
+    </div>
+    <div class="copyright">
+      <div class="container copyright-inner">
+        <span>Copyright© 中国汽车工业协会 | 京ICP备05030302-7 | 京公网安备 11010602014012号</span>
+        <span>关于我们 | 联系方式 | 服务内容 | 广告刊例 | 网站地图</span>
+      </div>
+    </div>
+  </footer>
+  <script src="js/index.js?v=20260723-1"></script>
+</body>
+</html>

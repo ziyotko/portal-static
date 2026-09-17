@@ -1,0 +1,124 @@
+database:
+  dsn_env: CAAM_DB_DSN
+  max_open_conns: 10
+  max_idle_conns: 5
+  conn_max_lifetime: 5m
+
+server:
+  addr: 127.0.0.1:9142
+  token_env: CAAM_STATIC_TOKEN
+  request_timeout: 10m
+  batch_idle_timeout: 15m
+  batch_max_duration: 6h
+
+site:
+  template: templates/home.html.tmpl
+  output: ../dist/caam-home/index.html
+  list_template: templates/list.html.tmpl
+  article_template: templates/article.html.tmpl
+  output_root: ../caam-home
+  dist_root: ../dist/caam-home
+  page_size: 10
+  # 数据库 cover 为 /caam/uploads/... 时，将输出为完整图片 URL；旧 /caamm/uploads/ 会自动纠正。
+  media_base_url: https://demo.miic.com.cn
+  timezone: Asia/Shanghai
+  lock_stale_after: 30m
+  page_name: 首页
+  allow_empty_stats: true
+
+about:
+  template: templates/about.html.tmpl
+  output: about.html
+  intro: 协会概况简介
+  leadership: 协会概况领导团队
+  charter: 协会概况章程
+  organization: 协会概况组织
+  responsibilities: 协会概况职责
+  honors: 协会概况荣誉
+  rotating_president: 协会概况轮值会长
+  vice_president: 协会概况副会长
+  executive_director: 协会概况常务理事
+  director: 协会概况理事
+  member_delegate: 协会概况会员代表
+  regular_member: 协会概况普通会员
+
+work_page:
+  template: templates/work.html.tmpl
+  output: work.html
+  headline: 协会工作头条
+  association: 协会工作协会动态
+  branch: 协会工作分支机构动态
+  industry: 协会工作行业发展
+  international: 协会工作国际合作
+  expo: 协会工作展会信息
+  platform: 协会工作专业平台
+
+stats_page:
+  template: templates/stats.html.tmpl
+  output: stats.html
+  domestic_reports: 统计数据国内数据
+  overseas_reports: 统计数据国外数据
+  production_reports: 统计数据产销
+  import_export_reports: 统计数据进出口
+  # 图表按栏目发布关系中的 article_id 读取全部已发布、已审核文章。
+  domestic_chart: 国内数据汽车月度销量
+  overseas_chart: 国外数据汽车月度销量
+  production_chart: 产销汽车月度销量
+  import_export_chart: 进出口汽车月度销量
+  unit: 万辆
+
+members_page:
+  template: templates/members.html.tmpl
+  output: members.html
+  work: 会员专区会员工作
+  style: 会员专区会员风采
+  policy: 会员专区相关制度
+  charter: 会员专区协会章程
+  fees: 会员专区会费缴纳标准与方法
+  president: 会员专区会长单位
+  vice_president: 会员专区副会长单位
+  branch_intro: 会员专区分支机构介绍
+  branch_rules: 会员专区分支机构管理办法
+  branch_service: 会员专区分支机构服务
+  branch_roster: 会员专区分支机构名单
+  management: 会员专区会员管理
+  executive_director: 会员专区常务理事
+  director: 会员专区理事单位
+  delegate: 会员专区会员代表
+  member: 会员专区会员单位
+
+party_page:
+  template: templates/party.html.tmpl
+  output: party.html
+  work: 党建专区工作动态
+  study: 党建专区学习教育
+  news: 党建专区党建要闻
+  carousel: 党建专区轮播
+
+columns:
+  # 所有栏目按中文 name 动态解析，数据库导入后无需同步 ID。
+  headline: { key: headline, title: 顶部头条, name: 首页头条, limit: 1, types: [1, 2], fallback_cover: assets/images/content-placeholder.png }
+  carousel: { key: carousel, title: 新闻轮播, name: 首页轮播, limit: 5, types: [1, 2], fallback_cover: assets/images/content-placeholder.png }
+  top_news:
+    - { key: industry-news, title: 行业要闻, name: 首页行业要闻, limit: 5, types: [1, 2], href: "list.html?category=industry-news" }
+    - { key: association-activity, title: 协会活动, name: 首页协会活动, limit: 5, types: [1, 2], href: "list.html?category=association-activity" }
+    - { key: notice, title: 通知公告, name: 首页通知公告, limit: 5, types: [1, 2], href: "list.html?category=notice" }
+  work:
+    - { key: work-file, title: 协会文件, name: 首页协会文件, limit: 6, types: [1, 2], href: "list.html?category=work-file", fallback_cover: assets/images/content-placeholder.png }
+    - { key: work-industry, title: 行业发展, name: 首页行业发展, limit: 6, types: [1, 2], href: "list.html?category=work-industry", fallback_cover: assets/images/content-placeholder.png }
+    - { key: work-smart, title: 智能网联, name: 首页智能网联, limit: 6, types: [1, 2], href: "list.html?category=work-smart", fallback_cover: assets/images/content-placeholder.png }
+    - { key: work-brand, title: 品牌服务, name: 首页品牌服务, limit: 6, types: [1, 2], href: "list.html?category=work-brand", fallback_cover: assets/images/content-placeholder.png }
+    - { key: work-expo, title: 展会信息, name: 首页展会信息, limit: 6, types: [1, 2], href: "list.html?category=work-expo", fallback_cover: assets/images/content-placeholder.png }
+    - { key: work-standard, title: 标准法规, name: 首页标准法规, limit: 6, types: [1, 2], href: "list.html?category=work-standard", fallback_cover: assets/images/content-placeholder.png }
+  industry:
+    - { key: company-news, title: 企业新闻, name: 首页企业新闻, limit: 4, types: [1, 2], href: "list.html?category=company-news", fallback_cover: assets/images/content-placeholder.png }
+    - { key: international-cooperation, title: 国际合作, name: 首页国际合作, limit: 4, types: [1, 2], href: "list.html?category=international-cooperation", fallback_cover: assets/images/content-placeholder.png }
+    - { key: industry-policy, title: 行业政策, name: 首页行业政策, limit: 4, types: [1, 2], href: "list.html?category=industry-policy", fallback_cover: assets/images/content-placeholder.png }
+    - { key: laws-regulations, title: 法律法规, name: 首页法律法规, limit: 4, types: [1, 2], href: "list.html?category=laws-regulations", fallback_cover: assets/images/content-placeholder.png }
+  stats: { key: stats, title: 统计数据, name: 首页统计数据, unit: 万辆, limit: 6, types: [3] }
+  topics: { key: topics, title: 专题子站, name: 首页专题子站, limit: 4, types: [1, 2], href: ../first-version/topics.html, fallback_cover: assets/images/content-placeholder.png }
+  videos: { key: videos, title: 推荐视频, name: 首页推荐视频, limit: 4, types: [2], fallback_cover: assets/images/content-placeholder.png }
+  footer_links:
+    - { key: friend-associations, title: 合作协会, name: 首页友链合作协会, limit: 100, types: [1, 2] }
+    - { key: friend-related, title: 相关链接, name: 首页友链相关链接, limit: 100, types: [1, 2] }
+    - { key: friend-media, title: 合作媒体, name: 首页友链合作媒体, limit: 100, types: [1, 2] }

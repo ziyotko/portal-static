@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="中国汽车工业协会工作动态、分支机构动态、行业发展、国际合作与展会信息。">
+  <title>协会工作 - 中国汽车工业协会</title>
+  <link rel="stylesheet" href="css/style.css?v=20260805-21">
+  <link rel="stylesheet" href="css/work.css?v=20260810-1">
+</head>
+<body class="association-work-page" data-generated-at="{{.GeneratedAt}}">
+  <header class="site-header">
+    <div class="header-visual" aria-label="中国汽车工业协会">
+      <div class="container header-branding">
+        <img class="header-rating-image" src="assets/slice/header-rating@2x.png" alt="中国社会组织评估等级 AAAAA">
+        <img class="header-logo-image" src="assets/slice/header-logo@2x.png" alt="中国汽车工业协会">
+        <img class="header-slogan-image" src="assets/slice/header-slogan@2x.png" alt="求真、务实、创新、高效">
+      </div>
+      <div class="container header-tools"><div class="lang" aria-label="语言切换"><strong>中文</strong><span>|</span><a href="https://www.caam.org.cn/english">English</a></div></div>
+    </div>
+    <nav class="main-nav" aria-label="主导航"><div class="container nav-inner">
+      <a href="index.html">首页</a><a href="about.html">协会概况</a><a class="active" href="work.html" aria-current="page">协会工作</a><a href="stats.html">统计数据</a><a href="members.html">会员专区</a><a class="party" href="party.html">党建专区</a>
+    </div></nav>
+  </header>
+
+  <main class="work-main">
+    <section class="work-focus" id="headline" aria-label="协会工作焦点"><div class="container focus-grid">
+      {{range .Focus}}<article class="focus-card">
+        <a class="focus-image" href="{{.Href}}"{{if .ExternalLink}} target="_blank" rel="noopener noreferrer"{{end}}><img src="{{.Cover}}" alt="{{.Title}}"></a>
+        <h1><a href="{{.Href}}"{{if .ExternalLink}} target="_blank" rel="noopener noreferrer"{{end}}{{if .Bold}} class="is-bold"{{end}}{{if .Color}} style="color:{{.Color}}"{{end}}>{{.Title}}</a></h1>
+        {{if .Summary}}<p>{{.Summary}}</p>{{end}}
+      </article>{{else}}<p class="work-empty">暂无内容</p>{{end}}
+    </div></section>
+
+    <section class="news-board" aria-labelledby="association-tab"><div class="container">
+      <div class="work-tabs" role="tablist" aria-label="协会动态分类">
+        <a id="association-tab" class="active" href="{{.Association.ListHref}}" role="tab" aria-selected="true" aria-controls="association" data-work-tab="association">{{.Association.Title}}</a>
+        <a id="branch-tab" href="{{.Branch.ListHref}}" role="tab" aria-selected="false" aria-controls="branch" data-work-tab="branch">{{.Branch.Title}}</a>
+      </div>
+      <div class="work-tab-panel active" id="association" role="tabpanel" aria-labelledby="association-tab"><ul class="article-lines">
+        {{range .Association.Items}}<li><a href="{{.Href}}" title="{{.Title}}"{{if .ExternalLink}} target="_blank" rel="noopener noreferrer"{{end}}{{if .Bold}} class="is-bold"{{end}}{{if .Color}} style="color:{{.Color}}"{{end}}>{{.Title}}</a>{{if .Published}}<time datetime="{{.DateISO}}">{{.DateCN}}</time>{{end}}</li>{{else}}<li class="work-empty">暂无内容</li>{{end}}
+      </ul></div>
+      <div class="work-tab-panel" id="branch" role="tabpanel" aria-labelledby="branch-tab" hidden><ul class="article-lines">
+        {{range .Branch.Items}}<li><a href="{{.Href}}" title="{{.Title}}"{{if .ExternalLink}} target="_blank" rel="noopener noreferrer"{{end}}{{if .Bold}} class="is-bold"{{end}}{{if .Color}} style="color:{{.Color}}"{{end}}>{{.Title}}</a>{{if .Published}}<time datetime="{{.DateISO}}">{{.DateCN}}</time>{{end}}</li>{{else}}<li class="work-empty">暂无内容</li>{{end}}
+      </ul></div>
+    </div></section>
+
+    <section class="news-board news-board-muted" aria-labelledby="industry-tab"><div class="container">
+      <div class="work-tabs" role="tablist" aria-label="行业信息分类">
+        <a id="industry-tab" class="active" href="{{.Industry.ListHref}}" role="tab" aria-selected="true" aria-controls="industry" data-work-tab="industry">{{.Industry.Title}}</a>
+        <a id="international-tab" href="{{.International.ListHref}}" role="tab" aria-selected="false" aria-controls="international" data-work-tab="international">{{.International.Title}}</a>
+        <a id="expo-tab" href="{{.Expo.ListHref}}" role="tab" aria-selected="false" aria-controls="expo" data-work-tab="expo">{{.Expo.Title}}</a>
+      </div>
+      <div class="work-tab-panel active" id="industry" role="tabpanel" aria-labelledby="industry-tab"><ul class="article-lines">
+        {{range .Industry.Items}}<li><a href="{{.Href}}" title="{{.Title}}"{{if .ExternalLink}} target="_blank" rel="noopener noreferrer"{{end}}{{if .Bold}} class="is-bold"{{end}}{{if .Color}} style="color:{{.Color}}"{{end}}>{{.Title}}</a>{{if .Published}}<time datetime="{{.DateISO}}">{{.DateCN}}</time>{{end}}</li>{{else}}<li class="work-empty">暂无内容</li>{{end}}
+      </ul></div>
+      <div class="work-tab-panel" id="international" role="tabpanel" aria-labelledby="international-tab" hidden><ul class="article-lines">
+        {{range .International.Items}}<li><a href="{{.Href}}" title="{{.Title}}"{{if .ExternalLink}} target="_blank" rel="noopener noreferrer"{{end}}{{if .Bold}} class="is-bold"{{end}}{{if .Color}} style="color:{{.Color}}"{{end}}>{{.Title}}</a>{{if .Published}}<time datetime="{{.DateISO}}">{{.DateCN}}</time>{{end}}</li>{{else}}<li class="work-empty">暂无内容</li>{{end}}
+      </ul></div>
+      <div class="work-tab-panel" id="expo" role="tabpanel" aria-labelledby="expo-tab" hidden><ul class="article-lines">
+        {{range .Expo.Items}}<li><a href="{{.Href}}" title="{{.Title}}"{{if .ExternalLink}} target="_blank" rel="noopener noreferrer"{{end}}{{if .Bold}} class="is-bold"{{end}}{{if .Color}} style="color:{{.Color}}"{{end}}>{{.Title}}</a>{{if .Published}}<time datetime="{{.DateISO}}">{{.DateCN}}</time>{{end}}</li>{{else}}<li class="work-empty">暂无内容</li>{{end}}
+      </ul></div>
+    </div></section>
+
+    <section class="industry-links" id="platform" aria-labelledby="platform-title"><div class="container">
+      <h2 id="platform-title">专业平台</h2>
+      {{if .Platforms}}<div class="industry-link-grid">{{range .Platforms}}<a class="industry-link-card" href="{{.Href}}"{{if .ExternalLink}} target="_blank" rel="noopener noreferrer"{{end}} aria-label="{{.Title}}"><img src="{{.Cover}}" alt="{{.Title}}"></a>{{end}}</div>{{else}}<p class="work-empty">暂无内容</p>{{end}}
+    </div></section>
+  </main>
+
+  <footer class="site-footer"><div class="container footer-main"><div class="footer-top">
+    <img class="footer-logo" src="assets/slice/logo.png" alt="中国汽车工业协会">
+    <div class="footer-selects">{{range .FooterLinks}}<label class="footer-link-select"><select data-footer-link aria-label="{{.Title}}"{{if not .Items}} disabled{{end}}><option value="" selected disabled hidden>{{.Title}}</option>{{range .Items}}<option value="{{.Href}}">{{.Title}}</option>{{end}}</select></label>{{end}}</div>
+    <div class="qr"><span role="img" aria-label="中国汽车工业协会微信公众号二维码"></span></div>
+  </div><div class="footer-info"><p>地址：北京市丰台区汽车博物馆东路诺德中心11号楼33层</p><p>电话：010-63979900 | E-mail:caam@caam.org.cn | 邮编：100160</p><p class="qr-labels"><span>微信公众号</span></p></div></div>
+  <div class="copyright"><div class="container copyright-inner"><span>Copyright© 中国汽车工业协会 | 京ICP备05030302-7 | 京公网安备 11010602014012号</span><span>关于我们 | 联系方式 | 服务内容 | 广告刊例 | 网站地图</span></div></div></footer>
+  <script src="js/work.js?v=20260810-1"></script>
+</body>
+</html>

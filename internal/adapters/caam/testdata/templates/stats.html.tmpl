@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="中国汽车工业协会汽车产销、出口及行业运行统计数据。">
+  <title>统计数据 - 中国汽车工业协会</title>
+  <link rel="stylesheet" href="css/style.css?v=20260805-21">
+  <link rel="stylesheet" href="css/stats.css?v=20260810-1">
+</head>
+<body class="statistics-page" data-generated-at="{{.GeneratedAt}}">
+  <header class="site-header"><div class="header-visual" aria-label="中国汽车工业协会">
+    <div class="container header-branding"><img class="header-rating-image" src="assets/slice/header-rating@2x.png" alt="中国社会组织评估等级 AAAAA"><img class="header-logo-image" src="assets/slice/header-logo@2x.png" alt="中国汽车工业协会"><img class="header-slogan-image" src="assets/slice/header-slogan@2x.png" alt="求真、务实、创新、高效"></div>
+    <div class="container header-tools"><div class="lang" aria-label="语言切换"><strong>中文</strong><span>|</span><a href="https://www.caam.org.cn/english">English</a></div></div>
+  </div><nav class="main-nav" aria-label="主导航"><div class="container nav-inner"><a href="index.html">首页</a><a href="about.html">协会概况</a><a href="work.html">协会工作</a><a class="active" href="stats.html" aria-current="page">统计数据</a><a href="members.html">会员专区</a><a class="party" href="party.html">党建专区</a></div></nav></header>
+
+  <main class="statistics-main">
+    <section class="data-section" aria-label="国内及国外统计数据"><div class="container">
+        <div class="data-tabs" role="tablist" aria-label="汽车销售区域">{{range .Market}}<a id="{{.Key}}-tab"{{if .Active}} class="active"{{end}} href="{{.ListHref}}" role="tab" aria-selected="{{if .Active}}true{{else}}false{{end}}" aria-controls="{{.Key}}" data-stat-tab="{{.Key}}">{{.Title}}</a>{{end}}</div>
+      {{range .Market}}<div class="data-panel{{if .Active}} active{{end}}" id="{{.Key}}" role="tabpanel" aria-labelledby="{{.Key}}-tab"{{if not .Active}} hidden{{end}}>
+        <div class="monthly-chart" aria-label="{{.Title}}月度统计柱状图"><div class="chart-heading"><h2>{{.Stat.Label}}</h2><span>单位：{{.Stat.Unit}}　{{.Stat.LegendA}} / {{.Stat.LegendB}}</span></div>
+          <div class="chart-plot"><ol class="monthly-bars">{{range .Stat.Bars}}<li{{if .Active}} class="active"{{end}} style="{{.Style}}"><span>{{.Label}}</span></li>{{end}}</ol></div>
+        </div>
+        {{if .HasReports}}<div class="report-grid">{{range .Reports}}<ul class="report-list">{{range .}}<li><a href="{{.Href}}" title="{{.Title}}"{{if .ExternalLink}} target="_blank" rel="noopener noreferrer"{{end}}{{if .Bold}} class="is-bold"{{end}}{{if .Color}} style="color:{{.Color}}"{{end}}>{{.Title}}</a>{{if .Published}}<time datetime="{{.DateISO}}">{{.DateShort}}</time>{{end}}</li>{{end}}</ul>{{end}}</div>{{else}}<p class="stats-empty">暂无报告</p>{{end}}
+      </div>{{end}}
+    </div></section>
+
+    <section class="data-section production-section" aria-label="产销及进出口统计数据"><div class="container">
+        <div class="data-tabs" role="tablist" aria-label="汽车产销及进出口数据">{{range .Production}}<a id="{{.Key}}-tab"{{if .Active}} class="active"{{end}} href="{{.ListHref}}" role="tab" aria-selected="{{if .Active}}true{{else}}false{{end}}" aria-controls="{{.Key}}" data-stat-tab="{{.Key}}">{{.Title}}</a>{{end}}</div>
+      {{range .Production}}<div class="data-panel{{if .Active}} active{{end}}" id="{{.Key}}" role="tabpanel" aria-labelledby="{{.Key}}-tab"{{if not .Active}} hidden{{end}}>
+        <div class="monthly-chart" aria-label="{{.Title}}月度统计柱状图"><div class="chart-heading"><h2>{{.Stat.Label}}</h2><span>单位：{{.Stat.Unit}}　{{.Stat.LegendA}} / {{.Stat.LegendB}}</span></div>
+          <div class="chart-plot"><ol class="monthly-bars">{{range .Stat.Bars}}<li{{if .Active}} class="active"{{end}} style="{{.Style}}"><span>{{.Label}}</span></li>{{end}}</ol></div>
+        </div>
+        {{if .HasReports}}<div class="report-grid">{{range .Reports}}<ul class="report-list">{{range .}}<li><a href="{{.Href}}" title="{{.Title}}"{{if .ExternalLink}} target="_blank" rel="noopener noreferrer"{{end}}{{if .Bold}} class="is-bold"{{end}}{{if .Color}} style="color:{{.Color}}"{{end}}>{{.Title}}</a>{{if .Published}}<time datetime="{{.DateISO}}">{{.DateShort}}</time>{{end}}</li>{{end}}</ul>{{end}}</div>{{else}}<p class="stats-empty">暂无报告</p>{{end}}
+      </div>{{end}}
+    </div></section>
+  </main>
+
+  <footer class="site-footer"><div class="container footer-main"><div class="footer-top"><img class="footer-logo" src="assets/slice/logo.png" alt="中国汽车工业协会"><div class="footer-selects">{{range .FooterLinks}}<label class="footer-link-select"><select data-footer-link aria-label="{{.Title}}"{{if not .Items}} disabled{{end}}><option value="" selected disabled hidden>{{.Title}}</option>{{range .Items}}<option value="{{.Href}}">{{.Title}}</option>{{end}}</select></label>{{end}}</div><div class="qr"><span role="img" aria-label="中国汽车工业协会微信公众号二维码"></span></div></div><div class="footer-info"><p>地址：北京市丰台区汽车博物馆东路诺德中心11号楼33层</p><p>电话：010-63979900 | E-mail:caam@caam.org.cn | 邮编：100160</p><p class="qr-labels"><span>微信公众号</span></p></div></div><div class="copyright"><div class="container copyright-inner"><span>Copyright© 中国汽车工业协会 | 京ICP备05030302-7 | 京公网安备 11010602014012号</span><span>关于我们 | 联系方式 | 服务内容 | 广告刊例 | 网站地图</span></div></div></footer>
+  <script src="js/stats.js?v=20260810-1"></script>
+</body>
+</html>

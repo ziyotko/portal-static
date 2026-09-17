@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="description" content="中国汽车工业协会党建专区工作动态、党建要闻与学习教育。">
+  <title>党建专区 - 中国汽车工业协会</title><link rel="stylesheet" href="css/style.css?v=20260805-21"><link rel="stylesheet" href="css/design-pages.css?v=20260810-9">
+</head>
+<body class="design-page party-page" data-generated-at="{{.GeneratedAt}}">
+  <header class="site-header"><div class="header-visual party-header-visual" aria-label="中国汽车工业协会党建专区"><picture class="party-header-background"><img src="assets/images/party-header-bg.png?v=20260803-2" alt=""></picture><div class="container party-header-content"><img class="party-rating-image" src="assets/slice/party-header-rating@2x.png" alt="全国社会组织评估等级 AAAAA"><img class="party-logo-image" src="assets/slice/party-header-logo@2x.png" alt="中国汽车工业协会"><img class="party-slogan-image" src="assets/slice/party-header-slogan@2x.png" alt="求真、务实、创新、高效"></div><div class="container header-tools"><div class="lang" aria-label="语言切换"><strong>中文</strong><span>|</span><a href="https://www.caam.org.cn/english">English</a></div></div></div>
+    <nav class="main-nav" aria-label="主导航"><div class="container nav-inner"><a href="index.html">首页</a><a href="about.html">协会概况</a><a href="work.html">协会工作</a><a href="stats.html">统计数据</a><a href="members.html">会员专区</a><a class="party active" href="party.html" aria-current="page">党建专区</a></div></nav>
+  </header>
+
+  <main class="party-main">
+    <section class="party-hero" id="news"><div class="container">
+      {{if .Headline}}<div class="party-headline"><h1><a href="{{.Headline.Href}}"{{if .Headline.ExternalLink}} target="_blank" rel="noopener noreferrer"{{end}}{{if .Headline.Bold}} class="is-bold"{{end}}{{if .Headline.Color}} style="color:{{.Headline.Color}}"{{end}}>{{.Headline.Title}}</a> <small>NEW</small></h1><p>{{if .Headline.Published}}发布时间：{{.Headline.DateCN}}　　{{end}}{{if .Headline.Source}}来源：{{.Headline.Source}}{{end}}</p></div>{{else}}<p class="page-empty">暂无党建要闻</p>{{end}}
+      {{if .Carousel}}<div class="party-feature" id="carousel" data-party-banner aria-live="polite">{{range .Carousel}}<article class="party-feature-slide{{if eq .Index 1}} active{{end}}"><a href="{{.Href}}"{{if .ExternalLink}} target="_blank" rel="noopener noreferrer"{{end}}><img src="{{.Cover}}" alt="{{.Title}}"><div class="party-feature-caption"><strong>{{.Title}}</strong><small>{{if .Published}}发布时间：{{.DateCN}}　　{{end}}{{if .Source}}来源：{{.Source}}{{end}}</small></div></a></article>{{end}}<ol class="banner-dots party-banner-dots" aria-label="党建新闻轮播分页">{{range .Carousel}}<li><button{{if eq .Index 1}} class="active" aria-current="true"{{end}} type="button" aria-label="第{{.Index}}条"></button></li>{{end}}</ol></div>{{else}}<p class="page-empty">暂无轮播内容</p>{{end}}
+    </div></section>
+
+    <section class="party-news section-shell" id="work" aria-labelledby="party-work-title"><div class="container"><h2 class="section-heading" id="party-work-title"><a href="{{.WorkListHref}}">工作动态</a></h2><div class="party-card-grid">{{range .Work}}<article class="party-card"><a class="party-card-media" href="{{.Href}}"{{if .ExternalLink}} target="_blank" rel="noopener noreferrer"{{end}}><img src="{{.Cover}}" alt="{{.Title}}"></a><div class="party-card-copy"><h3><a href="{{.Href}}"{{if .ExternalLink}} target="_blank" rel="noopener noreferrer"{{end}}{{if .Bold}} class="is-bold"{{end}}{{if .Color}} style="color:{{.Color}}"{{end}}>{{.Title}}</a></h3>{{if .Published}}<time class="party-card-date" datetime="{{.DateISO}}">{{.DateCN}}</time>{{end}}</div></article>{{else}}<p class="page-empty">暂无内容</p>{{end}}</div></div></section>
+
+    <section class="party-education section-shell" id="study" aria-labelledby="party-study-title"><div class="container"><h2 class="section-heading" id="party-study-title"><a href="{{.StudyListHref}}">学习教育</a></h2><ul class="education-list">{{range .Study}}<li><a href="{{.Href}}" title="{{.Title}}"{{if .ExternalLink}} target="_blank" rel="noopener noreferrer"{{end}}{{if .Bold}} class="is-bold"{{end}}{{if .Color}} style="color:{{.Color}}"{{end}}>{{.Title}}</a>{{if .Published}}<time datetime="{{.DateISO}}">{{.DateCN}}</time>{{end}}</li>{{else}}<li class="page-empty">暂无内容</li>{{end}}</ul></div></section>
+  </main>
+
+  <footer class="site-footer"><div class="container footer-main"><div class="footer-top"><img class="footer-logo" src="assets/slice/logo.png" alt="中国汽车工业协会"><div class="footer-selects">{{range .FooterLinks}}<label class="footer-link-select"><select data-footer-link aria-label="{{.Title}}"{{if not .Items}} disabled{{end}}><option value="" selected disabled hidden>{{.Title}}</option>{{range .Items}}<option value="{{.Href}}">{{.Title}}</option>{{end}}</select></label>{{end}}</div><div class="qr"><span role="img" aria-label="中国汽车工业协会微信公众号二维码"></span></div></div><div class="footer-info"><p>地址：北京市丰台区汽车博物馆东路诺德中心11号楼33层</p><p>电话：010-63979900 | E-mail:caam@caam.org.cn | 邮编：100160</p><p class="qr-labels"><span>微信公众号</span></p></div></div><div class="copyright"><div class="container copyright-inner"><span>Copyright© 中国汽车工业协会 | 京ICP备05030302-7 | 京公网安备 11010602014012号</span><span>关于我们 | 联系方式 | 服务内容 | 广告刊例 | 网站地图</span></div></div></footer>
+  <script src="js/design-pages.js?v=20260810-1"></script>
+</body>
+</html>

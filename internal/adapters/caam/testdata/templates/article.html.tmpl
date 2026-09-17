@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="{{.Article.Title}} - 中国汽车工业协会">
+  <title>{{.Article.Title}} - 中国汽车工业协会</title>
+  <link rel="stylesheet" href="{{.RootPrefix}}css/style.css?v=20260805-21">
+  <link rel="stylesheet" href="{{.RootPrefix}}css/inner-pages.css?v=20260804-2">
+  <link rel="stylesheet" href="{{.RootPrefix}}css/generated-inner-pages.css?v=20260724-1">
+</head>
+<body class="content-detail-page" data-generated-at="{{.GeneratedAt}}">
+  <header class="site-header">
+    <div class="header-visual" aria-label="中国汽车工业协会">
+      <div class="container header-branding">
+        <img class="header-rating-image" src="{{.RootPrefix}}assets/slice/header-rating@2x.png" alt="中国社会组织评估等级 AAAAA">
+        <img class="header-logo-image" src="{{.RootPrefix}}assets/slice/header-logo@2x.png" alt="中国汽车工业协会">
+        <img class="header-slogan-image" src="{{.RootPrefix}}assets/slice/header-slogan@2x.png" alt="求真、务实、创新、高效">
+      </div>
+      <div class="container header-tools">
+        <div class="lang" aria-label="语言切换"><strong>中文</strong><span>|</span><a href="https://www.caam.org.cn/english">English</a></div>
+      </div>
+    </div>
+    <nav class="main-nav" aria-label="主导航">
+      <div class="container nav-inner">
+        <a href="{{.RootPrefix}}index.html">首页</a>
+        <a href="{{.RootPrefix}}about.html">协会概况</a>
+        <a class="active" href="{{.RootPrefix}}work.html" aria-current="page">协会工作</a>
+        <a href="{{.RootPrefix}}stats.html">统计数据</a>
+        <a href="{{.RootPrefix}}members.html">会员专区</a>
+        <a class="party" href="{{.RootPrefix}}party.html">党建专区</a>
+      </div>
+    </nav>
+  </header>
+
+  <main class="detail-main" data-detail-main data-root-prefix="{{.RootPrefix}}">
+    <nav class="container inner-breadcrumb" aria-label="面包屑">
+      <a href="{{.RootPrefix}}index.html">首页</a>
+      <span data-column-crumb hidden><span>›</span><a href="{{.RootPrefix}}index.html" data-column-link></a></span>
+      <span>›</span><strong>当前页面</strong>
+    </nav>
+
+    <article class="container article-card">
+      <a class="back-link" href="{{.RootPrefix}}index.html" data-return-link><span>‹</span> 返回</a>
+      <header class="article-header">
+        <h1>{{.Article.Title}}</h1>
+        <p>
+          {{if .Article.DateISO}}<span>发布时间：{{.Article.DateISO}}</span>{{end}}
+          {{if .Article.Source}}<span>来源：{{.Article.Source}}</span>{{end}}
+          {{if .Article.Author}}<span>作者：{{.Article.Author}}</span>{{end}}
+          <span>分类：{{.ColumnTitle}}</span>
+        </p>
+      </header>
+
+      <div class="article-body">{{.Content}}</div>
+      <div class="article-actions" aria-label="文章操作">
+        <button class="article-action-button" type="button" data-share-article>
+          <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="18" cy="5" r="2.5"></circle><circle cx="6" cy="12" r="2.5"></circle><circle cx="18" cy="19" r="2.5"></circle><path d="m8.3 10.8 7.4-4.5M8.3 13.2l7.4 4.5"></path></svg>
+          <span>分享</span>
+        </button>
+        <button class="article-action-button" type="button" data-like-article aria-pressed="false">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 20.5S4 16 4 9.5A4.5 4.5 0 0 1 12 6.7a4.5 4.5 0 0 1 8 2.8c0 6.5-8 11-8 11Z"></path></svg>
+          <span data-like-label>点赞</span>
+        </button>
+        <p class="article-action-status" data-article-action-status role="status" aria-live="polite"></p>
+      </div>
+    </article>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-main">
+      <div class="footer-top">
+        <img class="footer-logo" src="{{.RootPrefix}}assets/slice/logo.png" alt="中国汽车工业协会">
+        <div class="footer-selects">
+          {{range .FooterLinks}}
+          <label class="footer-link-select">
+            <select data-footer-link aria-label="{{.Title}}"{{if not .Items}} disabled{{end}}>
+              <option value="" selected disabled hidden>{{.Title}}</option>
+              {{range .Items}}<option value="{{.Href}}">{{.Title}}</option>{{end}}
+            </select>
+          </label>
+          {{end}}
+        </div>
+        <div class="qr"><span role="img" aria-label="中国汽车工业协会微信公众号二维码"></span></div>
+      </div>
+      <div class="footer-info">
+        <p>地址：北京市丰台区汽车博物馆东路诺德中心11号楼33层</p>
+        <p>电话：010-63979900 | E-mail:caam@caam.org.cn | 邮编：100160</p>
+        <p class="qr-labels"><span>微信公众号</span></p>
+      </div>
+    </div>
+    <div class="copyright"><div class="container copyright-inner"><span>Copyright© 中国汽车工业协会 | 京ICP备05030302-7 | 京公网安备 11010602014012号</span><span>关于我们 | 联系方式 | 服务内容 | 广告刊例 | 网站地图</span></div></div>
+  </footer>
+  <script src="{{.RootPrefix}}js/generated-inner-pages.js?v=20260805-2"></script>
+  <script src="{{.RootPrefix}}js/article-actions.js?v=20260803-1"></script>
+</body>
+</html>

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="中国汽车工业协会会员专区，提供会员工作、分支机构、会员制度及会员名录。">
+  <title>会员专区 - 中国汽车工业协会</title>
+  <link rel="stylesheet" href="css/style.css?v=20260805-21"><link rel="stylesheet" href="css/design-pages.css?v=20260811-10">
+</head>
+<body class="design-page members-page" data-generated-at="{{.GeneratedAt}}">
+  <header class="site-header"><div class="header-visual" aria-label="中国汽车工业协会"><div class="container header-branding"><img class="header-rating-image" src="assets/slice/header-rating@2x.png" alt="中国社会组织评估等级 AAAAA"><img class="header-logo-image" src="assets/slice/header-logo@2x.png" alt="中国汽车工业协会"><img class="header-slogan-image" src="assets/slice/header-slogan@2x.png" alt="求真、务实、创新、高效"></div><div class="container header-tools"><div class="lang" aria-label="语言切换"><strong>中文</strong><span>|</span><a href="https://www.caam.org.cn/english">English</a></div></div></div>
+    <nav class="main-nav" aria-label="主导航"><div class="container nav-inner"><a href="index.html">首页</a><a href="about.html">协会概况</a><a href="work.html">协会工作</a><a href="stats.html">统计数据</a><a class="active" href="members.html" aria-current="page">会员专区</a><a class="party" href="party.html">党建专区</a></div></nav>
+  </header>
+
+  <main class="members-main">
+    <section class="member-hero" aria-labelledby="join-title"><div class="container member-hero-inner"><h1 id="join-title">入会流程</h1><div class="join-steps" aria-label="入会五步流程"><span class="join-step"><b>1</b>入会申请</span><span class="join-step"><b>2</b>提交资料</span><span class="join-step"><b>3</b>资料审核</span><span class="join-step"><b>4</b>入会通知</span><span class="join-step"><b>5</b>缴纳会费</span></div></div></section>
+
+    <section class="member-news" aria-labelledby="work-tab"><div class="container member-news-grid"><div>
+        <div class="member-tabs" role="tablist" aria-label="会员资讯分类"><a class="active" id="work-tab" href="{{.WorkListHref}}" role="tab" aria-selected="true" aria-controls="work" data-member-tab>会员工作</a><a id="style-tab" href="{{.StyleListHref}}" role="tab" aria-selected="false" aria-controls="style" data-member-tab>会员风采</a></div>
+      <div class="member-tab-panel" id="work" role="tabpanel" aria-labelledby="work-tab"><ul class="member-news-list">{{range .Work}}<li><a href="{{.Href}}" title="{{.Title}}"{{if .ExternalLink}} target="_blank" rel="noopener noreferrer"{{end}}{{if .Bold}} class="is-bold"{{end}}{{if .Color}} style="color:{{.Color}}"{{end}}>{{.Title}}</a>{{if .Published}}<time datetime="{{.DateISO}}">{{.DateCN}}</time>{{end}}</li>{{else}}<li class="page-empty">暂无内容</li>{{end}}</ul></div>
+      <div class="member-tab-panel" id="style" role="tabpanel" aria-labelledby="style-tab" hidden><ul class="member-news-list">{{range .Style}}<li><a href="{{.Href}}" title="{{.Title}}"{{if .ExternalLink}} target="_blank" rel="noopener noreferrer"{{end}}{{if .Bold}} class="is-bold"{{end}}{{if .Color}} style="color:{{.Color}}"{{end}}>{{.Title}}</a>{{if .Published}}<time datetime="{{.DateISO}}">{{.DateCN}}</time>{{end}}</li>{{else}}<li class="page-empty">暂无内容</li>{{end}}</ul></div>
+    </div><img class="member-news-photo" src="{{.NewsCover}}" alt="会员工作"></div></section>
+
+    <section class="scope-section" id="management" aria-labelledby="management-title"><div class="container"><h2 id="management-title">中国汽车工业协会会员管理办法</h2><div class="scope-card"><div class="member-management-content">{{.Management}}</div>{{if .ManagementLink}}<a class="scope-more" href="{{.ManagementLink.Href}}"{{if .ManagementLink.ExternalLink}} target="_blank" rel="noopener noreferrer"{{end}}>查看会员管理办法全文</a>{{end}}</div></div></section>
+
+    <section class="more-members"><div class="container more-members-inner"><div><h2>更多协会内容</h2><p>会费缴纳、协会章程、相关制度</p></div><div class="more-link-grid">{{range .MoreSections}}{{if .Item}}<a id="{{.Key}}" href="{{.Item.Href}}"{{if .Item.ExternalLink}} target="_blank" rel="noopener noreferrer"{{end}}><strong>{{.Title}}</strong><span>{{.Description}}　›</span></a>{{else}}<div id="{{.Key}}" class="member-empty-card"><strong>{{.Title}}</strong><span>暂无内容</span></div>{{end}}{{end}}</div></div></section>
+
+    <section class="branch-section" aria-labelledby="branch-title"><div class="container branch-layout"><div class="branch-copy"><h2 id="branch-title">分支机构</h2><p>目前整车类分支机构有6个：专用车分会、客车分会、旅居车（房车）分会、燃气汽车分会、越野车分会、皮卡分会。</p></div><nav class="branch-cards" aria-label="分支机构栏目">{{range .Branches}}{{if .Item}}<a class="branch-card" id="{{.Key}}" href="{{.Item.Href}}"{{if .Item.ExternalLink}} target="_blank" rel="noopener noreferrer"{{end}}><strong>{{.Title}}</strong><small>{{.Description}}</small></a>{{else}}<div class="branch-card member-empty-card" id="{{.Key}}"><strong>{{.Title}}</strong><small>暂无内容</small></div>{{end}}{{end}}</nav></div></section>
+
+    <section class="brand-section" aria-label="会长、副会长及会员单位"><div class="container brand-layout"><div class="brand-leaders">
+      <div class="brand-column" id="president"><h2>会长单位</h2>{{range .Presidents}}<a class="brand-card" href="{{.Href}}" title="{{.Title}}"{{if .ExternalLink}} target="_blank" rel="noopener noreferrer"{{end}}>{{if .Cover}}<img src="{{.Cover}}" alt="{{.Title}}">{{else}}<span>{{.Title}}</span>{{end}}</a>{{else}}<p class="page-empty">暂无内容</p>{{end}}</div>
+      <div class="brand-column" id="vice-president"><h2>副会长单位</h2>{{range .VicePresidents}}<a class="brand-card" href="{{.Href}}" title="{{.Title}}"{{if .ExternalLink}} target="_blank" rel="noopener noreferrer"{{end}}>{{if .Cover}}<img src="{{.Cover}}" alt="{{.Title}}">{{else}}<span>{{.Title}}</span>{{end}}</a>{{else}}<p class="page-empty">暂无内容</p>{{end}}</div>
+    </div><div class="brand-column"><h2>会员单位</h2><div class="brand-grid">{{range .MemberLogos}}<a class="brand-card" href="{{.Href}}" title="{{.Title}}"{{if .ExternalLink}} target="_blank" rel="noopener noreferrer"{{end}}>{{if .Cover}}<img src="{{.Cover}}" alt="{{.Title}}">{{else}}<span>{{.Title}}</span>{{end}}</a>{{else}}<p class="page-empty">暂无内容</p>{{end}}</div></div></div></section>
+
+    <section class="roster-section" aria-label="会员单位类型"><div class="container"><div class="roster-tabs" role="tablist" aria-label="会员单位类型">{{range .Rosters}}<button{{if .Active}} class="active"{{end}} id="{{.Key}}-tab" type="button" role="tab" aria-selected="{{if .Active}}true{{else}}false{{end}}" aria-controls="{{.Key}}" data-roster-tab>{{.Title}}</button>{{end}}</div>
+      {{range .Rosters}}<div class="roster-panel" id="{{.Key}}" role="tabpanel" aria-labelledby="{{.Key}}-tab"{{if not .Active}} hidden{{end}}><div class="roster-grid">{{range .Items}}<a href="{{.Href}}" title="{{.Title}}"{{if .ExternalLink}} target="_blank" rel="noopener noreferrer"{{end}}{{if .Bold}} class="is-bold"{{end}}{{if .Color}} style="color:{{.Color}}"{{end}}>{{.Title}}</a>{{else}}<span class="page-empty">暂无内容</span>{{end}}</div></div>{{end}}
+    </div></section>
+  </main>
+
+  <footer class="site-footer"><div class="container footer-main"><div class="footer-top"><img class="footer-logo" src="assets/slice/logo.png" alt="中国汽车工业协会"><div class="footer-selects">{{range .FooterLinks}}<label class="footer-link-select"><select data-footer-link aria-label="{{.Title}}"{{if not .Items}} disabled{{end}}><option value="" selected disabled hidden>{{.Title}}</option>{{range .Items}}<option value="{{.Href}}">{{.Title}}</option>{{end}}</select></label>{{end}}</div><div class="qr"><span role="img" aria-label="中国汽车工业协会微信公众号二维码"></span></div></div><div class="footer-info"><p>地址：北京市丰台区汽车博物馆东路诺德中心11号楼33层</p><p>电话：010-63979900 | E-mail:caam@caam.org.cn | 邮编：100160</p><p class="qr-labels"><span>微信公众号</span></p></div></div><div class="copyright"><div class="container copyright-inner"><span>Copyright© 中国汽车工业协会 | 京ICP备05030302-7 | 京公网安备 11010602014012号</span><span>关于我们 | 联系方式 | 服务内容 | 广告刊例 | 网站地图</span></div></div></footer>
+  <script src="js/design-pages.js?v=20260811-2"></script>
+</body>
+</html>
