@@ -1,6 +1,8 @@
-# 本机傻瓜版操作手册
+# macOS 本机傻瓜版操作手册
 
 这份手册只讲“在当前这台 Mac 上怎么操作”。命令默认从本仓库根目录执行：
+
+明天在单位 Windows 电脑从 Git 重新搭建时，请使用 [Windows 命令行操作手册（无 Docker）](windows-quickstart.md)。
 
 ```bash
 cd /Users/zhitianbai/Project/portal-static

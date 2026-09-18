@@ -1,0 +1,53 @@
+server:
+  port: 8084
+  host: 127.0.0.1
+  mode: release
+  api_prefix: /business_portal/api
+  upload_dir_prefix: /business_portal
+  max_concurrent_ips: 50
+  trusted_proxies: [127.0.0.1]
+  analytics_rate_limit: 60
+  analytics_rate_window_seconds: 60
+  login_rate_limit: 10
+  login_rate_window_seconds: 300
+  captcha_rate_limit: 30
+  captcha_rate_window_seconds: 60
+  replay_window_seconds: 120
+  replay_max_fail: 10
+  replay_ban_minutes: 15
+  allowed_origins:
+    - http://localhost:3000
+    - http://127.0.0.1:3000
+
+database:
+  host: 127.0.0.1
+  port: 3306
+  username: root
+  password: PORTAL_DB_PASSWORD
+  dbname: caam_portal
+  charset: utf8mb4
+  parse_time: true
+  loc: Asia/Shanghai
+  timeout: 30s
+  read_timeout: 100s
+  write_timeout: 100s
+  max_idle_conns: 10
+  max_open_conns: 100
+  conn_max_lifetime: 3600
+  conn_max_idle_time: 600
+
+redis:
+  host: 127.0.0.1
+  port: 6379
+  password: ""
+  db: 6
+  db1: 7
+  db2: 8
+
+jwt:
+  secret: PORTAL_JWT_SECRET
+  expires_hour: 24
+
+log:
+  level: info
+  path: ./logs
