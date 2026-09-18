@@ -5,6 +5,8 @@
 ## 文档导航
 
 - [完整文档目录](docs/README.md)
+- [Windows 日常运行（直接照着执行）](docs/windows-daily-run.md)
+- [静态化栏目取数对照表](docs/column-mapping/README.md)
 - [Windows 命令行操作手册（无 Docker）](docs/windows-quickstart.md)
 - [macOS 本机傻瓜版操作手册](docs/local-quickstart.md)
 - [部署指南](docs/deployment.md)

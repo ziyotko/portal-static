@@ -4,6 +4,8 @@
 
 | 文档 | 主要读者 | 解决的问题 |
 | --- | --- | --- |
+| [Windows 日常运行（直接照着执行）](windows-daily-run.md) | 已完成安装的 Windows 使用者 | 每天如何启动 CAAM、MIIC、管理后台，填写静态化配置并生成全站 |
+| [静态化栏目取数对照表](column-mapping/README.md) | 内容管理员、运维 | CAAM、MIIC 每个页面区域应该在哪个栏目、按什么类型录入数据 |
 | [Windows 命令行操作手册（无 Docker）](windows-quickstart.md) | Windows 测试人员 | 从 Git 克隆四个工程，用命令行联调 CAAM，并测试 MIIC/新门户 |
 | [macOS 本机傻瓜版操作手册](local-quickstart.md) | 当前 Mac 使用者 | 一条命令启动 CAAM，发布并预览内容，以及测试 MIIC/新门户 |
 | [部署指南](deployment.md) | 运维、开发 | 如何构建、配置、以一站一进程方式部署并接入管理后台 |
@@ -16,11 +18,13 @@
 
 ## 阅读顺序
 
+- Windows 环境已经装好，只想启动服务：Windows 日常运行（直接照着执行）。
 - 单位 Windows 电脑：Windows 命令行操作手册（无 Docker）。
 - 当前 Mac 日常使用：macOS 本机傻瓜版操作手册。
 - 第一次上线：部署指南 → 配置参考 → 管理后台使用指南 → 运维与排障手册。
 - 接入新门户：总体设计 → 新门户接入指南 → HTTP API 契约 → 配置参考。
 - 日常内容维护：管理后台使用指南。
+- 录入栏目和文章前：静态化栏目取数对照表。
 - 接口联调或故障定位：HTTP API 契约 → 运维与排障手册。
 
 ## 共同原则
