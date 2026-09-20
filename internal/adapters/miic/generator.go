@@ -167,6 +167,11 @@ func (g *Generator) GenerateSite(ctx context.Context) (GenerationResult, error) 
 	if err := g.renderNews(ctx, staging, optionsFrom(ctx).Grayscale); err != nil {
 		return GenerationResult{}, err
 	}
+	for _, name := range []string{"business", "platforms", "about"} {
+		if err := g.renderStaticMainPage(staging, name, false); err != nil {
+			return GenerationResult{}, err
+		}
+	}
 	if err := g.writeGeneratedContent(ctx, staging); err != nil {
 		return GenerationResult{}, err
 	}
@@ -212,12 +217,8 @@ func (g *Generator) GeneratePages(ctx context.Context) (GenerationResult, error)
 		return GenerationResult{}, err
 	}
 	for _, name := range []string{"business.html", "platforms.html", "about.html"} {
-		path := filepath.Join(root, name)
-		data, err := os.ReadFile(path)
-		if err != nil {
-			return GenerationResult{}, err
-		}
-		if err := publishFile(path, grayscaleHTML(data, optionsFrom(ctx).Grayscale)); err != nil {
+		normalized := strings.TrimSuffix(name, ".html")
+		if err := g.renderStaticMainPage(root, normalized, optionsFrom(ctx).Grayscale); err != nil {
 			return GenerationResult{}, err
 		}
 	}
@@ -249,12 +250,7 @@ func (g *Generator) GeneratePage(ctx context.Context, name string) (GenerationRe
 	if normalized == "news" {
 		err = g.renderNews(ctx, root, optionsFrom(ctx).Grayscale)
 	} else {
-		file := normalized + ".html"
-		data, readErr := os.ReadFile(filepath.Join(g.cfg.Site.SourceRoot, file))
-		if readErr != nil {
-			return GenerationResult{}, readErr
-		}
-		err = publishFile(filepath.Join(root, file), grayscaleHTML(data, optionsFrom(ctx).Grayscale))
+		err = g.renderStaticMainPage(root, normalized, optionsFrom(ctx).Grayscale)
 	}
 	if err != nil {
 		return GenerationResult{}, err
@@ -468,6 +464,25 @@ func (g *Generator) renderNews(ctx context.Context, root string, gray bool) erro
 		return err
 	}
 	return publishFile(filepath.Join(root, "news.html"), grayscaleHTML(out.Bytes(), gray))
+}
+
+func (g *Generator) renderStaticMainPage(root, normalized string, gray bool) error {
+	var source string
+	switch normalized {
+	case "business":
+		source = g.cfg.Site.BusinessTemplate
+	case "platforms":
+		source = g.cfg.Site.PlatformsTemplate
+	case "about":
+		source = g.cfg.Site.AboutTemplate
+	default:
+		return fmt.Errorf("unsupported static main page %q", normalized)
+	}
+	data, err := os.ReadFile(source)
+	if err != nil {
+		return fmt.Errorf("read %s template: %w", normalized, err)
+	}
+	return publishFile(filepath.Join(root, normalized+".html"), grayscaleHTML(data, gray))
 }
 
 func (g *Generator) generateAllArticlesAt(ctx context.Context, root string) (int, error) {

@@ -24,8 +24,12 @@ paths:
   source_root: ../../miic-portal
   dist_root: ../dist/miic-portal
   preview_root: ../dist/miic-preview
+  # preview 使用这些只读文件；production 每次生成从数据库 page/template 绑定读取源码。
   templates:
     news: backend/templates/news.html.tmpl
+    business: business.html
+    platforms: platforms.html
+    about: about.html
     list: backend/templates/list.html.tmpl
     article: backend/templates/article.html.tmpl
 

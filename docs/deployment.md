@@ -18,7 +18,7 @@ portal-static binary
 - Linux 生产主机；macOS 可用于本地开发。
 - Go 版本满足 `go.mod` 要求。
 - 生产模式所需的数据源可达。
-- 门户模板/静态资源目录已部署，并对服务账号只读。
+- 门户静态资源脚手架已部署，并对服务账号只读；preview 模板按需一同部署。
 - 独立产物目录已规划，并对服务账号可写。
 - 已生成足够随机的静态化访问令牌。
 
@@ -27,6 +27,7 @@ portal-static binary
 - 建议创建只读数据库账号；
 - DSN 数据库名必须与 `database.schema` 相同，或在 DSN 中省略数据库名；
 - 数据库时区和 `site.timezone` 应与业务发布时间语义一致。
+- 页面已绑定启用模板，`template.source_code` 已填写并通过语法校验。
 
 ## 3. 推荐目录
 
@@ -47,8 +48,8 @@ portal-static binary
 └── preview/
 
 /srv/portal-source/
-├── caam/    # 只读模板和资源
-└── miic/    # 只读模板和资源
+├── caam/    # 只读静态资源和 preview 脚手架
+└── miic/    # 只读静态资源和 preview 脚手架
 ```
 
 配置文件建议使用绝对路径。`source_root` 与输出目录不能相同或互相包含。
@@ -64,7 +65,7 @@ go vet ./...
 CGO_ENABLED=0 go build -trimpath -ldflags='-s -w' -o build/portal-static ./cmd/portal-static
 ```
 
-将二进制、目标站点配置和所需只读模板/资源部署到服务器。不要把数据库密码或 Token 写进 YAML 或提交到 Git。
+将二进制、目标站点配置和所需只读资源脚手架部署到服务器。Portal CMS 的 production 模板保存在数据库中；不要把数据库密码或 Token 写进 YAML 或提交到 Git。
 
 ## 5. 配置环境变量
 

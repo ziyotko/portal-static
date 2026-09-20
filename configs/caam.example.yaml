@@ -24,6 +24,7 @@ paths:
   source_root: ../../caam-portal/caam-home
   dist_root: ../dist/caam-home
   preview_root: ../dist/caam-preview
+  # preview 使用这些只读文件；production 每次生成从数据库 page/template 绑定读取源码。
   templates:
     home: ../backend/templates/home.html.tmpl
     list: ../backend/templates/list.html.tmpl

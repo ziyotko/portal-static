@@ -2,7 +2,6 @@ package caam
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"log/slog"
 	"net/http"
@@ -23,20 +22,12 @@ type runtimeSource interface {
 	generator.AboutSource
 }
 
-func NewProduction(snapshot coreconfig.Snapshot, database *sql.DB, logger *slog.Logger) (config.Config, *generator.SiteGenerator, error) {
-	store, err := portalcms.NewStore(database, "caam_portal", false)
-	if err != nil {
-		return config.Config{}, nil, err
-	}
-	return NewProductionWithStore(snapshot, store, logger)
-}
-
-func NewProductionWithStore(snapshot coreconfig.Snapshot, store *portalcms.Store, logger *slog.Logger) (config.Config, *generator.SiteGenerator, error) {
+func newProductionWithStore(ctx context.Context, snapshot coreconfig.Snapshot, store *portalcms.Store, logger *slog.Logger) (config.Config, *generator.SiteGenerator, error) {
 	cfg, err := config.FromSnapshot(snapshot)
 	if err != nil {
 		return config.Config{}, nil, err
 	}
-	pageID, err := repository.ResolvePageIDWithStore(context.Background(), store, cfg.Site.PageName)
+	pageID, err := repository.ResolvePageIDWithStore(ctx, store, cfg.Site.PageName)
 	if err != nil {
 		return config.Config{}, nil, err
 	}

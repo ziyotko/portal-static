@@ -194,11 +194,7 @@ func (g *Generator) renderMainPageAt(ctx context.Context, root, normalized strin
 	if normalized == "news" {
 		return g.renderNews(ctx, root, false)
 	}
-	data, err := os.ReadFile(filepath.Join(g.cfg.Site.SourceRoot, normalized+".html"))
-	if err != nil {
-		return err
-	}
-	return publishFile(filepath.Join(root, normalized+".html"), grayscaleHTML(data, false))
+	return g.renderStaticMainPage(root, normalized, false)
 }
 
 func relatedPageNames(columns []model.Column) []string {

@@ -24,18 +24,21 @@ type Config struct {
 }
 
 type SiteConfig struct {
-	SourceRoot      string `yaml:"source_root"`
-	DistRoot        string `yaml:"dist_root"`
-	PreviewRoot     string `yaml:"preview_root"`
-	NewsTemplate    string `yaml:"news_template"`
-	ListTemplate    string `yaml:"list_template"`
-	ArticleTemplate string `yaml:"article_template"`
-	PageSize        int    `yaml:"page_size"`
-	MediaBaseURL    string `yaml:"media_base_url"`
-	Timezone        string `yaml:"timezone"`
-	LockStaleAfter  string `yaml:"lock_stale_after"`
-	FallbackCover   string `yaml:"fallback_cover"`
-	PageName        string `yaml:"page_name"`
+	SourceRoot        string `yaml:"source_root"`
+	DistRoot          string `yaml:"dist_root"`
+	PreviewRoot       string `yaml:"preview_root"`
+	NewsTemplate      string `yaml:"news_template"`
+	BusinessTemplate  string `yaml:"business_template"`
+	PlatformsTemplate string `yaml:"platforms_template"`
+	AboutTemplate     string `yaml:"about_template"`
+	ListTemplate      string `yaml:"list_template"`
+	ArticleTemplate   string `yaml:"article_template"`
+	PageSize          int    `yaml:"page_size"`
+	MediaBaseURL      string `yaml:"media_base_url"`
+	Timezone          string `yaml:"timezone"`
+	LockStaleAfter    string `yaml:"lock_stale_after"`
+	FallbackCover     string `yaml:"fallback_cover"`
+	PageName          string `yaml:"page_name"`
 }
 
 type NewsConfig struct {
@@ -90,7 +93,9 @@ func FromSnapshot(snapshot coreconfig.Snapshot) (Config, error) {
 	cfg := Config{
 		Site: SiteConfig{
 			SourceRoot: snapshot.Paths.SourceRoot, DistRoot: snapshot.Paths.DistRoot, PreviewRoot: snapshot.Paths.PreviewRoot,
-			NewsTemplate: snapshot.Paths.Templates["news"], ListTemplate: snapshot.Paths.Templates["list"], ArticleTemplate: snapshot.Paths.Templates["article"],
+			NewsTemplate: snapshot.Paths.Templates["news"], BusinessTemplate: snapshot.Paths.Templates["business"],
+			PlatformsTemplate: snapshot.Paths.Templates["platforms"], AboutTemplate: snapshot.Paths.Templates["about"],
+			ListTemplate: snapshot.Paths.Templates["list"], ArticleTemplate: snapshot.Paths.Templates["article"],
 			PageSize: adapter.Site.PageSize, Timezone: snapshot.Site.Timezone, LockStaleAfter: adapter.Site.LockStaleAfter,
 			FallbackCover: adapter.Site.FallbackCover, PageName: adapter.Site.PageName,
 		},
@@ -134,6 +139,21 @@ func LoadLegacyConfig(path string) (Config, error) {
 	legacy.Site.DistRoot = resolve(legacy.Site.DistRoot)
 	legacy.Site.PreviewRoot = resolve(legacy.Site.PreviewRoot)
 	legacy.Site.NewsTemplate = resolve(legacy.Site.NewsTemplate)
+	if strings.TrimSpace(legacy.Site.BusinessTemplate) == "" {
+		legacy.Site.BusinessTemplate = filepath.Join(legacy.Site.SourceRoot, "business.html")
+	} else {
+		legacy.Site.BusinessTemplate = resolve(legacy.Site.BusinessTemplate)
+	}
+	if strings.TrimSpace(legacy.Site.PlatformsTemplate) == "" {
+		legacy.Site.PlatformsTemplate = filepath.Join(legacy.Site.SourceRoot, "platforms.html")
+	} else {
+		legacy.Site.PlatformsTemplate = resolve(legacy.Site.PlatformsTemplate)
+	}
+	if strings.TrimSpace(legacy.Site.AboutTemplate) == "" {
+		legacy.Site.AboutTemplate = filepath.Join(legacy.Site.SourceRoot, "about.html")
+	} else {
+		legacy.Site.AboutTemplate = resolve(legacy.Site.AboutTemplate)
+	}
 	legacy.Site.ListTemplate = resolve(legacy.Site.ListTemplate)
 	legacy.Site.ArticleTemplate = resolve(legacy.Site.ArticleTemplate)
 	mediaConfig := defaultMediaConfig()
@@ -157,8 +177,9 @@ func (c Config) Validate() error {
 	if c.Site.SourceRoot == "" || c.Site.DistRoot == "" {
 		return errors.New("miic source and dist roots are required")
 	}
-	if c.Site.NewsTemplate == "" || c.Site.ListTemplate == "" || c.Site.ArticleTemplate == "" {
-		return errors.New("miic news, list and article templates are required")
+	if c.Site.NewsTemplate == "" || c.Site.BusinessTemplate == "" || c.Site.PlatformsTemplate == "" || c.Site.AboutTemplate == "" ||
+		c.Site.ListTemplate == "" || c.Site.ArticleTemplate == "" {
+		return errors.New("miic main page, list and article templates are required")
 	}
 	if c.Site.PageSize <= 0 {
 		return errors.New("miic page_size must be positive")

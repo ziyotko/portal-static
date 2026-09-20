@@ -32,7 +32,9 @@ flowchart LR
     Factory --> Source[可复用或专属数据源]
     Ops --> Generator[门户生成器]
     Source --> Generator
-    Generator --> Templates[只读模板与资源]
+    Source --> DBTemplates[数据库页面模板]
+    DBTemplates --> Generator
+    Generator --> Assets[只读静态资源脚手架]
     Generator --> Dist[独立静态产物目录]
 ```
 
@@ -51,7 +53,7 @@ flowchart LR
 
 ### 2.2 可复用数据源
 
-`internal/sources/portalcms` 对应 Portal CMS MySQL 公共模型，负责连接池、时区、安全 schema 和 schema 限定查询环境。
+`internal/sources/portalcms` 对应 Portal CMS MySQL 公共模型，负责连接池、时区、安全 schema、schema 限定查询环境，以及页面与模板的有效绑定读取。
 
 数据源不是平台强制依赖。预览模式使用适配器内置 demo；生产模式由适配器工厂选择 MySQL、其他数据库、HTTP API 或文件数据源。
 
@@ -72,11 +74,11 @@ flowchart LR
 
 ### 3.1 Preview
 
-`preview` 使用自包含 demo，不连接生产数据库。它与 production 使用同一套模板和生成器，生成主页面、栏目列表、文章详情及资源，从而尽早发现模板或路径问题。
+`preview` 使用适配器自包含的 demo 与测试模板，不连接生产数据库。它与 production 使用同一个生成器和页面结构，生成主页面、栏目列表、文章详情及资源，从而尽早发现渲染或路径问题。
 
 ### 3.2 Generate
 
-`generate` 连接生产数据源并同步生成整站，适合首次发布、部署验收和离线任务。生成结果写入 `paths.dist_root`。
+`generate` 连接生产数据源并同步生成整站，适合首次发布、部署验收和离线任务。使用 Portal CMS 时，模板通过 `page.template_id` 绑定并从 `template.source_code` 读取；每次操作重新取得模板快照。生成结果写入 `paths.dist_root`。
 
 ### 3.3 Serve
 
@@ -138,5 +140,6 @@ sequenceDiagram
 - 选择“适配器统一接口”而不是“统一业务模型”：避免为了复用而破坏不同门户现有规则。
 - 选择“一站一进程”而不是运行时多租户：配置、故障、资源和发布范围更容易隔离。
 - 选择后台代理静态化请求：令牌不暴露给浏览器，权限和操作日志继续由后台统一管理。
-- 选择原工程只读：模板可以继续来自原门户，但构建和运行不会污染原仓库。
+- 选择数据库管理生产模板：后台模板保存后在下一次生成生效，避免数据库与服务器模板文件形成两个真相源。
+- 选择原工程只读：原门户继续提供静态资源和模板迁移参考，但构建和运行不会污染原仓库。
 - 选择完整能力校验：适配器不能在运行后才返回“此门户不支持”，从入口保证操作流程一致。

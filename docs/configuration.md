@@ -56,7 +56,7 @@ adapter: {}
 | `site` | 是 | 站点身份和时区 |
 | `database` | 取决于适配器 | Portal CMS MySQL 适配器生产模式必填；preview 和非 MySQL 适配器可不使用 |
 | `server` | 是 | HTTP 监听、Token 环境变量和超时 |
-| `paths` | 是 | 只读源、输出、预览和模板路径 |
+| `paths` | 是 | 只读资源脚手架、输出、预览和 preview 模板路径 |
 | `media` | 是 | 媒体路径规范化策略 |
 | `adapter` | 是 | 站点专属页面、栏目和渲染配置 |
 
@@ -106,10 +106,10 @@ EXAMPLE_DB_DSN='portal_reader:password@tcp(127.0.0.1:3306)/example_portal?charse
 
 | 字段 | 说明 |
 | --- | --- |
-| `source_root` | 原门户模板/资源脚手架，只读 |
+| `source_root` | 原门户静态资源脚手架，只读；不是 Portal CMS 生产模板的权威来源 |
 | `dist_root` | `generate` 和默认生产操作输出目录 |
 | `preview_root` | `preview` 输出目录 |
-| `templates` | 适配器需要的模板名到路径映射；相对路径以 `source_root` 为基准 |
+| `templates` | preview 所需模板名到路径映射；相对路径以 `source_root` 为基准。Portal CMS production 会以数据库模板覆盖这些路径 |
 | `assets` | 可选的附加资源路径 |
 
 约束：
@@ -118,6 +118,16 @@ EXAMPLE_DB_DSN='portal_reader:password@tcp(127.0.0.1:3306)/example_portal?charse
 - HTTP 请求中的 `path` 必须是绝对非根目录。
 - 不允许把 `miic-portal`、`caam-portal` 或其他源工程作为输出目录。
 - 运行账号需要读取源目录、写入输出目录和创建同级临时目录的权限。
+
+使用 Portal CMS 数据源时，生产模板必须满足以下数据契约：
+
+- `page.status=1`、`page.deleted_at IS NULL`，并通过 `page.template_id` 绑定模板；
+- `template.status=1`、`template.deleted_at IS NULL`，且 `template.source_code` 非空；
+- 页面类型与模板类型匹配：主页面为 `home`，通用栏目为 `column`，通用详情为 `detail`；
+- 每个适配器模板角色只能匹配一个有效页面；
+- `source_code` 必须是合法 Go `html/template` 模板，单个模板不超过 2 MiB。
+
+每个生成操作会读取一次完整模板快照，操作执行中不会混用两个版本。修改数据库模板无需重启进程；重新执行对应页面或全站生成即可生效。
 
 ## 8. `media`
 

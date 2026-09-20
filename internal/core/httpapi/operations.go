@@ -15,6 +15,7 @@ type PageOperation func(context.Context, string) (any, error)
 type ListOperation func(context.Context, int64) (any, error)
 type NamedListOperation func(context.Context, string) (any, error)
 type ArticleOperation func(context.Context, int64) (any, error)
+type OperationsLoader func(context.Context) (Operations, func() error, error)
 
 type Operations struct {
 	GenerateSite           Operation
@@ -127,6 +128,64 @@ func OperationsForGenerator(generator contracts.Generator, normalize func(string
 	}
 	if validator, ok := generator.(interface{ ValidateOutputPath(string) error }); ok {
 		operations.ValidateOutputPath = validator.ValidateOutputPath
+	}
+	return operations
+}
+
+// ReloadingOperations keeps the public operation contract stable while
+// rebuilding its generator dependencies for every request or job. Portal CMS
+// adapters use it to take a fresh, internally consistent database-template
+// snapshot without restarting the service.
+func ReloadingOperations(base Operations, load OperationsLoader) Operations {
+	run := func(ctx context.Context, invoke func(Operations) (any, error)) (result any, err error) {
+		if load == nil {
+			return nil, errors.New("operations loader is nil")
+		}
+		current, cleanup, err := load(ctx)
+		if err != nil {
+			return nil, err
+		}
+		if cleanup != nil {
+			defer func() { err = errors.Join(err, cleanup()) }()
+		}
+		if err := current.Validate(); err != nil {
+			return nil, err
+		}
+		return invoke(current)
+	}
+	operations := base
+	operations.GenerateSite = func(ctx context.Context) (any, error) {
+		return run(ctx, func(current Operations) (any, error) { return current.GenerateSite(ctx) })
+	}
+	operations.GeneratePages = func(ctx context.Context) (any, error) {
+		return run(ctx, func(current Operations) (any, error) { return current.GeneratePages(ctx) })
+	}
+	operations.GenerateAllLists = func(ctx context.Context) (any, error) {
+		return run(ctx, func(current Operations) (any, error) { return current.GenerateAllLists(ctx) })
+	}
+	operations.GenerateAllArticles = func(ctx context.Context) (any, error) {
+		return run(ctx, func(current Operations) (any, error) { return current.GenerateAllArticles(ctx) })
+	}
+	operations.GeneratePage = func(ctx context.Context, name string) (any, error) {
+		return run(ctx, func(current Operations) (any, error) { return current.GeneratePage(ctx, name) })
+	}
+	operations.GenerateList = func(ctx context.Context, id int64) (any, error) {
+		return run(ctx, func(current Operations) (any, error) { return current.GenerateList(ctx, id) })
+	}
+	operations.GenerateListByName = func(ctx context.Context, name string) (any, error) {
+		return run(ctx, func(current Operations) (any, error) { return current.GenerateListByName(ctx, name) })
+	}
+	operations.GenerateArticle = func(ctx context.Context, id int64) (any, error) {
+		return run(ctx, func(current Operations) (any, error) { return current.GenerateArticle(ctx, id) })
+	}
+	operations.DeleteArticle = func(ctx context.Context, id int64) (any, error) {
+		return run(ctx, func(current Operations) (any, error) { return current.DeleteArticle(ctx, id) })
+	}
+	operations.GenerateArticleRelated = func(ctx context.Context, id int64) (any, error) {
+		return run(ctx, func(current Operations) (any, error) { return current.GenerateArticleRelated(ctx, id) })
+	}
+	operations.DeleteArticleRelated = func(ctx context.Context, id int64) (any, error) {
+		return run(ctx, func(current Operations) (any, error) { return current.DeleteArticleRelated(ctx, id) })
 	}
 	return operations
 }

@@ -11,6 +11,7 @@
 - [macOS 本机傻瓜版操作手册](docs/local-quickstart.md)
 - [部署指南](docs/deployment.md)
 - [管理后台使用指南](docs/admin-workflow.md)
+- [数据库模板管理与运维交接](docs/template-management.md)
 - [总体设计](docs/architecture.md)
 - [配置参考](docs/configuration.md)
 - [HTTP API 契约](docs/api-contract.md)
@@ -26,7 +27,7 @@ README 保留平台定位和快速入口；部署、使用、设计和接入细�
 - 一套接口：统一鉴权、任务队列、取消、超时、灰度、输出路径和错误响应。
 - 一站一配置、一站一进程：不同门户使用独立配置、端口和输出目录。
 - 完整预览：每个适配器的 `preview` 都必须生成主页面、栏目列表、文章详情和所需静态资源，不能只生成首页。
-- 原工程只读：门户源工程只提供模板和资源；产物写入本工程的 `dist/` 或请求指定的隔离目录。
+- 原工程只读：门户源工程只提供静态资源和迁移参考；Portal CMS 生产模板以数据库为准，产物写入本工程的 `dist/` 或请求指定的隔离目录。
 
 ## 三层架构
 
@@ -44,6 +45,7 @@ README 保留平台定位和快速入口；部署、使用、设计和接入细�
 - 安全校验并实际应用 `database.schema`；
 - 阻止 DSN 数据库名与配置 schema 不一致；
 - 为页面、栏目、文章和发布关系查询提供统一的 schema 限定执行环境。
+- 按 `page.template_id` 读取启用的 `template.source_code`，校验模板绑定、类型和语法。
 
 数据库不是平台强制依赖。`preview` 不连接数据库，未来使用 HTTP、文件或其他数据库的适配器可以完全忽略 `database`；生产工厂自行选择数据源并负责关闭资源。
 
@@ -77,6 +79,8 @@ go run ./cmd/portal-static generate --config configs/<site>.yaml
 ```
 
 使用共享 Portal CMS MySQL 数据源时，DSN 中的数据库名必须与 `database.schema` 相同；也可以省略 DSN 数据库名，由 schema 限定全部查询。
+
+生产模式下，页面模板以管理后台数据库中的 `page.template_id → template.source_code` 为唯一权威来源。每次生成操作开始时都会重新读取并校验模板，因此后台保存模板后不需要重启静态化服务；下一次生成即使用新版本。模板为空、未启用、类型不符、绑定重复或 Go 模板语法错误时，生成会明确失败，不会静默退回本地旧文件。
 
 ### 独立静态化服务
 
@@ -117,7 +121,7 @@ DELETE /api/static/jobs/{id}
 
 - `driver`、`site`：适配器和站点身份。
 - `server`：监听地址、令牌环境变量和任务超时。
-- `paths`：只读源脚手架、生产输出、预览输出和模板。
+- `paths`：只读静态资源脚手架、生产输出、预览输出和 preview 模板；Portal CMS 生产模板来自数据库。
 - `media`：同源/CDN 模式、历史目录别名和旧 origin 重写。
 - `database`：可选的 Portal CMS MySQL 连接配置。
 - `adapter`：站点专属页面、栏目和生成规则。
