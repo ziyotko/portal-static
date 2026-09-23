@@ -122,6 +122,12 @@ func TestPreviewGeneratesCompleteSite(t *testing.T) {
 	if !strings.Contains(articleText, `class="detail-label">中心动态`) {
 		t.Fatal("article did not use preferred editorial category")
 	}
+	if strings.Contains(articleText, `class="detail-cover"`) {
+		t.Fatal("article repeated its cover inside the body")
+	}
+	if !strings.Contains(articleText, `class="page-hero__backdrop"`) {
+		t.Fatal("article hero cover missing")
+	}
 }
 
 func TestGenerateAllListsPreservesPublishedRootFiles(t *testing.T) {

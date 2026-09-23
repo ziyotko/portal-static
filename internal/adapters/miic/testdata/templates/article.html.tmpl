@@ -15,7 +15,6 @@
     <section class="page-content"><div class="shell detail-layout">
       <aside class="detail-aside"><span class="detail-label">{{.Column.Name}}</span><h2>{{if .Article.Source}}{{.Article.Source}}{{else}}机械工业信息中心{{end}}</h2><p>{{.Article.DateCN}}</p><a class="detail-back" href="{{.BackHref}}">{{.BackLabel}}</a></aside>
       <article class="detail-article static-article" data-static-article>
-        {{if .Article.Cover}}<figure class="detail-cover"><img src="{{.Article.Cover}}" alt="{{.Article.Title}}"></figure>{{end}}
         <div class="static-article__content">{{.Article.Content}}</div>
       </article>
     </div></section>
