@@ -10,11 +10,12 @@ var (
 	ErrBusy                  = errors.New("static generation is already running")
 	ErrInvalidOutputPath     = errors.New("invalid output path")
 	ErrArticleStillPublished = errors.New("article is still publishable")
-	ErrPageNotFound          = errors.New("page not found")
-	ErrPageNotUnique         = errors.New("page name is not unique")
+	ErrTemplateNotFound      = errors.New("template not found")
+	ErrTemplateNotUnique     = errors.New("template selector is not unique")
 	ErrColumnNotFound        = errors.New("column not found")
 	ErrColumnNotUnique       = errors.New("column name is not unique")
 	ErrArticleNotPublished   = errors.New("article not found or not published")
+	ErrTopicNotFound         = errors.New("special template not found")
 )
 
 type Generator interface {
@@ -48,6 +49,21 @@ type GenerationResult struct {
 
 func (r GenerationResult) GeneratedFileCount() int { return r.GeneratedFiles }
 
+type SiteWithTopicsResult struct {
+	Site           any              `json:"site"`
+	Topics         GenerationResult `json:"topics"`
+	GeneratedFiles int              `json:"generated_files"`
+}
+
+func (r SiteWithTopicsResult) GeneratedFileCount() int { return r.GeneratedFiles }
+
+func ResultFileCount(result any) int {
+	if value, ok := result.(interface{ GeneratedFileCount() int }); ok {
+		return value.GeneratedFileCount()
+	}
+	return 0
+}
+
 type ArticleResult struct {
 	GeneratedAt        time.Time `json:"generated_at"`
 	DurationSeconds    float64   `json:"duration_seconds"`
@@ -75,6 +91,27 @@ type DeleteArticleResult struct {
 	RefreshedColumnIDs []int64   `json:"refreshed_column_ids,omitempty"`
 	RefreshedPages     []string  `json:"refreshed_pages,omitempty"`
 }
+
+type TopicResult struct {
+	GeneratedAt     time.Time `json:"generated_at"`
+	DurationSeconds float64   `json:"duration_seconds"`
+	GeneratedFiles  int       `json:"generated_files"`
+	TemplateID      int64     `json:"template_id"`
+	RoutePath       string    `json:"route_path"`
+	Output          string    `json:"output"`
+}
+
+func (r TopicResult) GeneratedFileCount() int { return r.GeneratedFiles }
+
+type DeleteTopicResult struct {
+	DeletedAt      time.Time `json:"deleted_at"`
+	TemplateID     int64     `json:"template_id"`
+	Deleted        bool      `json:"deleted"`
+	DeletedPaths   []string  `json:"deleted_paths"`
+	GeneratedFiles int       `json:"generated_files"`
+}
+
+func (r DeleteTopicResult) GeneratedFileCount() int { return r.GeneratedFiles }
 
 func (r DeleteArticleResult) GeneratedFileCount() int { return r.GeneratedFiles }
 

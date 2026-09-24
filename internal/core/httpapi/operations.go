@@ -29,6 +29,9 @@ type Operations struct {
 	DeleteArticle          ArticleOperation
 	GenerateArticleRelated ArticleOperation
 	DeleteArticleRelated   ArticleOperation
+	GenerateTopics         Operation
+	GenerateTopic          ArticleOperation
+	DeleteTopic            ArticleOperation
 	NormalizePageName      func(string) (string, bool)
 	PageNameError          string
 	ValidateOutputPath     func(string) error
@@ -41,6 +44,8 @@ type Messages struct {
 	InvalidColumnID    string
 	ArticleIDRequired  string
 	InvalidArticleID   string
+	TopicIDRequired    string
+	InvalidTopicID     string
 	InvalidRefresh     string
 	InvalidGray        string
 	InvalidOutputPath  string
@@ -93,6 +98,12 @@ func (m Messages) withDefaults() Messages {
 	}
 	if m.InvalidArticleID == "" {
 		m.InvalidArticleID = "id 必须是正整数"
+	}
+	if m.TopicIDRequired == "" {
+		m.TopicIDRequired = "id 必须是正整数"
+	}
+	if m.InvalidTopicID == "" {
+		m.InvalidTopicID = "id 必须是正整数"
 	}
 	if m.InvalidRefresh == "" {
 		m.InvalidRefresh = "refresh 只允许 related 或 none"
@@ -187,6 +198,24 @@ func ReloadingOperations(base Operations, load OperationsLoader) Operations {
 	operations.DeleteArticleRelated = func(ctx context.Context, id int64) (any, error) {
 		return run(ctx, func(current Operations) (any, error) { return current.DeleteArticleRelated(ctx, id) })
 	}
+	if base.GenerateTopics != nil {
+		generateSite := operations.GenerateSite
+		operations.GenerateSite = func(ctx context.Context) (any, error) {
+			site, err := generateSite(ctx)
+			if err != nil {
+				return nil, err
+			}
+			topics, err := base.GenerateTopics(ctx)
+			if err != nil {
+				return nil, err
+			}
+			topicResult, ok := topics.(contracts.GenerationResult)
+			if !ok {
+				return nil, errors.New("topic batch returned an invalid result")
+			}
+			return contracts.SiteWithTopicsResult{Site: site, Topics: topicResult, GeneratedFiles: contracts.ResultFileCount(site) + topicResult.GeneratedFiles}, nil
+		}
+	}
 	return operations
 }
 
@@ -196,9 +225,11 @@ func defaultErrorClassification(err error) (int, string, bool) {
 		return http.StatusConflict, err.Error(), true
 	case errors.Is(err, contracts.ErrArticleStillPublished):
 		return http.StatusConflict, "文章仍处于可发布状态，请先在数据库下架", true
-	case errors.Is(err, contracts.ErrColumnNotUnique), errors.Is(err, contracts.ErrPageNotUnique):
+	case errors.Is(err, contracts.ErrColumnNotUnique), errors.Is(err, contracts.ErrTemplateNotUnique):
 		return http.StatusConflict, err.Error(), true
-	case errors.Is(err, contracts.ErrColumnNotFound), errors.Is(err, contracts.ErrPageNotFound), errors.Is(err, contracts.ErrArticleNotPublished):
+	case errors.Is(err, contracts.ErrColumnNotFound), errors.Is(err, contracts.ErrTemplateNotFound), errors.Is(err, contracts.ErrArticleNotPublished):
+		return http.StatusNotFound, err.Error(), true
+	case errors.Is(err, contracts.ErrTopicNotFound):
 		return http.StatusNotFound, err.Error(), true
 	case errors.Is(err, contracts.ErrInvalidOutputPath), strings.Contains(err.Error(), "output path"), strings.Contains(err.Error(), "unsupported page"):
 		return http.StatusBadRequest, err.Error(), true

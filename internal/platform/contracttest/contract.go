@@ -43,7 +43,8 @@ func Run(t *testing.T, operations httpapi.Operations, aliases []PageAlias) {
 		batchOps.GeneratePages = complete
 		batchOps.GenerateAllLists = complete
 		batchOps.GenerateAllArticles = complete
-		for _, endpoint := range []string{"site", "pages", "lists", "articles"} {
+		batchOps.GenerateTopics = complete
+		for _, endpoint := range []string{"site", "pages", "lists", "articles", "topics"} {
 			response := httptest.NewRecorder()
 			handler(batchOps, time.Second).ServeHTTP(response, authorized(http.MethodPost, "/api/static/"+endpoint))
 			if response.Code != http.StatusAccepted || !strings.Contains(response.Body.String(), `"status_url"`) || !strings.Contains(response.Body.String(), `"cancel_url"`) {
@@ -83,6 +84,7 @@ func Run(t *testing.T, operations httpapi.Operations, aliases []PageAlias) {
 				called := ""
 				var options contracts.Options
 				pageOps := operations
+				pageOps.ValidateOutputPath = func(string) error { return nil }
 				pageOps.GeneratePage = func(ctx context.Context, name string) (any, error) {
 					called = name
 					options = contracts.OptionsFrom(ctx)
@@ -110,6 +112,36 @@ func Run(t *testing.T, operations httpapi.Operations, aliases []PageAlias) {
 			if response.Code != http.StatusBadRequest {
 				t.Fatalf("%s status=%d body=%s", target, response.Code, response.Body.String())
 			}
+		}
+	})
+
+	t.Run("topic_generate_delete_and_validation", func(t *testing.T) {
+		topicOps := operations
+		topicOps.ValidateOutputPath = func(string) error { return nil }
+		var generated, deleted int64
+		topicOps.GenerateTopic = func(_ context.Context, id int64) (any, error) {
+			generated = id
+			return map[string]any{"generated_files": 1, "template_id": id}, nil
+		}
+		topicOps.DeleteTopic = func(_ context.Context, id int64) (any, error) {
+			deleted = id
+			return map[string]any{"deleted": true, "template_id": id}, nil
+		}
+		api := handler(topicOps, time.Second)
+		for _, method := range []string{http.MethodPost, http.MethodDelete} {
+			response := httptest.NewRecorder()
+			api.ServeHTTP(response, authorized(method, "/api/static/topic?id=17"))
+			if response.Code != http.StatusOK {
+				t.Fatalf("%s status=%d body=%s", method, response.Code, response.Body.String())
+			}
+		}
+		if generated != 17 || deleted != 17 {
+			t.Fatalf("generated=%d deleted=%d", generated, deleted)
+		}
+		invalid := httptest.NewRecorder()
+		api.ServeHTTP(invalid, authorized(http.MethodPost, "/api/static/topic?id=../17"))
+		if invalid.Code != http.StatusBadRequest {
+			t.Fatalf("invalid topic status=%d body=%s", invalid.Code, invalid.Body.String())
 		}
 	})
 

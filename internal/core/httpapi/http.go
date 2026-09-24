@@ -41,9 +41,11 @@ func NewWithOperations(service context.Context, operations Operations, token str
 	mux.HandleFunc("/api/static/pages", api.batch("pages", true, operations.GeneratePages))
 	mux.HandleFunc("/api/static/lists", api.batch("lists", false, operations.GenerateAllLists))
 	mux.HandleFunc("/api/static/articles", api.batch("articles", false, operations.GenerateAllArticles))
+	mux.HandleFunc("/api/static/topics", api.batch("topics", false, operations.GenerateTopics))
 	mux.HandleFunc("/api/static/page", api.page)
 	mux.HandleFunc("/api/static/list", api.list)
 	mux.HandleFunc("/api/static/article", api.article)
+	mux.HandleFunc("/api/static/topic", api.topic)
 	mux.HandleFunc("/api/static/jobs/", api.job)
 	return mux
 }
@@ -217,6 +219,46 @@ func (a *API) article(w http.ResponseWriter, r *http.Request) {
 	} else {
 		result, err = a.operations.GenerateArticle(ctx, id)
 	}
+	a.writeResult(w, result, err)
+}
+
+func (a *API) topic(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost && r.Method != http.MethodDelete {
+		methodNotAllowed(w, http.MethodPost+", "+http.MethodDelete)
+		return
+	}
+	if !a.authorize(w, r, r.Method) {
+		return
+	}
+	if a.rejectWhileBatchActive(w) {
+		return
+	}
+	raw := strings.TrimSpace(r.URL.Query().Get("id"))
+	if raw == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]any{"ok": false, "error": a.operations.Messages.TopicIDRequired})
+		return
+	}
+	id, err := strconv.ParseInt(raw, 10, 64)
+	if err != nil || id <= 0 {
+		writeJSON(w, http.StatusBadRequest, map[string]any{"ok": false, "error": a.operations.Messages.InvalidTopicID})
+		return
+	}
+	run := a.operations.GenerateTopic
+	if r.Method == http.MethodDelete {
+		run = a.operations.DeleteTopic
+	}
+	if run == nil {
+		writeJSON(w, http.StatusServiceUnavailable, map[string]any{"ok": false, "error": a.operations.Messages.ContentUnavailable})
+		return
+	}
+	ctx, cancel := context.WithTimeout(r.Context(), a.timeout)
+	defer cancel()
+	output, ok := a.requestOutputPath(w, r)
+	if !ok {
+		return
+	}
+	ctx = contracts.WithOptions(ctx, output, false)
+	result, err := run(ctx, id)
 	a.writeResult(w, result, err)
 }
 
