@@ -20,10 +20,13 @@
 | `POST` | `/api/static/pages` | 异步 | 生成全部主页面 |
 | `POST` | `/api/static/lists` | 异步 | 生成全部栏目列表 |
 | `POST` | `/api/static/articles` | 异步 | 生成全部文章详情 |
+| `POST` | `/api/static/topics` | 异步 | 生成全部启用专题；整站任务也包含此步骤 |
 | `POST` | `/api/static/page` | 同步 | 生成一个主页面 |
 | `POST` | `/api/static/list` | 同步 | 生成一个栏目列表 |
 | `POST` | `/api/static/article` | 同步 | 生成一个文章详情，可关联刷新 |
 | `DELETE` | `/api/static/article` | 同步 | 删除一个文章详情，可关联刷新 |
+| `POST` | `/api/static/topic` | 同步 | 按专题模板 ID 生成一个专题 |
+| `DELETE` | `/api/static/topic` | 同步 | 按专题模板 ID 删除一个专题文件 |
 | `GET` | `/api/static/jobs/{id}` | 同步 | 查询批任务 |
 | `DELETE` | `/api/static/jobs/{id}` | 同步 | 取消批任务 |
 
@@ -31,11 +34,11 @@
 
 | 参数 | 适用端点 | 说明 |
 | --- | --- | --- |
-| `path` | 所有生成/删除操作 | 可选，绝对非根输出目录；缺省使用 `paths.dist_root` |
+| `path` | 所有生成/删除操作 | 可选，`paths.dist_root` 本身或其下级绝对目录；缺省使用 `paths.dist_root` |
 | `gray` | `site`、`pages`、`page` | 可选，字符串 `1` 开启、`2` 关闭；缺省为关闭 |
 | `refresh` | `article` | 可选，`related` 或 `none`；缺省为 `related` |
 
-`lists` 和 `articles` 批处理不接受 `gray=1`。
+`lists`、`articles` 和 `topics` 批处理不接受 `gray=1`。`path` 只能是配置 `dist_root` 本身或其下级目录；服务还会拒绝路径穿越和符号链接逃逸。
 
 ## 4. 批处理
 
@@ -134,7 +137,18 @@ curl -X DELETE \
 
 `refresh=related` 是默认值，用于同步刷新与文章关联的页面/栏目；`none` 只处理详情本身。删除仍处于可发布状态的文章通常返回 `409`，应先在 CMS 下线。
 
-## 9. HTTP 状态码
+## 9. 专题生成与删除
+
+专题同步操作使用正整数 `id`，该 ID 是 `type=special` 的 `template.id`：
+
+```text
+POST   /api/static/topic?id=88
+DELETE /api/static/topic?id=88
+```
+
+删除路径只由数据库中的 `route_path` 推导，客户端不能提交任意待删除文件名。
+
+## 10. HTTP 状态码
 
 | 状态码 | 含义 |
 | --- | --- |
@@ -148,7 +162,7 @@ curl -X DELETE \
 | `500` | 未分类的生成错误 |
 | `503` | 适配器操作不可用；正常适配器会在启动阶段校验并避免此状态 |
 
-## 10. dia-platform 对接约定
+## 11. dia-platform 对接约定
 
 后台公开给前端的路由仍位于自身 API 前缀下，例如 `/business_portal/api/static/site`。后台负责：
 

@@ -110,24 +110,35 @@ EXAMPLE_DB_DSN='portal_reader:password@tcp(127.0.0.1:3306)/example_portal?charse
 | `dist_root` | `generate` 和默认生产操作输出目录 |
 | `preview_root` | `preview` 输出目录 |
 | `templates` | preview 所需模板名到路径映射；相对路径以 `source_root` 为基准。Portal CMS production 会以数据库模板覆盖这些路径 |
+| `template_codes` | 可选；内部模板 Key 到唯一 `template.code` 的生产绑定。未设置时使用适配器定义的唯一模板名称 |
 | `assets` | 可选的附加资源路径 |
 
 约束：
 
 - `source_root` 与任何输出目录不能相同或重叠。
-- HTTP 请求中的 `path` 必须是绝对非根目录。
+- HTTP 请求中的 `path` 必须是绝对非根目录，并且只能等于 `dist_root` 或位于其下级目录；还会检查已有符号链接祖先。
 - 不允许把 `miic-portal`、`caam-portal` 或其他源工程作为输出目录。
 - 运行账号需要读取源目录、写入输出目录和创建同级临时目录的权限。
 
 使用 Portal CMS 数据源时，生产模板必须满足以下数据契约：
 
-- `page.status=1`、`page.deleted_at IS NULL`，并通过 `page.template_id` 绑定模板；
-- `template.status=1`、`template.deleted_at IS NULL`，且 `template.source_code` 非空；
-- 页面类型与模板类型匹配：主页面为 `home`，通用栏目为 `column`，通用详情为 `detail`；
-- 每个适配器模板角色只能匹配一个有效页面；
+- `template.status=1` 且 `template.source_code` 非空；当前模型采用物理删除，不查询不存在的业务表 `deleted_at`；
+- 模板角色与 `template.type` 匹配：主页面为 `home`，通用栏目为 `column`，通用详情为 `detail`，专题为 `special`；
+- 每个适配器模板角色必须由 code 或名称唯一匹配；
+- `column.status=1`，父子栏目归属同一 `column.template_id`；
+- 发布关系的 `article_column_publish.template_id` 与栏目归属一致；文章要求 `status=1 AND audit_status=2`；
 - `source_code` 必须是合法 Go `html/template` 模板，单个模板不超过 2 MiB。
 
 每个生成操作会读取一次完整模板快照，操作执行中不会混用两个版本。修改数据库模板无需重启进程；重新执行对应页面或全站生成即可生效。
+
+推荐在已确认数据库 code 后配置稳定绑定，例如：
+
+```yaml
+paths:
+  template_codes:
+    list: tylm
+    article: tyxq
+```
 
 ## 8. `media`
 

@@ -34,7 +34,7 @@ type Options struct {
 }
 
 type Summary struct {
-	Pages             int    `json:"pages"`
+	Templates         int    `json:"templates"`
 	Columns           int    `json:"columns"`
 	PublishedArticles int    `json:"published_articles"`
 	DraftArticles     int    `json:"draft_articles"`
@@ -164,10 +164,22 @@ func Verify(ctx context.Context, options Options) (Summary, error) {
 		GeneratedFiles   int `json:"generated_files"`
 		GeneratedDetails int `json:"generated_details"`
 		GeneratedLists   int `json:"generated_lists"`
+		Site             json.RawMessage `json:"site"`
 	}
 	encoded, _ := json.Marshal(result)
 	if err := json.Unmarshal(encoded, &metrics); err != nil {
 		return Summary{}, fmt.Errorf("decode generation metrics: %w", err)
+	}
+	if len(metrics.Site) > 0 {
+		var siteMetrics struct {
+			GeneratedDetails int `json:"generated_details"`
+			GeneratedLists   int `json:"generated_lists"`
+		}
+		if err := json.Unmarshal(metrics.Site, &siteMetrics); err != nil {
+			return Summary{}, fmt.Errorf("decode site generation metrics: %w", err)
+		}
+		metrics.GeneratedDetails = siteMetrics.GeneratedDetails
+		metrics.GeneratedLists = siteMetrics.GeneratedLists
 	}
 	summary.GeneratedFiles = metrics.GeneratedFiles
 	summary.GeneratedDetails = metrics.GeneratedDetails
@@ -301,20 +313,20 @@ func inspectFixture(ctx context.Context, database *sql.DB) (Summary, []int64, er
 		target *int
 		query  string
 	}{
-		{&summary.Pages, "SELECT COUNT(*) FROM page WHERE status=1 AND deleted_at IS NULL"},
-		{&summary.Columns, "SELECT COUNT(*) FROM `column` WHERE deleted_at IS NULL"},
-		{&summary.PublishedArticles, "SELECT COUNT(DISTINCT a.id) FROM article a INNER JOIN article_column_publish acp ON acp.article_id=a.id WHERE a.status=1 AND a.audit_status=2 AND a.deleted_at IS NULL AND a.type IN (1,2)"},
-		{&summary.DraftArticles, "SELECT COUNT(*) FROM article WHERE deleted_at IS NOT NULL OR status<>1 OR audit_status<>2"},
+		{&summary.Templates, "SELECT COUNT(*) FROM template WHERE status=1"},
+		{&summary.Columns, "SELECT COUNT(*) FROM `column` WHERE status=1"},
+		{&summary.PublishedArticles, "SELECT COUNT(DISTINCT a.id) FROM article a INNER JOIN article_column_publish acp ON acp.article_id=a.id INNER JOIN `column` c ON c.id=acp.column_id AND c.status=1 AND c.template_id=acp.template_id INNER JOIN template t ON t.id=c.template_id AND t.status=1 WHERE a.status=1 AND a.audit_status=2 AND a.type IN (1,2)"},
+		{&summary.DraftArticles, "SELECT COUNT(*) FROM article WHERE status<>1 OR audit_status<>2"},
 	}
 	for _, item := range queries {
 		if err := database.QueryRowContext(ctx, item.query).Scan(item.target); err != nil {
 			return Summary{}, nil, fmt.Errorf("inspect CAAM fixture: %w", err)
 		}
 	}
-	if summary.Pages < 7 || summary.Columns == 0 || summary.PublishedArticles == 0 || summary.DraftArticles == 0 {
+	if summary.Templates < 7 || summary.Columns == 0 || summary.PublishedArticles == 0 || summary.DraftArticles == 0 {
 		return Summary{}, nil, fmt.Errorf("CAAM fixture is incomplete: %+v", summary)
 	}
-	rows, err := database.QueryContext(ctx, "SELECT id FROM article WHERE deleted_at IS NOT NULL OR status<>1 OR audit_status<>2 ORDER BY id")
+	rows, err := database.QueryContext(ctx, "SELECT id FROM article WHERE status<>1 OR audit_status<>2 ORDER BY id")
 	if err != nil {
 		return Summary{}, nil, err
 	}

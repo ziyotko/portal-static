@@ -45,7 +45,9 @@ README 保留平台定位和快速入口；部署、使用、设计和接入细�
 - 安全校验并实际应用 `database.schema`；
 - 阻止 DSN 数据库名与配置 schema 不一致；
 - 为页面、栏目、文章和发布关系查询提供统一的 schema 限定执行环境。
-- 按 `page.template_id` 读取启用的 `template.source_code`，校验模板绑定、类型和语法。
+- 按稳定的内部模板 Key 显式匹配启用的 `template.code`（推荐）或唯一名称，读取 `template.source_code`，并校验类型、路由和语法。
+- 按 `template.route_path`、`column.route_path` 生成与后台预览 URL 对应的兼容文件，并保留门户原有 URL。
+- 直接从 `type=special` 的模板生成、定位和删除专题页，不引入专题业务表。
 
 数据库不是平台强制依赖。`preview` 不连接数据库，未来使用 HTTP、文件或其他数据库的适配器可以完全忽略 `database`；生产工厂自行选择数据源并负责关闭资源。
 
@@ -80,7 +82,7 @@ go run ./cmd/portal-static generate --config configs/<site>.yaml
 
 使用共享 Portal CMS MySQL 数据源时，DSN 中的数据库名必须与 `database.schema` 相同；也可以省略 DSN 数据库名，由 schema 限定全部查询。
 
-生产模式下，页面模板以管理后台数据库中的 `page.template_id → template.source_code` 为唯一权威来源。每次生成操作开始时都会重新读取并校验模板，因此后台保存模板后不需要重启静态化服务；下一次生成即使用新版本。模板为空、未启用、类型不符、绑定重复或 Go 模板语法错误时，生成会明确失败，不会静默退回本地旧文件。
+生产模式下，管理后台的 `template` 表是模板源码、类型和访问路由的唯一权威来源。内部模板 Key 通过 `paths.template_codes` 或唯一名称绑定到具体模板；每次生成操作开始时都会重新读取并校验，因此后台保存模板后无需重启服务。模板为空、未启用、类型不符、选择歧义或 Go 模板语法错误时，生成会明确失败，不会静默退回本地旧文件。
 
 ### 独立静态化服务
 
@@ -103,17 +105,20 @@ POST   /api/static/site
 POST   /api/static/pages
 POST   /api/static/lists
 POST   /api/static/articles
+POST   /api/static/topics
 POST   /api/static/page
 POST   /api/static/list
 POST   /api/static/article
 DELETE /api/static/article
+POST   /api/static/topic
+DELETE /api/static/topic
 GET    /api/static/jobs/{id}
 DELETE /api/static/jobs/{id}
 ```
 
 批处理统一返回 `202` 和包含 `id`、`kind`、`status`、`status_url`、`cancel_url`、时间及进度的 job；同步操作统一返回 `200` 和生成计数。适配器可以定义自己的中英文页面别名和业务错误映射，但不得增加站点私有路由或特殊命令流程。
 
-`dia-platform/business/portal` 当前使用的 `site`、`pages`、`lists`、`articles`、`page`、`list`、`article` 和 `jobs` 调用可以直接使用该契约。后台工程不需要修改，也不是本工程的编译依赖。
+`dia-platform/business/portal` 当前使用的 `site`、`pages`、`lists`、`articles`、`topics`、`page`、`list`、`article`、`topic` 和 `jobs` 调用可以直接使用该契约。后台工程不需要修改，也不是本工程的编译依赖。`site` 会在普通站点内容成功后纳入专题批量生成。
 
 ## 配置职责
 
