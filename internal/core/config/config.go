@@ -54,11 +54,13 @@ type ServerConfig struct {
 }
 
 type PathsConfig struct {
-	SourceRoot  string            `yaml:"source_root"`
-	DistRoot    string            `yaml:"dist_root"`
-	PreviewRoot string            `yaml:"preview_root,omitempty"`
-	Templates   map[string]string `yaml:"templates"`
-	Assets      []string          `yaml:"assets,omitempty"`
+	SourceRoot    string            `yaml:"source_root"`
+	DistRoot      string            `yaml:"dist_root"`
+	PreviewRoot   string            `yaml:"preview_root,omitempty"`
+	Templates     map[string]string `yaml:"templates"`
+	TemplateCodes map[string]string `yaml:"template_codes,omitempty"`
+	Routes        map[string]string `yaml:"-"`
+	Assets        []string          `yaml:"assets,omitempty"`
 }
 
 type Snapshot struct {

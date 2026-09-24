@@ -10,37 +10,40 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+
+	"portal-static/internal/contracts"
 )
 
 const maxTemplateSourceBytes = 2 << 20
 
 var templateKeyPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9_-]*$`)
 
-// TemplateBinding identifies the active database template used for one
-// adapter template role. PageName is used for named top-level pages; when it
-// is empty, PageType must identify exactly one active page (for example the
-// shared column or detail page).
+// TemplateBinding maps one adapter role to one CMS template. At least one
+// stable selector (ID, Code or Name) is required in addition to Type. Code is
+// preferred for deployment configuration; Name remains supported for existing
+// installations whose template codes have not yet been standardized.
 type TemplateBinding struct {
-	Key          string
-	PageName     string
-	PageType     string
-	TemplateType string
+	Key  string
+	ID   int64
+	Code string
+	Name string
+	Type string
 }
 
 type BoundTemplate struct {
-	Key          string
-	PageID       int64
-	PageName     string
-	PageType     string
-	TemplateID   int64
-	TemplateName string
-	TemplateType string
-	Source       string
+	Key       string
+	ID        int64
+	Name      string
+	Code      string
+	Type      string
+	RoutePath string
+	Status    int
+	Source    string
+	Layout    string
 }
 
-// LoadBoundTemplates resolves page.template_id and returns the active
-// template source stored in the Portal CMS. Production adapters use this as
-// their only template source; repository files are reserved for preview.
+// LoadBoundTemplates reads Template directly. The removed Page entity is not
+// consulted. Every selector must resolve to exactly one enabled template.
 func (s *Store) LoadBoundTemplates(ctx context.Context, bindings []TemplateBinding) (map[string]BoundTemplate, error) {
 	if s == nil {
 		return nil, errors.New("portal CMS store is nil")
@@ -52,9 +55,9 @@ func (s *Store) LoadBoundTemplates(ctx context.Context, bindings []TemplateBindi
 	keys := make(map[string]struct{}, len(bindings))
 	for index, binding := range bindings {
 		binding.Key = strings.TrimSpace(binding.Key)
-		binding.PageName = strings.TrimSpace(binding.PageName)
-		binding.PageType = strings.TrimSpace(binding.PageType)
-		binding.TemplateType = strings.TrimSpace(binding.TemplateType)
+		binding.Code = strings.TrimSpace(binding.Code)
+		binding.Name = strings.TrimSpace(binding.Name)
+		binding.Type = strings.TrimSpace(binding.Type)
 		if !templateKeyPattern.MatchString(binding.Key) {
 			return nil, fmt.Errorf("template binding key %q is invalid", binding.Key)
 		}
@@ -62,21 +65,18 @@ func (s *Store) LoadBoundTemplates(ctx context.Context, bindings []TemplateBindi
 			return nil, fmt.Errorf("duplicate template binding key %q", binding.Key)
 		}
 		keys[binding.Key] = struct{}{}
-		if binding.PageName == "" && binding.PageType == "" {
-			return nil, fmt.Errorf("template binding %q requires page name or type", binding.Key)
+		if binding.ID <= 0 && binding.Code == "" && binding.Name == "" {
+			return nil, fmt.Errorf("template binding %q requires id, code or name", binding.Key)
 		}
-		if binding.TemplateType == "" {
-			return nil, fmt.Errorf("template binding %q requires template type", binding.Key)
+		if binding.Type == "" {
+			return nil, fmt.Errorf("template binding %q requires type", binding.Key)
 		}
 		normalized[index] = binding
 	}
 
-	query := `SELECT p.id,p.name,p.page_type,t.id,t.name,t.type,COALESCE(t.source_code,'')
-FROM {{schema}}.page p
-INNER JOIN {{schema}}.template t ON t.id=p.template_id AND t.status=1 AND t.deleted_at IS NULL
-WHERE p.status=1 AND p.deleted_at IS NULL
-ORDER BY p.id`
-	rows, err := s.QueryContext(ctx, query)
+	rows, err := s.QueryContext(ctx, `SELECT id,name,COALESCE(code,''),type,COALESCE(route_path,''),status,COALESCE(source_code,''),COALESCE(layout,'')
+FROM {{schema}}.template
+ORDER BY id`)
 	if err != nil {
 		return nil, fmt.Errorf("load database templates: %w", err)
 	}
@@ -84,10 +84,7 @@ ORDER BY p.id`
 	records := make([]BoundTemplate, 0, len(bindings))
 	for rows.Next() {
 		var record BoundTemplate
-		if err := rows.Scan(
-			&record.PageID, &record.PageName, &record.PageType,
-			&record.TemplateID, &record.TemplateName, &record.TemplateType, &record.Source,
-		); err != nil {
+		if err := rows.Scan(&record.ID, &record.Name, &record.Code, &record.Type, &record.RoutePath, &record.Status, &record.Source, &record.Layout); err != nil {
 			return nil, fmt.Errorf("scan database templates: %w", err)
 		}
 		records = append(records, record)
@@ -98,49 +95,118 @@ ORDER BY p.id`
 
 	result := make(map[string]BoundTemplate, len(bindings))
 	for _, binding := range normalized {
+		selectorMatches := make([]BoundTemplate, 0, 2)
 		matches := make([]BoundTemplate, 0, 2)
 		for _, candidate := range records {
-			if binding.PageName != "" && candidate.PageName != binding.PageName {
+			if binding.ID > 0 && candidate.ID != binding.ID {
 				continue
 			}
-			if binding.PageType != "" && candidate.PageType != binding.PageType {
+			if binding.Code != "" && candidate.Code != binding.Code {
 				continue
 			}
-			matches = append(matches, candidate)
+			if binding.Name != "" && candidate.Name != binding.Name {
+				continue
+			}
+			selectorMatches = append(selectorMatches, candidate)
+			if candidate.Type == binding.Type {
+				matches = append(matches, candidate)
+			}
+		}
+		selector := templateSelector(binding)
+		if len(selectorMatches) == 0 {
+			return nil, fmt.Errorf("%w: database template %q is unavailable: %s was not found with type %q", contracts.ErrTemplateNotFound, binding.Key, selector, binding.Type)
 		}
 		if len(matches) == 0 {
-			selector := "page type " + binding.PageType
-			if binding.PageName != "" {
-				selector = "page " + binding.PageName
+			actualTypes := make([]string, 0, len(selectorMatches))
+			for _, record := range selectorMatches {
+				actualTypes = append(actualTypes, record.Type)
 			}
-			return nil, fmt.Errorf("database template %q is unavailable: active %s is missing, unbound, or uses an inactive template", binding.Key, selector)
+			return nil, fmt.Errorf("database template %q type is %q, want %q", binding.Key, strings.Join(actualTypes, ","), binding.Type)
 		}
 		if len(matches) != 1 {
-			return nil, fmt.Errorf("database template %q is ambiguous: %d active pages match", binding.Key, len(matches))
+			return nil, fmt.Errorf("%w: database template %q is ambiguous: %d templates match %s", contracts.ErrTemplateNotUnique, binding.Key, len(matches), selector)
 		}
 		record := matches[0]
-		record.Key = binding.Key
-		if record.TemplateType != binding.TemplateType {
-			return nil, fmt.Errorf(
-				"database template %q type is %q, want %q", binding.Key, record.TemplateType, binding.TemplateType,
-			)
+		if record.Status != 1 {
+			return nil, fmt.Errorf("database template %q (%s) is disabled", binding.Key, record.Name)
 		}
 		if strings.TrimSpace(record.Source) == "" {
-			return nil, fmt.Errorf("database template %q (%s) has empty source_code", binding.Key, record.TemplateName)
+			return nil, fmt.Errorf("database template %q (%s) has empty source_code", binding.Key, record.Name)
 		}
 		if len(record.Source) > maxTemplateSourceBytes {
 			return nil, fmt.Errorf("database template %q exceeds %d bytes", binding.Key, maxTemplateSourceBytes)
 		}
+		record.Key = binding.Key
 		result[binding.Key] = record
 	}
 	return result, nil
 }
 
+func templateSelector(binding TemplateBinding) string {
+	parts := make([]string, 0, 3)
+	if binding.ID > 0 {
+		parts = append(parts, fmt.Sprintf("id=%d", binding.ID))
+	}
+	if binding.Code != "" {
+		parts = append(parts, fmt.Sprintf("code=%q", binding.Code))
+	}
+	if binding.Name != "" {
+		parts = append(parts, fmt.Sprintf("name=%q", binding.Name))
+	}
+	return strings.Join(parts, ", ")
+}
+
+// LoadTemplatesByType returns all enabled templates of a type. It is used for
+// special pages, where each template is a separately addressable page.
+func (s *Store) LoadTemplatesByType(ctx context.Context, templateType string) ([]BoundTemplate, error) {
+	templateType = strings.TrimSpace(templateType)
+	if templateType == "" {
+		return nil, errors.New("template type is required")
+	}
+	rows, err := s.QueryContext(ctx, `SELECT id,name,COALESCE(code,''),type,COALESCE(route_path,''),status,COALESCE(source_code,''),COALESCE(layout,'')
+FROM {{schema}}.template WHERE type=? AND status=1 ORDER BY id`, templateType)
+	if err != nil {
+		return nil, fmt.Errorf("load %s templates: %w", templateType, err)
+	}
+	defer rows.Close()
+	var records []BoundTemplate
+	for rows.Next() {
+		var record BoundTemplate
+		if err := rows.Scan(&record.ID, &record.Name, &record.Code, &record.Type, &record.RoutePath, &record.Status, &record.Source, &record.Layout); err != nil {
+			return nil, fmt.Errorf("scan %s template: %w", templateType, err)
+		}
+		records = append(records, record)
+	}
+	return records, rows.Err()
+}
+
+func (s *Store) LoadTemplateByID(ctx context.Context, id int64, templateType string) (BoundTemplate, error) {
+	if id <= 0 {
+		return BoundTemplate{}, errors.New("template id must be positive")
+	}
+	var record BoundTemplate
+	err := s.QueryRowContext(ctx, `SELECT id,name,COALESCE(code,''),type,COALESCE(route_path,''),status,COALESCE(source_code,''),COALESCE(layout,'')
+FROM {{schema}}.template WHERE id=?`, id).Scan(&record.ID, &record.Name, &record.Code, &record.Type, &record.RoutePath, &record.Status, &record.Source, &record.Layout)
+	if err != nil {
+		return BoundTemplate{}, fmt.Errorf("load template %d: %w", id, err)
+	}
+	if record.Type != templateType {
+		return BoundTemplate{}, fmt.Errorf("template %d type is %q, want %q", id, record.Type, templateType)
+	}
+	if record.Status != 1 {
+		return BoundTemplate{}, fmt.Errorf("template %d is disabled", id)
+	}
+	if strings.TrimSpace(record.Source) == "" {
+		return BoundTemplate{}, fmt.Errorf("template %d has empty source_code", id)
+	}
+	if len(record.Source) > maxTemplateSourceBytes {
+		return BoundTemplate{}, fmt.Errorf("template %d exceeds %d bytes", id, maxTemplateSourceBytes)
+	}
+	return record, nil
+}
+
 // MaterializeTemplates validates database template syntax and writes an
-// ephemeral, private template bundle. Existing generators can keep using
-// html/template.ParseFiles while production remains database-authoritative.
-// The returned cleanup must be called after the generator has finished using
-// the bundle. Production adapters create a fresh bundle for every operation.
+// ephemeral, private template bundle for the existing renderers.
 func MaterializeTemplates(records map[string]BoundTemplate) (map[string]string, func() error, error) {
 	if len(records) == 0 {
 		return nil, nil, errors.New("no database templates to materialize")
@@ -168,7 +234,7 @@ func MaterializeTemplates(records map[string]BoundTemplate) (map[string]string, 
 		}
 		filename := key + ".html.tmpl"
 		if _, err := template.New(filename).Parse(record.Source); err != nil {
-			return fail(fmt.Errorf("parse database template %q (%s): %w", key, record.TemplateName, err))
+			return fail(fmt.Errorf("parse database template %q (%s): %w", key, record.Name, err))
 		}
 		path := filepath.Join(dir, filename)
 		if err := os.WriteFile(path, []byte(record.Source), 0o600); err != nil {
