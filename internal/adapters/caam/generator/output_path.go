@@ -3,6 +3,7 @@ package generator
 import (
 	"context"
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -49,7 +50,50 @@ func (g *SiteGenerator) ValidateOutputPath(outputPath string) error {
 	if pathsOverlap(source, target) {
 		return fmt.Errorf("%w: path cannot overlap the static source directory", ErrInvalidOutputPath)
 	}
+	if !pathContains(filepath.Clean(g.cfg.Site.DistRoot), target) {
+		return fmt.Errorf("%w: path must be the configured dist_root or one of its descendants", ErrInvalidOutputPath)
+	}
+	if !resolvedPathContains(filepath.Clean(g.cfg.Site.DistRoot), target) {
+		return fmt.Errorf("%w: path escapes the configured dist_root through a symbolic link", ErrInvalidOutputPath)
+	}
 	return nil
+}
+
+func resolvedPathContains(parent, child string) bool {
+	realParent, ok := resolveProspectiveOutputPath(parent)
+	if !ok {
+		return false
+	}
+	realChild, ok := resolveProspectiveOutputPath(child)
+	return ok && pathContains(realParent, realChild)
+}
+
+func resolveProspectiveOutputPath(path string) (string, bool) {
+	path = filepath.Clean(path)
+	ancestor := path
+	for {
+		if _, err := os.Lstat(ancestor); err == nil {
+			break
+		}
+		next := filepath.Dir(ancestor)
+		if next == ancestor {
+			return "", false
+		}
+		ancestor = next
+	}
+	realAncestor, err := filepath.EvalSymlinks(ancestor)
+	if err != nil {
+		info, statErr := os.Lstat(ancestor)
+		if statErr != nil || info.Mode()&os.ModeSymlink != 0 {
+			return "", false
+		}
+		realAncestor = ancestor
+	}
+	rel, err := filepath.Rel(ancestor, path)
+	if err != nil {
+		return "", false
+	}
+	return filepath.Join(realAncestor, rel), true
 }
 
 func pathsOverlap(first, second string) bool {

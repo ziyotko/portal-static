@@ -11,6 +11,7 @@ import (
 	"portal-static/internal/adapters/caam/demo"
 	"portal-static/internal/adapters/caam/generator"
 	"portal-static/internal/adapters/caam/repository"
+	"portal-static/internal/contracts"
 	coreconfig "portal-static/internal/core/config"
 	"portal-static/internal/core/httpapi"
 	"portal-static/internal/sources/portalcms"
@@ -27,11 +28,11 @@ func newProductionWithStore(ctx context.Context, snapshot coreconfig.Snapshot, s
 	if err != nil {
 		return config.Config{}, nil, err
 	}
-	pageID, err := repository.ResolvePageIDWithStore(ctx, store, cfg.Site.PageName)
+	templateID, err := repository.ResolveTemplateIDWithStore(ctx, store, cfg.Site.PageName)
 	if err != nil {
 		return config.Config{}, nil, err
 	}
-	source := repository.NewArticleRepositoryWithStore(store, pageID)
+	source := repository.NewArticleRepositoryWithStore(store, templateID)
 	site, err := newSiteGenerator(cfg, source, logger)
 	return cfg, site, err
 }
@@ -110,6 +111,12 @@ func classifyError(err error) (int, string, bool) {
 		return http.StatusNotFound, "文章不存在、未发布或不属于有效栏目", true
 	case errors.Is(err, generator.ErrArticleStillPublished):
 		return http.StatusConflict, "文章仍处于可发布状态，请先在数据库下架", true
+	case errors.Is(err, contracts.ErrTemplateNotUnique):
+		return http.StatusConflict, err.Error(), true
+	case errors.Is(err, contracts.ErrTemplateNotFound), errors.Is(err, contracts.ErrTopicNotFound):
+		return http.StatusNotFound, err.Error(), true
+	case errors.Is(err, contracts.ErrInvalidOutputPath):
+		return http.StatusBadRequest, err.Error(), true
 	default:
 		return 0, "", false
 	}

@@ -16,8 +16,9 @@ func TestSiteGeneratorDeleteArticleUsesRequestedOutputPath(t *testing.T) {
 	cfg.Site.DistRoot = t.TempDir()
 	defaultOutput := cfg.Site.DistRoot
 	requestedOutput := filepath.Join(t.TempDir(), "custom-output")
+	cfg.Site.DistRoot = requestedOutput
 	pageCfg := cfg
-	pageCfg.Site.OutputRoot = defaultOutput
+	pageCfg.Site.OutputRoot = requestedOutput
 	pages, err := NewPageGenerator(pageCfg, fakePageSource{}, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -63,6 +64,8 @@ func TestSiteGeneratorRejectsOutputPathOverlappingSource(t *testing.T) {
 func TestGenerateSiteUsesRequestedOutputPathThroughStaging(t *testing.T) {
 	cfg, aboutSource, homeSource := siteTestFixture(t)
 	cfg.Site.AllowEmptyStats = true
+	requestedOutput := filepath.Join(t.TempDir(), "custom-output")
+	cfg.Site.DistRoot = requestedOutput
 	pageCfg := cfg
 	pageCfg.Site.OutputRoot = cfg.Site.DistRoot
 	pages, err := NewPageGenerator(pageCfg, homeSource, nil)
@@ -74,7 +77,6 @@ func TestGenerateSiteUsesRequestedOutputPathThroughStaging(t *testing.T) {
 		t.Fatal(err)
 	}
 	site := NewSiteGenerator(cfg, homeSource, aboutSource, pages, home, nil)
-	requestedOutput := filepath.Join(t.TempDir(), "custom-output")
 	ctx := contracts.WithOptions(context.Background(), requestedOutput, false)
 
 	result, err := site.GenerateSite(ctx)

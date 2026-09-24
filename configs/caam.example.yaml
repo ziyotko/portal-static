@@ -24,7 +24,7 @@ paths:
   source_root: ../../caam-portal/caam-home
   dist_root: ../dist/caam-home
   preview_root: ../dist/caam-preview
-  # preview 使用这些只读文件；production 每次生成从数据库 page/template 绑定读取源码。
+  # preview 使用这些只读文件；production 每次直接从 template 表读取源码。
   templates:
     home: ../backend/templates/home.html.tmpl
     list: ../backend/templates/list.html.tmpl
@@ -34,6 +34,16 @@ paths:
     stats: ../backend/templates/stats.html.tmpl
     members: ../backend/templates/members.html.tmpl
     party: ../backend/templates/party.html.tmpl
+  # 生产模板角色优先按稳定 code 绑定；这些 code 来自 2026-09-21 CAAM 快照。
+  template_codes:
+    home: sy
+    about: xhgk
+    work: xhgz
+    stats: tjsj
+    members: hyzq
+    party: djzq
+    list: tylm
+    article: tyxq
 
 media:
   mode: same_origin

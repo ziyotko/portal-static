@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"time"
 
 	adapterconfig "portal-static/internal/adapters/caam/config"
 	"portal-static/internal/adapters/caam/generator"
@@ -44,15 +45,17 @@ func (Factory) Build(ctx context.Context, mode platform.Mode, snapshot coreconfi
 			_ = store.Close()
 			return nil, err
 		}
-		operations := caamProductionOperations(snapshot, store, validator, logger)
+		operations := caamProductionOperations(snapshot, productionSnapshot.Paths.Routes, store, validator, logger)
 		return platform.NewRuntime(operations, store.Close)
 	default:
 		return nil, fmt.Errorf("unsupported CAAM runtime mode %q", mode)
 	}
 }
 
-func caamProductionOperations(snapshot coreconfig.Snapshot, store *portalcms.Store, validator *generator.SiteGenerator, logger *slog.Logger) httpapi.Operations {
+func caamProductionOperations(snapshot coreconfig.Snapshot, initialRoutes map[string]string, store *portalcms.Store, validator *generator.SiteGenerator, logger *slog.Logger) httpapi.Operations {
 	base := Operations(validator)
+	base = portalcms.WithRouteAliases(base, portalcms.RoutePublisher{Store: store, AllowedRoot: snapshot.Paths.DistRoot, Routes: initialRoutes}, portalcms.LegacyCAAMMainFiles())
+	base = withCAAMTopics(base, store, snapshot)
 	load := func(ctx context.Context) (httpapi.Operations, func() error, error) {
 		productionSnapshot, cleanup, err := caamDatabaseTemplateSnapshot(ctx, snapshot, store)
 		if err != nil {
@@ -62,9 +65,20 @@ func caamProductionOperations(snapshot coreconfig.Snapshot, store *portalcms.Sto
 		if err != nil {
 			return httpapi.Operations{}, nil, errors.Join(err, cleanup())
 		}
-		return Operations(service), cleanup, nil
+		operations := Operations(service)
+		operations = portalcms.WithRouteAliases(operations, portalcms.RoutePublisher{Store: store, AllowedRoot: snapshot.Paths.DistRoot, Routes: productionSnapshot.Paths.Routes}, portalcms.LegacyCAAMMainFiles())
+		return operations, cleanup, nil
 	}
 	return httpapi.ReloadingOperations(base, load)
+}
+
+func withCAAMTopics(operations httpapi.Operations, store *portalcms.Store, snapshot coreconfig.Snapshot) httpapi.Operations {
+	location, _ := time.LoadLocation(snapshot.Site.Timezone)
+	service := portalcms.TopicService{Store: store, AllowedRoot: snapshot.Paths.DistRoot, Location: location}
+	operations.GenerateTopics = func(ctx context.Context) (any, error) { return service.GenerateAll(ctx) }
+	operations.GenerateTopic = func(ctx context.Context, id int64) (any, error) { return service.Generate(ctx, id) }
+	operations.DeleteTopic = func(ctx context.Context, id int64) (any, error) { return service.Delete(ctx, id) }
+	return operations
 }
 
 func caamDatabaseTemplateSnapshot(ctx context.Context, snapshot coreconfig.Snapshot, store *portalcms.Store) (coreconfig.Snapshot, func() error, error) {
@@ -72,18 +86,28 @@ func caamDatabaseTemplateSnapshot(ctx context.Context, snapshot coreconfig.Snaps
 	if err != nil {
 		return coreconfig.Snapshot{}, nil, err
 	}
+	binding := func(key, name, templateType string) portalcms.TemplateBinding {
+		result := portalcms.TemplateBinding{Key: key, Name: name, Type: templateType}
+		if code := snapshot.Paths.TemplateCodes[key]; code != "" {
+			result.Code, result.Name = code, ""
+		}
+		return result
+	}
 	bindings := []portalcms.TemplateBinding{
-		{Key: "home", PageName: cfg.Site.PageName, PageType: "home", TemplateType: "home"},
-		{Key: "about", PageName: "协会概况", PageType: "home", TemplateType: "home"},
-		{Key: "work", PageName: "协会工作", PageType: "home", TemplateType: "home"},
-		{Key: "stats", PageName: "统计数据", PageType: "home", TemplateType: "home"},
-		{Key: "members", PageName: "会员专区", PageType: "home", TemplateType: "home"},
-		{Key: "party", PageName: "党建专区", PageType: "home", TemplateType: "home"},
-		{Key: "list", PageType: "column", TemplateType: "column"},
-		{Key: "article", PageType: "detail", TemplateType: "detail"},
+		binding("home", cfg.Site.PageName, "home"),
+		binding("about", "协会概况", "home"),
+		binding("work", "协会工作", "home"),
+		binding("stats", "统计数据", "home"),
+		binding("members", "会员专区", "home"),
+		binding("party", "党建专区", "home"),
+		binding("list", "栏目", "column"),
+		binding("article", "详情", "detail"),
 	}
 	records, err := store.LoadBoundTemplates(ctx, bindings)
 	if err != nil {
+		return coreconfig.Snapshot{}, nil, err
+	}
+	if err := portalcms.ValidateRoutePlan(ctx, store, records); err != nil {
 		return coreconfig.Snapshot{}, nil, err
 	}
 	paths, cleanup, err := portalcms.MaterializeTemplates(records)
@@ -98,5 +122,9 @@ func caamDatabaseTemplateSnapshot(ctx context.Context, snapshot coreconfig.Snaps
 		templates[key] = path
 	}
 	snapshot.Paths.Templates = templates
+	snapshot.Paths.Routes = make(map[string]string, len(records))
+	for key, record := range records {
+		snapshot.Paths.Routes[key] = record.RoutePath
+	}
 	return snapshot, cleanup, nil
 }

@@ -17,6 +17,8 @@ func TestRelatedArticleRecoversRemovedRelationsFromRequestedOutput(t *testing.T)
 	for _, deleting := range []bool{false, true} {
 		t.Run(map[bool]string{false: "move", true: "delete"}[deleting], func(t *testing.T) {
 			cfg, aboutSource, source := siteTestFixture(t)
+			output := filepath.Join(t.TempDir(), "deployment")
+			cfg.Site.DistRoot = output
 			source.column = model.Column{ID: 36, Name: cfg.WorkPage.Association}
 			source.relatedColumns = []model.Column{source.column}
 			source.detail = model.Article{ID: "900", ColumnID: 36, Type: model.ArticleTypeContent, Title: "新文章", PublishTime: time.Date(2026, 8, 20, 9, 0, 0, 0, time.UTC)}
@@ -26,7 +28,6 @@ func TestRelatedArticleRecoversRemovedRelationsFromRequestedOutput(t *testing.T)
 			}
 			pages, home := relatedTestGenerators(t, cfg, source)
 			site := NewSiteGenerator(cfg, source, aboutSource, pages, home, nil)
-			output := filepath.Join(t.TempDir(), "deployment")
 			oldList := filepath.Join(output, "list", "42", "2.html")
 			mustWriteTestFile(t, oldList, `<a href="../../article/2026/08/900.html?from=list&amp;column_id=42">旧引用</a>`)
 			detail := filepath.Join(output, "article", "2026", "08", "900.html")
