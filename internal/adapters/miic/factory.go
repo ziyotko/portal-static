@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"time"
 
 	"portal-static/internal/adapters/miic/demo"
 	"portal-static/internal/adapters/miic/repository"
@@ -55,13 +56,13 @@ func buildMIICProductionRuntime(ctx context.Context, snapshot coreconfig.Snapsho
 		_ = store.Close()
 		return nil, err
 	}
-	pageID, err := repository.ResolvePageIDWithStore(ctx, store, productionConfig.Site.PageName)
+	templateID, err := repository.ResolveTemplateIDWithStore(ctx, store, productionConfig.Site.PageName)
 	if err != nil {
 		_ = cleanupTemplates()
 		_ = store.Close()
 		return nil, err
 	}
-	validator, err := New(productionConfig, repository.NewWithStore(store, pageID), logger)
+	validator, err := New(productionConfig, repository.NewWithStore(store, templateID), logger)
 	if cleanupErr := cleanupTemplates(); cleanupErr != nil {
 		err = errors.Join(err, cleanupErr)
 	}
@@ -69,12 +70,14 @@ func buildMIICProductionRuntime(ctx context.Context, snapshot coreconfig.Snapsho
 		_ = store.Close()
 		return nil, err
 	}
-	operations := miicProductionOperations(snapshot, cfg, store, validator, logger)
+	operations := miicProductionOperations(snapshot, productionSnapshot.Paths.Routes, cfg, store, validator, logger)
 	return platform.NewRuntime(operations, store.Close)
 }
 
-func miicProductionOperations(snapshot coreconfig.Snapshot, cfg Config, store *portalcms.Store, validator *Generator, logger *slog.Logger) httpapi.Operations {
+func miicProductionOperations(snapshot coreconfig.Snapshot, initialRoutes map[string]string, cfg Config, store *portalcms.Store, validator *Generator, logger *slog.Logger) httpapi.Operations {
 	base := httpapi.OperationsForGenerator(validator, NormalizePageName, "页面名必须是：资讯动态、核心业务、服务平台或关于我们")
+	base = portalcms.WithRouteAliases(base, portalcms.RoutePublisher{Store: store, AllowedRoot: snapshot.Paths.DistRoot, Routes: initialRoutes}, portalcms.LegacyMainFiles("news", "business", "platforms", "about"))
+	base = withMIICTopics(base, store, snapshot)
 	load := func(ctx context.Context) (httpapi.Operations, func() error, error) {
 		productionSnapshot, cleanup, err := miicDatabaseTemplateSnapshot(ctx, snapshot, cfg, store)
 		if err != nil {
@@ -84,31 +87,51 @@ func miicProductionOperations(snapshot coreconfig.Snapshot, cfg Config, store *p
 		if err != nil {
 			return httpapi.Operations{}, nil, errors.Join(err, cleanup())
 		}
-		pageID, err := repository.ResolvePageIDWithStore(ctx, store, productionConfig.Site.PageName)
+		templateID, err := repository.ResolveTemplateIDWithStore(ctx, store, productionConfig.Site.PageName)
 		if err != nil {
 			return httpapi.Operations{}, nil, errors.Join(err, cleanup())
 		}
-		service, err := New(productionConfig, repository.NewWithStore(store, pageID), logger)
+		service, err := New(productionConfig, repository.NewWithStore(store, templateID), logger)
 		if err != nil {
 			return httpapi.Operations{}, nil, errors.Join(err, cleanup())
 		}
 		operations := httpapi.OperationsForGenerator(service, NormalizePageName, "页面名必须是：资讯动态、核心业务、服务平台或关于我们")
+		operations = portalcms.WithRouteAliases(operations, portalcms.RoutePublisher{Store: store, AllowedRoot: snapshot.Paths.DistRoot, Routes: productionSnapshot.Paths.Routes}, portalcms.LegacyMainFiles("news", "business", "platforms", "about"))
 		return operations, cleanup, nil
 	}
 	return httpapi.ReloadingOperations(base, load)
 }
 
+func withMIICTopics(operations httpapi.Operations, store *portalcms.Store, snapshot coreconfig.Snapshot) httpapi.Operations {
+	location, _ := time.LoadLocation(snapshot.Site.Timezone)
+	service := portalcms.TopicService{Store: store, AllowedRoot: snapshot.Paths.DistRoot, Location: location}
+	operations.GenerateTopics = func(ctx context.Context) (any, error) { return service.GenerateAll(ctx) }
+	operations.GenerateTopic = func(ctx context.Context, id int64) (any, error) { return service.Generate(ctx, id) }
+	operations.DeleteTopic = func(ctx context.Context, id int64) (any, error) { return service.Delete(ctx, id) }
+	return operations
+}
+
 func miicDatabaseTemplateSnapshot(ctx context.Context, snapshot coreconfig.Snapshot, cfg Config, store *portalcms.Store) (coreconfig.Snapshot, func() error, error) {
+	binding := func(key, name, templateType string) portalcms.TemplateBinding {
+		result := portalcms.TemplateBinding{Key: key, Name: name, Type: templateType}
+		if code := snapshot.Paths.TemplateCodes[key]; code != "" {
+			result.Code, result.Name = code, ""
+		}
+		return result
+	}
 	bindings := []portalcms.TemplateBinding{
-		{Key: "news", PageName: cfg.Site.PageName, PageType: "home", TemplateType: "home"},
-		{Key: "business", PageName: cfg.Business.PageName, PageType: "home", TemplateType: "home"},
-		{Key: "platforms", PageName: "服务平台", PageType: "home", TemplateType: "home"},
-		{Key: "about", PageName: cfg.About.PageName, PageType: "home", TemplateType: "home"},
-		{Key: "list", PageType: "column", TemplateType: "column"},
-		{Key: "article", PageType: "detail", TemplateType: "detail"},
+		binding("news", cfg.Site.PageName, "home"),
+		binding("business", cfg.Business.PageName, "home"),
+		binding("platforms", "服务平台", "home"),
+		binding("about", cfg.About.PageName, "home"),
+		binding("list", "栏目", "column"),
+		binding("article", "详情", "detail"),
 	}
 	records, err := store.LoadBoundTemplates(ctx, bindings)
 	if err != nil {
+		return coreconfig.Snapshot{}, nil, err
+	}
+	if err := portalcms.ValidateRoutePlan(ctx, store, records); err != nil {
 		return coreconfig.Snapshot{}, nil, err
 	}
 	paths, cleanup, err := portalcms.MaterializeTemplates(records)
@@ -123,5 +146,9 @@ func miicDatabaseTemplateSnapshot(ctx context.Context, snapshot coreconfig.Snaps
 		templates[key] = path
 	}
 	snapshot.Paths.Templates = templates
+	snapshot.Paths.Routes = make(map[string]string, len(records))
+	for key, record := range records {
+		snapshot.Paths.Routes[key] = record.RoutePath
+	}
 	return snapshot, cleanup, nil
 }

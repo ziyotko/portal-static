@@ -200,7 +200,7 @@ func (g *Generator) renderMainPageAt(ctx context.Context, root, normalized strin
 func relatedPageNames(columns []model.Column) []string {
 	affected := make(map[string]struct{})
 	for _, column := range columns {
-		if normalized, ok := NormalizePageName(strings.TrimSpace(column.PageName)); ok {
+		if normalized, ok := NormalizePageName(strings.TrimSpace(column.TemplateName)); ok {
 			affected[normalized] = struct{}{}
 		}
 	}

@@ -83,12 +83,12 @@ func (g *Generator) resolveArticleRefreshColumns(ctx context.Context, root strin
 	}
 	knownPages := make(map[string]bool)
 	for _, column := range current {
-		if page, ok := NormalizePageName(column.PageName); ok {
+		if page, ok := NormalizePageName(column.TemplateName); ok {
 			knownPages[page] = true
 		}
 	}
 	for _, column := range all {
-		page, ok := NormalizePageName(column.PageName)
+		page, ok := NormalizePageName(column.TemplateName)
 		if ok && previousPages[page] && !knownPages[page] {
 			current = append(current, column)
 		}

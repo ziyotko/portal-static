@@ -106,28 +106,64 @@ func (g *Generator) resolveOutputPath(raw string) (string, error) {
 	if filepath.Dir(target) == target {
 		return "", fmt.Errorf("%w: path must not be a volume root", ErrInvalidOutputPath)
 	}
-	if !safeOutputPath(g.cfg.Site.SourceRoot, target) {
-		return "", fmt.Errorf("%w: path must be outside source_root or inside its dist directory", ErrInvalidOutputPath)
+	if !safeOutputPath(g.cfg.Site.DistRoot, target) {
+		return "", fmt.Errorf("%w: path must be the configured dist_root or one of its descendants", ErrInvalidOutputPath)
 	}
 	return target, nil
 }
 
-func safeOutputPath(source, target string) bool {
-	source, _ = filepath.Abs(source)
+func safeOutputPath(allowedRoot, target string) bool {
+	allowedRoot, _ = filepath.Abs(allowedRoot)
 	target, _ = filepath.Abs(target)
-	source, target = filepath.Clean(source), filepath.Clean(target)
-	if strings.EqualFold(source, target) || filepath.Dir(target) == target {
+	allowedRoot, target = filepath.Clean(allowedRoot), filepath.Clean(target)
+	if filepath.Dir(target) == target {
 		return false
 	}
-	rel, err := filepath.Rel(source, target)
+	rel, err := filepath.Rel(allowedRoot, target)
 	if err != nil {
-		return true
+		return false
 	}
-	if rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
-		return true
+	if !(rel == "." || (rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator)) && !filepath.IsAbs(rel))) {
+		return false
 	}
-	parts := strings.Split(filepath.Clean(rel), string(filepath.Separator))
-	return len(parts) > 1 && strings.EqualFold(parts[0], "dist")
+	realRoot, ok := resolveProspectivePath(allowedRoot)
+	if !ok {
+		return false
+	}
+	realTarget, ok := resolveProspectivePath(target)
+	if !ok {
+		return false
+	}
+	realRel, err := filepath.Rel(realRoot, realTarget)
+	return err == nil && (realRel == "." || (realRel != ".." && !strings.HasPrefix(realRel, ".."+string(filepath.Separator)) && !filepath.IsAbs(realRel)))
+}
+
+func resolveProspectivePath(path string) (string, bool) {
+	path = filepath.Clean(path)
+	ancestor := path
+	for {
+		if _, err := os.Lstat(ancestor); err == nil {
+			break
+		}
+		next := filepath.Dir(ancestor)
+		if next == ancestor {
+			return "", false
+		}
+		ancestor = next
+	}
+	realAncestor, err := filepath.EvalSymlinks(ancestor)
+	if err != nil {
+		info, statErr := os.Lstat(ancestor)
+		if statErr != nil || info.Mode()&os.ModeSymlink != 0 {
+			return "", false
+		}
+		realAncestor = ancestor
+	}
+	rel, err := filepath.Rel(ancestor, path)
+	if err != nil {
+		return "", false
+	}
+	return filepath.Join(realAncestor, rel), true
 }
 
 func (g *Generator) GenerateSite(ctx context.Context) (GenerationResult, error) {
@@ -737,7 +773,7 @@ func (g *Generator) writeGeneratedContent(ctx context.Context, root string) erro
 		}
 	}
 	parents, err := g.source.FetchPageColumns(ctx, g.cfg.Business.PageName, 0)
-	if errors.Is(err, repository.ErrPageNotFound) {
+	if errors.Is(err, repository.ErrTemplateNotFound) {
 		parents = nil
 		err = nil
 	}
@@ -768,7 +804,7 @@ func (g *Generator) writeGeneratedContent(ctx context.Context, root string) erro
 	}
 	loadAbout := func(columnName string) ([]aboutItem, error) {
 		_, items, fetchErr := g.source.FetchPageColumnArticles(ctx, g.cfg.About.PageName, columnName, 0)
-		if errors.Is(fetchErr, repository.ErrColumnNotFound) || errors.Is(fetchErr, repository.ErrPageNotFound) {
+		if errors.Is(fetchErr, repository.ErrColumnNotFound) || errors.Is(fetchErr, repository.ErrTemplateNotFound) {
 			return nil, nil
 		}
 		if fetchErr != nil {

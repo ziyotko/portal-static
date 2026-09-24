@@ -18,16 +18,16 @@ type Source struct {
 func NewSource() *Source {
 	loc, _ := time.LoadLocation("Asia/Shanghai")
 	columns := []model.Column{
-		{ID: 11, Name: "中心重要动态", Code: "important", PageID: 1, PageName: "资讯动态"},
-		{ID: 20, Name: "最新", Code: "latest", PageID: 1, PageName: "资讯动态", Sort: 10},
-		{ID: 21, Name: "中心动态", Code: "center", PageID: 1, PageName: "资讯动态", Sort: 20},
-		{ID: 22, Name: "行业动态", Code: "industry", PageID: 1, PageName: "资讯动态", Sort: 30},
-		{ID: 23, Name: "行业资讯", Code: "information", PageID: 1, PageName: "资讯动态", Sort: 40},
-		{ID: 24, Name: "成果发布", Code: "results", PageID: 1, PageName: "资讯动态", Sort: 50},
-		{ID: 31, Name: "信息技术服务", Code: "it-services", PageID: 2, PageName: "核心业务", Sort: 10},
-		{ID: 32, Name: "软件产品及定制开发服务", Code: "software", PageID: 2, PageName: "核心业务", ParentID: 31, Sort: 10},
-		{ID: 41, Name: "招聘信息", Code: "recruitment", PageID: 4, PageName: "关于我们", Sort: 10},
-		{ID: 42, Name: "信息公开", Code: "disclosure", PageID: 4, PageName: "关于我们", Sort: 20},
+		{ID: 11, Name: "中心重要动态", Code: "important", TemplateID: 1, TemplateName: "资讯动态"},
+		{ID: 20, Name: "最新", Code: "latest", TemplateID: 1, TemplateName: "资讯动态", Sort: 10},
+		{ID: 21, Name: "中心动态", Code: "center", TemplateID: 1, TemplateName: "资讯动态", Sort: 20},
+		{ID: 22, Name: "行业动态", Code: "industry", TemplateID: 1, TemplateName: "资讯动态", Sort: 30},
+		{ID: 23, Name: "行业资讯", Code: "information", TemplateID: 1, TemplateName: "资讯动态", Sort: 40},
+		{ID: 24, Name: "成果发布", Code: "results", TemplateID: 1, TemplateName: "资讯动态", Sort: 50},
+		{ID: 31, Name: "信息技术服务", Code: "it-services", TemplateID: 2, TemplateName: "核心业务", Sort: 10},
+		{ID: 32, Name: "软件产品及定制开发服务", Code: "software", TemplateID: 2, TemplateName: "核心业务", ParentID: 31, Sort: 10},
+		{ID: 41, Name: "招聘信息", Code: "recruitment", TemplateID: 4, TemplateName: "关于我们", Sort: 10},
+		{ID: 42, Name: "信息公开", Code: "disclosure", TemplateID: 4, TemplateName: "关于我们", Sort: 20},
 	}
 	makeArticle := func(id, column int64, day int, title, summary, cover string) model.Article {
 		return model.Article{ID: id, ColumnID: column, Type: 1, Title: title, Summary: summary,
@@ -77,14 +77,14 @@ func (s *Source) ResolveGlobalColumnID(_ context.Context, name string) (int64, e
 }
 
 func (s *Source) FetchPageColumns(_ context.Context, pageName string, parentID int64) ([]model.Column, error) {
-	pageIDs := map[string]int64{"资讯动态": 1, "核心业务": 2, "服务平台": 3, "关于我们": 4}
-	pageID, ok := pageIDs[pageName]
+	templateIDs := map[string]int64{"资讯动态": 1, "核心业务": 2, "服务平台": 3, "关于我们": 4}
+	templateID, ok := templateIDs[pageName]
 	if !ok {
-		return nil, repository.ErrPageNotFound
+		return nil, repository.ErrTemplateNotFound
 	}
 	var result []model.Column
 	for _, column := range s.columns {
-		if column.PageID == pageID && column.ParentID == parentID {
+		if column.TemplateID == templateID && column.ParentID == parentID {
 			result = append(result, column)
 		}
 	}
