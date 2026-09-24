@@ -34,25 +34,25 @@ func TestDatabaseOperationTimeoutIsBoundedAndPreservesShorterCallerDeadline(t *t
 	}
 }
 
-func TestResolvePageIDUsesActivePageName(t *testing.T) {
+func TestResolveTemplateIDUsesActiveTemplateName(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer db.Close()
-	mock.ExpectQuery(`(?s)SELECT id.*FROM caam_portal\.page.*name = \?.*status = 1.*deleted_at IS NULL.*LIMIT 2`).
+	mock.ExpectQuery(`(?s)SELECT id.*FROM caam_portal\.template.*name = \?.*type = 'home'.*status = 1.*LIMIT 2`).
 		WithArgs("首页").
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(3))
-	id, err := ResolvePageID(context.Background(), db, " 首页 ")
+	id, err := ResolveTemplateID(context.Background(), db, " 首页 ")
 	if err != nil || id != 3 {
-		t.Fatalf("ResolvePageID() = %d, %v", id, err)
+		t.Fatalf("ResolveTemplateID() = %d, %v", id, err)
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Fatal(err)
 	}
 }
 
-func TestResolvePageIDUsesConfiguredSchema(t *testing.T) {
+func TestResolveTemplateIDUsesConfiguredSchema(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	if err != nil {
 		t.Fatal(err)
@@ -62,9 +62,9 @@ func TestResolvePageIDUsesConfiguredSchema(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	mock.ExpectQuery(`(?s)SELECT id.*FROM tenant_portal\.page.*name = \?.*status = 1.*LIMIT 2`).
+	mock.ExpectQuery(`(?s)SELECT id.*FROM tenant_portal\.template.*name = \?.*type = 'home'.*status = 1.*LIMIT 2`).
 		WithArgs("首页").WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(3))
-	if id, err := ResolvePageIDWithStore(context.Background(), store, "首页"); err != nil || id != 3 {
+	if id, err := ResolveTemplateIDWithStore(context.Background(), store, "首页"); err != nil || id != 3 {
 		t.Fatalf("id=%d err=%v", id, err)
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
@@ -72,15 +72,15 @@ func TestResolvePageIDUsesConfiguredSchema(t *testing.T) {
 	}
 }
 
-func TestResolvePageIDRejectsMissingOrDuplicatePage(t *testing.T) {
+func TestResolveTemplateIDRejectsMissingOrDuplicateTemplate(t *testing.T) {
 	for _, test := range []struct {
 		name string
 		ids  []int
 		want error
 		text string
 	}{
-		{name: "missing", want: ErrPageNotFound, text: "页面不存在：“首页”"},
-		{name: "duplicate", ids: []int{3, 12}, want: ErrPageNotUnique, text: "匹配到 2 条记录"},
+		{name: "missing", want: ErrTemplateNotFound, text: "模板不存在：“首页”"},
+		{name: "duplicate", ids: []int{3, 12}, want: ErrTemplateNotUnique, text: "匹配到 2 条记录"},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			db, mock, err := sqlmock.New()
@@ -92,9 +92,9 @@ func TestResolvePageIDRejectsMissingOrDuplicatePage(t *testing.T) {
 			for _, id := range test.ids {
 				rows.AddRow(id)
 			}
-			mock.ExpectQuery(`(?s)SELECT id.*FROM caam_portal\.page.*name = \?.*status = 1.*deleted_at IS NULL.*LIMIT 2`).
+			mock.ExpectQuery(`(?s)SELECT id.*FROM caam_portal\.template.*name = \?.*type = 'home'.*status = 1.*LIMIT 2`).
 				WithArgs("首页").WillReturnRows(rows)
-			_, err = ResolvePageID(context.Background(), db, "首页")
+			_, err = ResolveTemplateID(context.Background(), db, "首页")
 			if !errors.Is(err, test.want) {
 				t.Fatalf("expected %v, got %v", test.want, err)
 			}
@@ -113,11 +113,11 @@ func TestFetchByColumnUsesPublishedFiltersAndBoundArguments(t *testing.T) {
 	defer db.Close()
 
 	slot := config.SlotConfig{Key: "industry-news", Name: "行业要闻", Limit: 5, Types: []int{1, 2}}
-	mock.ExpectQuery(regexp.QuoteMeta("SELECT id FROM caam_portal.`column` WHERE page_id = ? AND name = ? AND deleted_at IS NULL ORDER BY id ASC LIMIT 2")).
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT id FROM caam_portal.`column` WHERE template_id = ? AND name = ? AND status = 1 ORDER BY id ASC LIMIT 2")).
 		WithArgs(12, slot.Name).
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(91))
 	published := time.Date(2026, 7, 16, 9, 30, 0, 0, time.Local)
-	mock.ExpectQuery(`(?s)SELECT a\.id, a\.type.*FROM \(.*FROM caam_portal\.article candidate.*INNER JOIN caam_portal\.article_column_publish acp.*acp\.column_id = \?.*acp\.article_id = candidate\.id.*candidate\.status = 1.*candidate\.audit_status = 2.*candidate\.deleted_at IS NULL.*candidate\.type IN \(\?,\?\).*ORDER BY candidate\.is_top DESC, candidate\.publish_time DESC, candidate\.id DESC.*LIMIT \?.*INNER JOIN caam_portal\.article a.*ORDER BY a\.is_top DESC, a\.publish_time DESC, a\.id DESC`).
+	mock.ExpectQuery(`(?s)SELECT a\.id, a\.type.*FROM \(.*FROM caam_portal\.article candidate.*INNER JOIN caam_portal\.article_column_publish acp.*acp\.column_id = \?.*acp\.article_id = candidate\.id.*candidate\.status = 1.*candidate\.audit_status = 2.*candidate\.type IN \(\?,\?\).*ORDER BY candidate\.is_top DESC, candidate\.publish_time DESC, candidate\.id DESC.*LIMIT \?.*INNER JOIN caam_portal\.article a.*ORDER BY a\.is_top DESC, a\.publish_time DESC, a\.id DESC`).
 		WithArgs(int64(91), 1, 2, 5).
 		WillReturnRows(sqlmock.NewRows([]string{
 			"id", "type", "title", "summary", "content", "cover", "author", "source", "is_bold", "default_color", "url", "publish_time",
@@ -154,7 +154,7 @@ func TestFetchByColumnRejectsMissingOrDuplicateColumn(t *testing.T) {
 			for i := 0; i < test.count; i++ {
 				rows.AddRow(i + 1)
 			}
-			mock.ExpectQuery(regexp.QuoteMeta("SELECT id FROM caam_portal.`column` WHERE page_id = ? AND name = ? AND deleted_at IS NULL ORDER BY id ASC LIMIT 2")).
+			mock.ExpectQuery(regexp.QuoteMeta("SELECT id FROM caam_portal.`column` WHERE template_id = ? AND name = ? AND status = 1 ORDER BY id ASC LIMIT 2")).
 				WithArgs(12, "重复栏目").
 				WillReturnRows(rows)
 			_, err = NewArticleRepository(db, 12).FetchByColumn(context.Background(), config.SlotConfig{Name: "重复栏目", Limit: 1, Types: []int{1}})
@@ -189,7 +189,7 @@ func TestResolveGlobalColumnIDUsesChineseNameAndRejectsAmbiguity(t *testing.T) {
 			for _, id := range test.ids {
 				rows.AddRow(id)
 			}
-			mock.ExpectQuery(regexp.QuoteMeta("SELECT id FROM caam_portal.`column` WHERE name = ? AND deleted_at IS NULL ORDER BY id ASC LIMIT 2")).
+			mock.ExpectQuery(regexp.QuoteMeta("SELECT id FROM caam_portal.`column` WHERE name = ? AND status = 1 ORDER BY id ASC LIMIT 2")).
 				WithArgs("行业要闻").WillReturnRows(rows)
 			got, resolveErr := NewArticleRepository(db, 3).ResolveGlobalColumnID(context.Background(), " 行业要闻 ")
 			if test.err != nil {
@@ -215,10 +215,10 @@ func TestFetchPublishedByColumnNameUsesNameAndPublicFilters(t *testing.T) {
 
 	name := "协会概况领导团队"
 	published := time.Date(2026, 8, 5, 9, 30, 0, 0, time.Local)
-	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, name FROM caam_portal.`column` WHERE name = ? AND deleted_at IS NULL ORDER BY id ASC")).
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, name FROM caam_portal.`column` WHERE name = ? AND status = 1 ORDER BY id ASC")).
 		WithArgs(name).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "name"}).AddRow(91, name))
-	mock.ExpectQuery(`(?s)SELECT acp\.column_id, a\.id.*FROM caam_portal\.article_column_publish acp.*INNER JOIN caam_portal\.article a.*acp\.column_id IN \(\?\).*a\.status = 1.*a\.audit_status = 2.*a\.deleted_at IS NULL.*ORDER BY a\.is_top DESC, a\.publish_time DESC, a\.id DESC`).
+	mock.ExpectQuery(`(?s)SELECT acp\.column_id, a\.id.*FROM caam_portal\.article_column_publish acp.*INNER JOIN caam_portal\.article a.*acp\.column_id IN \(\?\).*a\.status = 1.*a\.audit_status = 2.*ORDER BY a\.is_top DESC, a\.publish_time DESC, a\.id DESC`).
 		WithArgs(int64(91)).
 		WillReturnRows(sqlmock.NewRows([]string{
 			"column_id", "id", "type", "title", "summary", "content", "cover", "author", "source", "is_bold", "default_color", "url", "publish_time",
@@ -246,7 +246,7 @@ func TestFetchPublishedByColumnNameRejectsMissingColumn(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer db.Close()
-	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, name FROM caam_portal.`column` WHERE name = ? AND deleted_at IS NULL ORDER BY id ASC")).
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, name FROM caam_portal.`column` WHERE name = ? AND status = 1 ORDER BY id ASC")).
 		WithArgs("不存在栏目").
 		WillReturnRows(sqlmock.NewRows([]string{"id", "name"}))
 	_, _, err = NewArticleRepository(db, 12).FetchPublishedByColumnName(context.Background(), "不存在栏目")
@@ -262,7 +262,7 @@ func TestFetchPublishedByColumnNameMergesSameNameColumns(t *testing.T) {
 	}
 	defer db.Close()
 	const name = "统计数据产销"
-	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, name FROM caam_portal.`column` WHERE name = ? AND deleted_at IS NULL ORDER BY id ASC")).
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, name FROM caam_portal.`column` WHERE name = ? AND status = 1 ORDER BY id ASC")).
 		WithArgs(name).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "name"}).AddRow(44, name).AddRow(48, name))
 	mock.ExpectQuery(`(?s)SELECT acp\.column_id, a\.id.*acp\.column_id IN \(\?,\?\).*ORDER BY a\.is_top DESC, a\.publish_time DESC, a\.id DESC`).
@@ -288,7 +288,7 @@ func TestFetchPublishedByColumnNameLimitFiltersTypesAndUsesArticleColumn(t *test
 	defer db.Close()
 
 	name := "统计数据产销"
-	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, name FROM caam_portal.`column` WHERE name = ? AND deleted_at IS NULL ORDER BY id ASC")).
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, name FROM caam_portal.`column` WHERE name = ? AND status = 1 ORDER BY id ASC")).
 		WithArgs(name).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "name"}).AddRow(44, name).AddRow(48, name))
 	published := time.Date(2026, 8, 10, 9, 0, 0, 0, time.Local)
@@ -322,7 +322,7 @@ func TestFetchPublishedByColumnIDDisambiguatesDuplicateNames(t *testing.T) {
 	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, name FROM caam_portal.`column` WHERE id = ?")).
 		WithArgs(columnID).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "name"}).AddRow(columnID, name))
-	mock.ExpectQuery(`(?s)FROM caam_portal\.article_column_publish acp.*INNER JOIN caam_portal\.article a.*acp\.column_id = \?.*a\.status = 1.*a\.audit_status = 2.*a\.deleted_at IS NULL`).
+	mock.ExpectQuery(`(?s)FROM caam_portal\.article_column_publish acp.*INNER JOIN caam_portal\.article a.*acp\.column_id = \?.*a\.status = 1.*a\.audit_status = 2`).
 		WithArgs(columnID).
 		WillReturnRows(sqlmock.NewRows([]string{
 			"id", "type", "title", "summary", "content", "cover", "author", "source", "is_bold", "default_color", "url", "publish_time",
@@ -348,10 +348,10 @@ func TestFetchLinksByColumnUsesLinkTableAndSortOrder(t *testing.T) {
 	defer db.Close()
 
 	slot := config.SlotConfig{Key: "friend-related", Name: "首页友链相关链接", Limit: 100, Types: []int{1, 2}}
-	mock.ExpectQuery(regexp.QuoteMeta("SELECT id FROM caam_portal.`column` WHERE page_id = ? AND name = ? AND deleted_at IS NULL ORDER BY id ASC LIMIT 2")).
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT id FROM caam_portal.`column` WHERE template_id = ? AND name = ? AND status = 1 ORDER BY id ASC LIMIT 2")).
 		WithArgs(12, slot.Name).
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(91))
-	mock.ExpectQuery(`(?s)SELECT l\.id, l\.name, l\.url, l\.logo.*FROM caam_portal\.link l.*l\.deleted_at IS NULL.*l\.status = 1.*l\.page_id = \?.*c\.id = \?.*c\.deleted_at IS NULL.*ORDER BY l\.sort ASC, l\.id ASC.*LIMIT \?`).
+	mock.ExpectQuery(`(?s)SELECT l\.id, l\.name, l\.url, l\.logo.*FROM caam_portal\.link l.*l\.status = 1.*l\.template_id = \?.*c\.id = \?.*c\.status = 1.*ORDER BY l\.sort ASC, l\.id ASC.*LIMIT \?`).
 		WithArgs(12, int64(91), 100).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "name", "url", "logo"}).
 			AddRow(37, "中国国际进口博览会", "https://www.ciie.org/", nil))
@@ -376,7 +376,7 @@ func TestFetchMonthlyStatisticsUsesTitleAndSelectedCutoff(t *testing.T) {
 	defer db.Close()
 
 	title := "新能源汽车销量分析"
-	mock.ExpectQuery(`(?s)SELECT a\.id, a\.type.*a\.status = 1.*a\.audit_status = 2.*a\.deleted_at IS NULL.*a\.type = 3.*a\.title = \?.*a\.summary LIKE \?.*a\.summary LIKE \?.*a\.summary <= \?.*ORDER BY a\.summary DESC`).
+	mock.ExpectQuery(`(?s)SELECT a\.id, a\.type.*a\.status = 1.*a\.audit_status = 2.*a\.type = 3.*a\.title = \?.*a\.summary LIKE \?.*a\.summary LIKE \?.*a\.summary <= \?.*ORDER BY a\.summary DESC`).
 		WithArgs(title, "2025-%", "2026-%", "2026-07").
 		WillReturnRows(sqlmock.NewRows([]string{
 			"id", "type", "title", "summary", "content", "cover", "author", "source", "is_bold", "default_color", "url", "publish_time",
@@ -428,7 +428,7 @@ func TestFetchStatisticsTitlesUsesGroupedPublishTitles(t *testing.T) {
 	}
 	defer db.Close()
 
-	mock.ExpectQuery("(?s)SELECT article_title.*FROM caam_portal\\.article_column_publish.*WHERE column_id IN.*FROM caam_portal\\.`column`.*WHERE name = \\?.*status = 1.*GROUP BY article_title").
+	mock.ExpectQuery("(?s)SELECT acp.article_title.*FROM caam_portal\\.article_column_publish acp.*INNER JOIN caam_portal\\.`column` c.*c.status = 1.*c.template_id = acp.template_id.*WHERE c.name = \\?.*GROUP BY article_title").
 		WithArgs("首页统计数据").
 		WillReturnRows(sqlmock.NewRows([]string{"article_title"}).
 			AddRow("汽车月度销量分析").
@@ -454,11 +454,11 @@ func TestFetchColumnArticlesUsesPublicFiltersAndStableOrder(t *testing.T) {
 	}
 	defer db.Close()
 
-	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, name FROM caam_portal.`column` WHERE id = ? AND deleted_at IS NULL")).
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, name FROM caam_portal.`column` WHERE id = ? AND status = 1")).
 		WithArgs(int64(42)).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "name"}).AddRow(42, "行业要闻"))
 	published := time.Date(2026, 7, 24, 9, 0, 0, 0, time.Local)
-	mock.ExpectQuery(`(?s)SELECT a\.id, a\.type.*FROM caam_portal\.article_column_publish acp.*INNER JOIN caam_portal\.article a.*a\.id = acp\.article_id.*acp\.column_id = \?.*a\.status = 1.*a\.audit_status = 2.*a\.deleted_at IS NULL.*ORDER BY a\.is_top DESC, a\.publish_time DESC, a\.id DESC`).
+	mock.ExpectQuery(`(?s)SELECT a\.id, a\.type.*FROM caam_portal\.article_column_publish acp.*INNER JOIN caam_portal\.article a.*a\.id = acp\.article_id.*acp\.column_id = \?.*a\.status = 1.*a\.audit_status = 2.*ORDER BY a\.is_top DESC, a\.publish_time DESC, a\.id DESC`).
 		WithArgs(int64(42)).
 		WillReturnRows(sqlmock.NewRows([]string{
 			"id", "type", "title", "url", "publish_time",
@@ -484,7 +484,7 @@ func TestFetchColumnsReturnsEveryGlobalColumn(t *testing.T) {
 	defer db.Close()
 
 	mock.ExpectQuery(regexp.QuoteMeta(
-		"SELECT id, name FROM caam_portal.`column` WHERE deleted_at IS NULL ORDER BY id ASC",
+		"SELECT id, name FROM caam_portal.`column` WHERE status = 1 ORDER BY id ASC",
 	)).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "name"}).
 			AddRow(11, "首页头条").
@@ -517,7 +517,7 @@ func TestFetchAllArticlesUsesGlobalPublishedScope(t *testing.T) {
 	}).
 		AddRow(14, "101", 1, "文章一", "摘要", "<p>正文</p>", nil, nil, "协会", 0, nil, nil, published).
 		AddRow(15, "103", 2, "视频一", "摘要", "<p>正文</p>", nil, nil, "协会", 0, nil, nil, published)
-	mock.ExpectQuery(`(?s)SELECT selected\.column_id,.*MIN\(acp\.column_id\).*GROUP BY acp\.article_id.*INNER JOIN caam_portal\.article a.*a\.status = 1.*a\.audit_status = 2.*a\.deleted_at IS NULL.*a\.type IN \(1, 2\).*ORDER BY a\.is_top DESC, a\.publish_time DESC, a\.id DESC`).
+	mock.ExpectQuery(`(?s)SELECT selected\.column_id,.*MIN\(acp\.column_id\).*GROUP BY acp\.article_id.*INNER JOIN caam_portal\.article a.*a\.status = 1.*a\.audit_status = 2.*a\.type IN \(1, 2\).*ORDER BY a\.is_top DESC, a\.publish_time DESC, a\.id DESC`).
 		WillReturnRows(rows)
 
 	articles, err := NewArticleRepository(db, 12).FetchAllArticles(context.Background())
@@ -562,7 +562,7 @@ func TestFetchListArticlesByIDsUsesPublishedFilters(t *testing.T) {
 	}
 	defer db.Close()
 	published := time.Date(2026, 8, 10, 9, 0, 0, 0, time.Local)
-	mock.ExpectQuery(`(?s)SELECT a\.id, a\.type, a\.title, a\.url, a\.publish_time, a\.is_top.*FROM caam_portal\.article a.*a\.id IN \(\?,\?\).*a\.status = 1.*a\.audit_status = 2.*a\.deleted_at IS NULL.*a\.type IN \(1, 2, 3\)`).
+	mock.ExpectQuery(`(?s)SELECT a\.id, a\.type, a\.title, a\.url, a\.publish_time, a\.is_top.*FROM caam_portal\.article a.*a\.id IN \(\?,\?\).*a\.status = 1.*a\.audit_status = 2.*a\.type IN \(1, 2, 3\)`).
 		WithArgs(int64(101), int64(102)).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "type", "title", "url", "publish_time", "is_top"}).
 			AddRow("101", 1, "置顶文章", nil, published, 1))
@@ -584,7 +584,7 @@ func TestFetchArticleColumnsReturnsEverySupportedPublishingColumn(t *testing.T) 
 		t.Fatal(err)
 	}
 	defer db.Close()
-	mock.ExpectQuery(`(?s)SELECT DISTINCT c\.id, c\.name.*FROM caam_portal\.article a.*article_column_publish acp.*a\.id = \?.*a\.status = 1.*a\.audit_status = 2.*a\.deleted_at IS NULL.*a\.type IN \(1, 2\).*c\.deleted_at IS NULL.*ORDER BY c\.id ASC`).
+	mock.ExpectQuery(`(?s)SELECT DISTINCT c\.id, c\.name.*FROM caam_portal\.article a.*article_column_publish acp.*a\.id = \?.*a\.status = 1.*a\.audit_status = 2.*a\.type IN \(1, 2\).*c\.status = 1.*ORDER BY c\.id ASC`).
 		WithArgs(int64(101)).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "name"}).
 			AddRow(40, "首页行业要闻").
@@ -627,7 +627,7 @@ func TestFetchArticleRelatedColumnsIncludesOfflineRelationships(t *testing.T) {
 			if !empty {
 				rows.AddRow(40, "栏目一").AddRow(42, "栏目二")
 			}
-			mock.ExpectQuery("SELECT DISTINCT c.id, c.name FROM caam_portal.article_column_publish acp INNER JOIN caam_portal.`column` c ON c.id = acp.column_id WHERE acp.article_id = ? AND c.deleted_at IS NULL ORDER BY c.id ASC").
+			mock.ExpectQuery("SELECT DISTINCT c.id, c.name FROM caam_portal.article_column_publish acp INNER JOIN caam_portal.`column` c ON c.id = acp.column_id WHERE acp.article_id = ? AND c.status = 1 AND c.template_id = acp.template_id ORDER BY c.id ASC").
 				WithArgs(int64(101)).WillReturnRows(rows)
 			columns, err := NewArticleRepository(db, 12).FetchArticleRelatedColumns(context.Background(), 101)
 			if err != nil {
@@ -675,13 +675,13 @@ func TestFetchArticleResolvesFirstPublishedColumn(t *testing.T) {
 	}
 	defer db.Close()
 	published := time.Date(2026, 8, 11, 9, 0, 0, 0, time.Local)
-	mock.ExpectQuery(`(?s)SELECT acp\.column_id,.*FROM caam_portal\.article a.*article_column_publish acp.*a\.id = \?.*a\.status = 1.*a\.audit_status = 2.*a\.deleted_at IS NULL.*a\.type IN \(1, 2\).*ORDER BY acp\.column_id ASC.*LIMIT 1`).
+	mock.ExpectQuery(`(?s)SELECT acp\.column_id,.*FROM caam_portal\.article a.*article_column_publish acp.*a\.id = \?.*a\.status = 1.*a\.audit_status = 2.*a\.type IN \(1, 2\).*ORDER BY acp\.column_id ASC.*LIMIT 1`).
 		WithArgs(int64(101)).
 		WillReturnRows(sqlmock.NewRows([]string{
 			"column_id", "id", "type", "title", "summary", "content", "cover", "author", "source",
 			"is_bold", "default_color", "url", "publish_time",
 		}).AddRow(42, "101", 1, "文章", "摘要", "<p>正文</p>", nil, nil, "协会", 1, "#123456", nil, published))
-	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, name FROM caam_portal.`column` WHERE id = ? AND deleted_at IS NULL")).
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, name FROM caam_portal.`column` WHERE id = ? AND status = 1")).
 		WithArgs(int64(42)).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "name"}).AddRow(42, "行业要闻"))
 

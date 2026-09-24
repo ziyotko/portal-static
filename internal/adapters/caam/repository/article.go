@@ -13,8 +13,8 @@ import (
 	"portal-static/internal/sources/portalcms"
 )
 
-var ErrPageNotUnique = errors.New("页面名称必须且只能匹配一个有效页面")
-var ErrPageNotFound = errors.New("页面不存在")
+var ErrTemplateNotUnique = errors.New("模板名称必须且只能匹配一个有效模板")
+var ErrTemplateNotFound = errors.New("模板不存在")
 var ErrColumnNotUnique = errors.New("栏目名称必须且只能匹配一个栏目")
 var ErrColumnNotFound = errors.New("栏目不存在")
 var ErrArticleNotPublished = errors.New("文章未发布或不属于有效栏目")
@@ -39,15 +39,15 @@ func (r *ArticleRepository) ResolveColumnID(ctx context.Context, slot config.Slo
 	return r.resolveColumnByName(ctx, slot.Name)
 }
 
-// ResolveGlobalColumnID resolves a single undeleted column by its display name.
-// Unlike ResolveColumnID, it is not limited to the configured home page and is
+// ResolveGlobalColumnID resolves a single active column by its display name.
+// Unlike ResolveColumnID, it is not limited to the configured home template and is
 // intended for the public single-list endpoint.
 func (r *ArticleRepository) ResolveGlobalColumnID(ctx context.Context, name string) (int64, error) {
 	ctx, cancel := withDatabaseOperationTimeout(ctx)
 	defer cancel()
 	name = strings.TrimSpace(name)
 	rows, err := r.db.QueryContext(ctx,
-		"SELECT id FROM {{schema}}.`column` WHERE name = ? AND deleted_at IS NULL ORDER BY id ASC LIMIT 2",
+		"SELECT id FROM {{schema}}.`column` WHERE name = ? AND status = 1 ORDER BY id ASC LIMIT 2",
 		name,
 	)
 	if err != nil {
@@ -86,13 +86,13 @@ func (r *ArticleRepository) FetchLinksByColumn(ctx context.Context, slot config.
 SELECT l.id, l.name, l.url, l.logo
 FROM {{schema}}.link l
 JOIN {{schema}}.`+"`column`"+` c ON c.id = l.column_id
-WHERE l.deleted_at IS NULL
-  AND l.status = 1
-  AND l.page_id = ?
+WHERE l.status = 1
+  AND l.template_id = ?
   AND c.id = ?
-  AND c.deleted_at IS NULL
+  AND c.status = 1
+  AND c.template_id = l.template_id
 ORDER BY l.sort ASC, l.id ASC
-LIMIT ?`, r.pageID, columnID, slot.Limit)
+LIMIT ?`, r.templateID, columnID, slot.Limit)
 	if err != nil {
 		return nil, fmt.Errorf("query link column %q: %w", slot.Name, err)
 	}
@@ -124,64 +124,64 @@ LIMIT ?`, r.pageID, columnID, slot.Limit)
 }
 
 type ArticleRepository struct {
-	db     *portalcms.Store
-	pageID int
+	db         *portalcms.Store
+	templateID int
 }
 
-func ResolvePageID(ctx context.Context, db *sql.DB, name string) (int, error) {
+func ResolveTemplateID(ctx context.Context, db *sql.DB, name string) (int, error) {
 	store, err := portalcms.NewStore(db, "caam_portal", false)
 	if err != nil {
 		return 0, err
 	}
-	return ResolvePageIDWithStore(ctx, store, name)
+	return ResolveTemplateIDWithStore(ctx, store, name)
 }
 
-func ResolvePageIDWithStore(ctx context.Context, store *portalcms.Store, name string) (int, error) {
+func ResolveTemplateIDWithStore(ctx context.Context, store *portalcms.Store, name string) (int, error) {
 	ctx, cancel := withDatabaseOperationTimeout(ctx)
 	defer cancel()
 	name = strings.TrimSpace(name)
 	rows, err := store.QueryContext(ctx, `
 SELECT id
-FROM {{schema}}.page
+FROM {{schema}}.template
 WHERE name = ?
+  AND type = 'home'
   AND status = 1
-  AND deleted_at IS NULL
 ORDER BY id ASC
 LIMIT 2`, name)
 	if err != nil {
-		return 0, fmt.Errorf("查询有效页面“%s”失败：%w", name, err)
+		return 0, fmt.Errorf("查询有效模板“%s”失败：%w", name, err)
 	}
 	defer rows.Close()
 	ids := make([]int, 0, 2)
 	for rows.Next() {
 		var id int
 		if err := rows.Scan(&id); err != nil {
-			return 0, fmt.Errorf("读取有效页面“%s”失败：%w", name, err)
+			return 0, fmt.Errorf("读取有效模板“%s”失败：%w", name, err)
 		}
 		ids = append(ids, id)
 	}
 	if err := rows.Err(); err != nil {
-		return 0, fmt.Errorf("遍历有效页面“%s”失败：%w", name, err)
+		return 0, fmt.Errorf("遍历有效模板“%s”失败：%w", name, err)
 	}
 	if len(ids) == 0 {
-		return 0, fmt.Errorf("%w：“%s”", ErrPageNotFound, name)
+		return 0, fmt.Errorf("%w：“%s”", ErrTemplateNotFound, name)
 	}
 	if len(ids) > 1 {
-		return 0, fmt.Errorf("%w：“%s”，匹配到 %d 条记录", ErrPageNotUnique, name, len(ids))
+		return 0, fmt.Errorf("%w：“%s”，匹配到 %d 条记录", ErrTemplateNotUnique, name, len(ids))
 	}
 	return ids[0], nil
 }
 
-func NewArticleRepository(db *sql.DB, pageID int) *ArticleRepository {
+func NewArticleRepository(db *sql.DB, templateID int) *ArticleRepository {
 	store, err := portalcms.NewStore(db, "caam_portal", false)
 	if err != nil {
 		panic(err)
 	}
-	return NewArticleRepositoryWithStore(store, pageID)
+	return NewArticleRepositoryWithStore(store, templateID)
 }
 
-func NewArticleRepositoryWithStore(store *portalcms.Store, pageID int) *ArticleRepository {
-	return &ArticleRepository{db: store, pageID: pageID}
+func NewArticleRepositoryWithStore(store *portalcms.Store, templateID int) *ArticleRepository {
+	return &ArticleRepository{db: store, templateID: templateID}
 }
 
 // FetchPublishedByColumnName returns all publishable articles attached to the
@@ -237,9 +237,12 @@ FROM (
     INNER JOIN {{schema}}.article_column_publish acp
       ON acp.column_id IN (`+strings.Join(columnPlaceholders, ",")+`)
      AND acp.article_id = candidate.id
+    INNER JOIN {{schema}}.`+"`column`"+` c
+      ON c.id = acp.column_id
+     AND c.status = 1
+     AND c.template_id = acp.template_id
     WHERE candidate.status = 1
       AND candidate.audit_status = 2
-      AND candidate.deleted_at IS NULL
       AND candidate.type IN (`+strings.Join(typePlaceholders, ",")+`)
       AND candidate.type IN (1, 2, 3)
     ORDER BY candidate.is_top DESC, candidate.publish_time DESC, candidate.id DESC
@@ -279,7 +282,7 @@ ORDER BY a.is_top DESC, a.publish_time DESC, a.id DESC`, args...)
 func (r *ArticleRepository) resolveColumnsByName(ctx context.Context, name string) ([]model.Column, error) {
 	name = strings.TrimSpace(name)
 	rows, err := r.db.QueryContext(ctx,
-		"SELECT id, name FROM {{schema}}.`column` WHERE name = ? AND deleted_at IS NULL ORDER BY id ASC",
+		"SELECT id, name FROM {{schema}}.`column` WHERE name = ? AND status = 1 ORDER BY id ASC",
 		name,
 	)
 	if err != nil {
@@ -322,10 +325,13 @@ SELECT acp.column_id, a.id, a.type, a.title, a.summary, a.content, a.cover,
        a.url, a.publish_time
 FROM {{schema}}.article_column_publish acp
 INNER JOIN {{schema}}.article a ON a.id = acp.article_id
+INNER JOIN {{schema}}.`+"`column`"+` c
+        ON c.id = acp.column_id
+       AND c.status = 1
+       AND c.template_id = acp.template_id
 WHERE acp.column_id IN (`+strings.Join(placeholders, ",")+`)
   AND a.status = 1
   AND a.audit_status = 2
-  AND a.deleted_at IS NULL
   AND a.type IN (1, 2, 3)
 ORDER BY a.is_top DESC, a.publish_time DESC, a.id DESC`, args...)
 	if err != nil {
@@ -362,7 +368,7 @@ func (r *ArticleRepository) FetchPublishedByColumnID(ctx context.Context, id int
 	var column model.Column
 	var columnName sql.NullString
 	if err := r.db.QueryRowContext(ctx,
-		"SELECT id, name FROM {{schema}}.`column` WHERE id = ?",
+		"SELECT id, name FROM {{schema}}.`column` WHERE id = ? AND status = 1",
 		id,
 	).Scan(&column.ID, &columnName); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -381,10 +387,13 @@ SELECT a.id, a.type, a.title, a.summary, a.content, a.cover,
        a.url, a.publish_time
 FROM {{schema}}.article_column_publish acp
 INNER JOIN {{schema}}.article a ON a.id = acp.article_id
+INNER JOIN {{schema}}.`+"`column`"+` c
+        ON c.id = acp.column_id
+       AND c.status = 1
+       AND c.template_id = acp.template_id
 WHERE acp.column_id = ?
   AND a.status = 1
   AND a.audit_status = 2
-  AND a.deleted_at IS NULL
   AND a.type IN (1, 2, 3)
 ORDER BY a.is_top DESC, a.publish_time DESC, a.id DESC`, column.ID)
 	if err != nil {
@@ -410,7 +419,7 @@ func (r *ArticleRepository) FetchColumns(ctx context.Context) ([]model.Column, e
 	ctx, cancel := withDatabaseOperationTimeout(ctx)
 	defer cancel()
 	rows, err := r.db.QueryContext(ctx,
-		"SELECT id, name FROM {{schema}}.`column` WHERE deleted_at IS NULL ORDER BY id ASC",
+		"SELECT id, name FROM {{schema}}.`column` WHERE status = 1 ORDER BY id ASC",
 	)
 	if err != nil {
 		return nil, fmt.Errorf("query all columns: %w", err)
@@ -445,6 +454,12 @@ func (r *ArticleRepository) FetchArticleColumnMappingsBatch(ctx context.Context,
 SELECT id, column_id, article_id
 FROM {{schema}}.article_column_publish
 WHERE id > ?
+  AND EXISTS (
+      SELECT 1 FROM {{schema}}.`+"`column`"+` c
+      WHERE c.id = column_id
+        AND c.status = 1
+        AND c.template_id = template_id
+  )
 ORDER BY id ASC
 LIMIT ?`, afterID, limit)
 	if err != nil {
@@ -478,7 +493,6 @@ FROM {{schema}}.article a
 WHERE a.id IN (%s)
   AND a.status = 1
   AND a.audit_status = 2
-  AND a.deleted_at IS NULL
   AND a.type IN (1, 2, 3)`, ids)
 	rows, err := r.db.QueryContext(ctx, query, args...)
 	if err != nil {
@@ -514,7 +528,6 @@ FROM {{schema}}.article a
 WHERE a.id IN (%s)
   AND a.status = 1
   AND a.audit_status = 2
-  AND a.deleted_at IS NULL
   AND a.type IN (1, 2)`, ids)
 	rows, err := r.db.QueryContext(ctx, query, args...)
 	if err != nil {
@@ -550,9 +563,9 @@ INNER JOIN {{schema}}.`+"`column`"+` c ON c.id = acp.column_id
 WHERE a.id = ?
   AND a.status = 1
   AND a.audit_status = 2
-  AND a.deleted_at IS NULL
   AND a.type IN (1, 2)
-  AND c.deleted_at IS NULL
+	AND c.status = 1
+	AND c.template_id = acp.template_id
 ORDER BY c.id ASC`, articleID)
 	if err != nil {
 		return nil, fmt.Errorf("query article %d columns: %w", articleID, err)
@@ -575,8 +588,8 @@ ORDER BY c.id ASC`, articleID)
 	return columns, nil
 }
 
-// FetchArticleRelatedColumns resolves every surviving publication relationship,
-// including those of offline, unreviewed, soft-deleted or removed articles.
+// FetchArticleRelatedColumns resolves surviving publication relationships for
+// an article even after the article itself has gone offline or been removed.
 func (r *ArticleRepository) FetchArticleRelatedColumns(ctx context.Context, articleID int64) ([]model.Column, error) {
 	ctx, cancel := withDatabaseOperationTimeout(ctx)
 	defer cancel()
@@ -585,7 +598,8 @@ SELECT DISTINCT c.id, c.name
 FROM {{schema}}.article_column_publish acp
 INNER JOIN {{schema}}.`+"`column`"+` c ON c.id = acp.column_id
 WHERE acp.article_id = ?
-  AND c.deleted_at IS NULL
+	AND c.status = 1
+	AND c.template_id = acp.template_id
 ORDER BY c.id ASC`, articleID)
 	if err != nil {
 		return nil, fmt.Errorf("query article %d related columns: %w", articleID, err)
@@ -628,12 +642,15 @@ SELECT selected.column_id,
 FROM (
     SELECT acp.article_id, MIN(acp.column_id) AS column_id
     FROM {{schema}}.article_column_publish acp
+    INNER JOIN {{schema}}.`+"`column`"+` c
+      ON c.id = acp.column_id
+     AND c.status = 1
+     AND c.template_id = acp.template_id
     GROUP BY acp.article_id
 ) selected
 INNER JOIN {{schema}}.article a ON a.id = selected.article_id
 WHERE a.status = 1
   AND a.audit_status = 2
-  AND a.deleted_at IS NULL
 	AND a.type IN (1, 2)
 ORDER BY a.is_top DESC, a.publish_time DESC, a.id DESC`)
 	if err != nil {
@@ -714,9 +731,12 @@ FROM (
     FROM {{schema}}.article candidate
     INNER JOIN {{schema}}.article_column_publish acp
       ON acp.column_id = ? AND acp.article_id = candidate.id
+    INNER JOIN {{schema}}.` + "`column`" + ` c
+      ON c.id = acp.column_id
+     AND c.status = 1
+     AND c.template_id = acp.template_id
     WHERE candidate.status = 1
       AND candidate.audit_status = 2
-      AND candidate.deleted_at IS NULL
       AND candidate.type IN (` + strings.Join(placeholders, ",") + `)
       AND candidate.type IN (1, 2, 3)
     ORDER BY candidate.is_top DESC, candidate.publish_time DESC, candidate.id DESC
@@ -785,7 +805,6 @@ SELECT a.id, a.type, a.title, a.summary, a.content, a.cover,
 FROM {{schema}}.article a
 WHERE a.status = 1
   AND a.audit_status = 2
-  AND a.deleted_at IS NULL
   AND a.type = 3
   AND a.title = ?`
 	args := []any{strings.TrimSpace(title)}
@@ -856,14 +875,13 @@ func (r *ArticleRepository) FetchStatisticsTitles(ctx context.Context, columnNam
 	ctx, cancel := withDatabaseOperationTimeout(ctx)
 	defer cancel()
 	rows, err := r.db.QueryContext(ctx, `
-SELECT article_title
-FROM {{schema}}.article_column_publish
-WHERE column_id IN (
-    SELECT id
-    FROM {{schema}}.`+"`column`"+`
-    WHERE name = ?
-      AND status = 1
-)
+SELECT acp.article_title
+FROM {{schema}}.article_column_publish acp
+INNER JOIN {{schema}}.`+"`column`"+` c
+        ON c.id = acp.column_id
+       AND c.status = 1
+       AND c.template_id = acp.template_id
+WHERE c.name = ?
 GROUP BY article_title`, strings.TrimSpace(columnName))
 	if err != nil {
 		return nil, fmt.Errorf("query statistics titles from column %q: %w", columnName, err)
@@ -889,8 +907,8 @@ GROUP BY article_title`, strings.TrimSpace(columnName))
 
 func (r *ArticleRepository) resolveColumnByName(ctx context.Context, name string) (int64, error) {
 	rows, err := r.db.QueryContext(ctx,
-		"SELECT id FROM {{schema}}.`column` WHERE page_id = ? AND name = ? AND deleted_at IS NULL ORDER BY id ASC LIMIT 2",
-		r.pageID, name,
+		"SELECT id FROM {{schema}}.`column` WHERE template_id = ? AND name = ? AND status = 1 ORDER BY id ASC LIMIT 2",
+		r.templateID, name,
 	)
 	if err != nil {
 		return 0, fmt.Errorf("查询栏目“%s”失败：%w", name, err)
@@ -919,7 +937,7 @@ func (r *ArticleRepository) resolveColumnByName(ctx context.Context, name string
 func (r *ArticleRepository) fetchColumn(ctx context.Context, columnID int64) (model.Column, error) {
 	var column model.Column
 	err := r.db.QueryRowContext(ctx,
-		"SELECT id, name FROM {{schema}}.`column` WHERE id = ? AND deleted_at IS NULL",
+		"SELECT id, name FROM {{schema}}.`column` WHERE id = ? AND status = 1",
 		columnID,
 	).Scan(&column.ID, &column.Name)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -942,10 +960,13 @@ func (r *ArticleRepository) FetchColumnArticles(ctx context.Context, columnID in
 SELECT a.id, a.type, a.title, a.url, a.publish_time
 FROM {{schema}}.article_column_publish acp
 INNER JOIN {{schema}}.article a ON a.id = acp.article_id
+INNER JOIN {{schema}}.`+"`column`"+` c
+        ON c.id = acp.column_id
+       AND c.status = 1
+       AND c.template_id = acp.template_id
 WHERE acp.column_id = ?
   AND a.status = 1
   AND a.audit_status = 2
-  AND a.deleted_at IS NULL
   AND a.type IN (1, 2, 3)
 ORDER BY a.is_top DESC, a.publish_time DESC, a.id DESC`, columnID)
 	if err != nil {
@@ -978,12 +999,12 @@ FROM {{schema}}.article a
 INNER JOIN {{schema}}.article_column_publish acp
         ON acp.article_id = a.id
 INNER JOIN {{schema}}.`+"`column`"+` c
-        ON c.id = acp.column_id
-       AND c.deleted_at IS NULL
+       ON c.id = acp.column_id
+       AND c.status = 1
+       AND c.template_id = acp.template_id
 WHERE a.id = ?
   AND a.status = 1
   AND a.audit_status = 2
-  AND a.deleted_at IS NULL
   AND a.type IN (1, 2)
 ORDER BY acp.column_id ASC
 LIMIT 1`, articleID)

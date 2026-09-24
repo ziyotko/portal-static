@@ -16,14 +16,14 @@ func HasStaticDetail(articleType int) bool {
 }
 
 type Column struct {
-	ID          int64
-	Name        string
-	Code        string
-	PageID      int64
-	PageName    string
-	ParentID    int64
-	Description string
-	Sort        int
+	ID           int64
+	Name         string
+	Code         string
+	TemplateID   int64
+	TemplateName string
+	ParentID     int64
+	Description  string
+	Sort         int
 }
 
 type Attachment struct {
