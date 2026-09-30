@@ -1,0 +1,53 @@
+version: 1
+driver: camie
+
+site:
+  id: camie
+  timezone: Asia/Shanghai
+
+database:
+  dsn_env: CAMIE_DB_DSN
+  schema: camie_portal
+  max_open_conns: 10
+  max_idle_conns: 5
+  conn_max_lifetime: 5m
+
+server:
+  addr: 127.0.0.1:9144
+  token_env: CAMIE_STATIC_TOKEN
+  request_timeout: 10m
+  batch_idle_timeout: 15m
+  batch_max_duration: 6h
+
+paths:
+  source_root: ../internal/adapters/camie/testdata/site
+  dist_root: ../dist/camie-portal
+  preview_root: ../dist/camie-preview
+  templates:
+    layout: ../templates/layout.html.tmpl
+    home: ../templates/home.html.tmpl
+    list: ../templates/list.html.tmpl
+    article: ../templates/article.html.tmpl
+    about: ../templates/about.html.tmpl
+  template_codes:
+    layout: camie-layout
+    home: camie-home
+    list: camie-list
+    article: camie-article
+    about: camie-about
+
+media:
+  mode: same_origin
+  aliases:
+    camie/uploads: /camie/uploads
+    uploads: /uploads
+  rewrite_origins:
+    - https://demo.miic.com.cn
+
+adapter:
+  site:
+    page_name: 环保机械协会
+    page_size: 10
+    hero_column: news-hot
+    fallback_cover: assets/images/hero-building.png
+    lock_stale_after: 30m

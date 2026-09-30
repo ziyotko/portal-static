@@ -52,7 +52,7 @@ adapter: {}
 | 字段 | 必填 | 含义 |
 | --- | --- | --- |
 | `version` | 是 | 配置协议版本，当前为 `1` |
-| `driver` | 是 | 适配器注册名，如 `miic`、`caam` |
+| `driver` | 是 | 适配器注册名，如 `miic`、`caam`、`camie` |
 | `site` | 是 | 站点身份和时区 |
 | `database` | 取决于适配器 | Portal CMS MySQL 适配器生产模式必填；preview 和非 MySQL 适配器可不使用 |
 | `server` | 是 | HTTP 监听、Token 环境变量和超时 |
@@ -170,5 +170,6 @@ aliases:
 
 - CAAM：[configs/caam.example.yaml](../configs/caam.example.yaml)
 - MIIC：[configs/miic.example.yaml](../configs/miic.example.yaml)
+- CAMIE：[configs/camie.example.yaml](../configs/camie.example.yaml)
 
 示例用于说明结构，不应直接携带生产密码、生产 Token 或不可移植的临时路径。

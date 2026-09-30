@@ -1,0 +1,100 @@
+{{define "home"}}
+{{template "head" .}}
+<main class="page-shell home-page">
+  <div class="page-inner home-main">
+    <section class="home-lead" aria-label="重点信息">
+      <article class="hero-slider" aria-roledescription="轮播图" aria-label="重点新闻">
+        <div class="hero-slides">
+          {{range $i, $a := .Hero}}
+          <a class="hero-slide {{if not $i}}active{{end}}" href="{{root $ $a.Href}}?from={{$a.ColumnCode}}" data-slide="{{$i}}" {{if $i}}aria-hidden="true" tabindex="-1"{{end}}>
+            <div class="hero-media"><img src="{{root $ $a.Cover}}" alt="{{$a.Title}}"></div>
+            <div class="hero-caption"><h1>{{$a.Title}}</h1><p>发布时间：{{$a.Date}}　　来源：{{$a.Source}}</p></div>
+          </a>
+          {{end}}
+        </div>
+        <div class="hero-dots" aria-label="选择轮播内容">
+          {{range $i, $_ := .Hero}}<button class="{{if not $i}}active{{end}}" type="button" data-slide-to="{{$i}}" aria-label="第 {{add $i 1}} 张"></button>{{end}}
+        </div>
+      </article>
+
+      <section class="notice-panel">
+        <div class="home-tabs" data-group="notice">
+          {{range $i, $g := .Notices}}<button class="{{if not $i}}active{{end}}" data-tab="notice-{{add $i 1}}" data-href="{{root $ $g.Href}}" type="button">{{$g.Name}}</button>{{end}}
+        </div>
+        {{range $i, $g := .Notices}}
+        <ul id="notice-{{add $i 1}}" class="notice-list" data-tab-group="notice" {{if $i}}hidden{{end}}>
+          {{range $g.Items}}<li class="searchable"><a href="{{root $ .Href}}?from={{.ColumnCode}}">{{.Title}}</a></li>{{end}}
+        </ul>
+        {{end}}
+      </section>
+
+      <aside class="quick-rail" aria-label="快捷服务">
+        <a href="{{root . "pages/member.html"}}"><img class="quick-icon" src="{{root . "assets/images/icon-join.png"}}" alt="">申请入会</a>
+        <a href="{{root . "pages/member.html"}}"><img class="quick-icon" src="{{root . "assets/images/icon-member.png"}}" alt="">会员中心</a>
+        <div class="quick-mobile">
+          <button class="quick-mobile-trigger" type="button" aria-expanded="false" aria-controls="mobile-qr-card" aria-haspopup="dialog"><img class="quick-icon" src="{{root . "assets/images/icon-mobile.png"}}" alt="">移动媒体</button>
+          <div class="mobile-qr-card" id="mobile-qr-card" role="dialog" aria-label="协会移动媒体二维码" hidden>
+            <div class="mobile-qr-item"><img src="{{root . "assets/images/qr-wechat-service.jpg"}}" alt="CAMIE 微信服务号二维码"><span>CAMIE</span><strong>微信服务号</strong></div>
+            <div class="mobile-qr-item"><img src="{{root . "assets/images/qr-wechat-video.png"}}" alt="CAMIE 微信视频号二维码"><span>CAMIE</span><strong>微信视频号</strong></div>
+            <div class="mobile-qr-item"><img src="{{root . "assets/images/qr-wechat-subscription.jpg"}}" alt="CAMIE 微信订阅号二维码"><span>CAMIE</span><strong>微信订阅号</strong></div>
+          </div>
+        </div>
+        <a href="{{root . "pages/videos.html"}}"><img class="quick-icon" src="{{root . "assets/images/icon-video.png"}}" alt="">视频专区</a>
+      </aside>
+    </section>
+
+    <section class="updates">
+      <div class="updates-tabs" data-group="updates">
+        {{range $i, $g := .Topics}}<button class="{{if not $i}}active{{end}}" data-tab="updates-{{add $i 1}}" data-href="{{root $ $g.Href}}" type="button">{{$g.Name}}</button>{{end}}
+      </div>
+      {{range $i, $g := .Topics}}
+      <div id="updates-{{add $i 1}}" class="updates-panel" data-tab-group="updates" {{if $i}}hidden{{end}}>
+        <ul class="updates-list">
+          {{range $g.Items}}<li class="searchable"><a href="{{root $ .Href}}?from={{.ColumnCode}}">{{.Title}}</a><time>{{.Date}}</time></li>{{end}}
+        </ul>
+        <a class="updates-image" href="{{root $ $g.Href}}"><img src="{{root $ $g.Image}}" alt="{{$g.Name}}"></a>
+      </div>
+      {{end}}
+    </section>
+
+    <a class="conference-banner" href="{{columnURL . "training-meetings"}}"><img src="{{root . "assets/images/conference-banner.png"}}" alt="环保装备高质量发展大会"></a>
+    <nav class="feature-links" aria-label="专题入口">
+      <a href="{{columnURL . "standards-green-promotion"}}">绿色技术推广</a>
+      <a href="{{columnURL . "policy-major-equipment-catalogue"}}">国家鼓励发展的重大环保技术装备目录</a>
+      <a href="{{columnURL . "policy-qualified-enterprises"}}">环保装备制造业规范条件企业</a>
+      <a href="{{columnURL . "policy-innovation-tasks"}}">重大环保技术装备创新任务揭榜挂帅</a>
+    </nav>
+
+    <div class="home-lower">
+      <div class="columns-two">
+        <section>
+          <h2 class="section-title"><a href="{{columnURL . "about-branches"}}"><img src="{{root . "assets/images/leaf-icon.png"}}" alt="">分支机构</a></h2>
+          <div class="branch-grid">
+            {{range .Branches}}<a class="branch-card" href="{{columnURL $ "about-branches"}}"><img src="{{root $ .Image}}" alt="">{{.Name}}</a>{{end}}
+          </div>
+        </section>
+        <section>
+          <h2 class="section-title"><a href="{{columnURL . "about-experts"}}"><img src="{{root . "assets/images/leaf-icon.png"}}" alt="">专家委员会</a></h2>
+          {{with .Experts.Feature}}
+          <a class="expert-feature" href="{{root $ .Href}}?from={{.ColumnCode}}"><img src="{{root $ "assets/images/expert-photo.png"}}" alt="专家委员会"><p>{{.Title}}<br><small>中国环保机械行业协会<br>专家委员会</small></p></a>
+          {{end}}
+          <ul class="expert-links">{{range .Experts.Rest}}<li><a href="{{root $ .Href}}?from={{.ColumnCode}}">{{.Title}}</a></li>{{end}}</ul>
+        </section>
+      </div>
+
+      <section class="partners">
+        <h2 class="section-title"><img src="{{root . "assets/images/leaf-icon.png"}}" alt="">副会长单位 <small>（排名不分前后）</small></h2>
+        <div class="partner-grid">
+          {{range .PartnerRows}}
+          <div class="partner-row"><div class="partner-track">
+            <div class="partner-set">{{range .}}<a class="partner-logo" href="{{.Href}}" target="_blank" rel="noopener noreferrer" aria-label="访问{{.Name}}官网"><img class="partner-logo-art" src="{{root $ .Image}}" alt="{{.Name}}"></a>{{end}}</div>
+            <div class="partner-set" aria-hidden="true">{{range .}}<a class="partner-logo" href="{{.Href}}" target="_blank" rel="noopener noreferrer" tabindex="-1"><img class="partner-logo-art" src="{{root $ .Image}}" alt=""></a>{{end}}</div>
+          </div></div>
+          {{end}}
+        </div>
+      </section>
+    </div>
+  </div>
+</main>
+{{template "foot" .}}
+{{end}}

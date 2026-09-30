@@ -1,6 +1,6 @@
 # portal-static
 
-`portal-static` 是所有门户项目共用的静态化生成平台，不是 MIIC 与 CAAM 的合并工程。MIIC、CAAM 只是首批适配器；后续门户继续接入同一个二进制、命令、HTTP API 和任务模型。
+`portal-static` 是所有门户项目共用的静态化生成平台，不是门户源码的简单合并工程。MIIC、CAAM、CAMIE 是当前适配器；后续门户继续接入同一个二进制、命令、HTTP API 和任务模型。
 
 ## 文档导航
 
@@ -95,6 +95,7 @@ go run ./cmd/portal-static serve --config configs/<site>.yaml
 
 - `driver: miic`：示例配置 `configs/miic.example.yaml`，默认监听 `127.0.0.1:9143`。
 - `driver: caam`：示例配置 `configs/caam.example.yaml`，默认监听 `127.0.0.1:9142`。
+- `driver: camie`：示例配置 `configs/camie.example.yaml`，默认监听 `127.0.0.1:9144`；会员内容仅生成动态壳，不进入静态正文和搜索索引。
 
 ## 公共 HTTP 契约
 

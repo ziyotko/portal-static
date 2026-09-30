@@ -1,0 +1,156 @@
+{
+  "source": "协会网站栏目分级列表.doc（2026-09）",
+  "navigation": [
+    {
+      "name": "党建专栏",
+      "code": "party",
+      "children": [
+        { "name": "党建要闻", "code": "party-news" },
+        { "name": "学习教育", "code": "party-study" },
+        { "name": "支部活动", "code": "party-branch-activity" }
+      ]
+    },
+    {
+      "name": "部委动态",
+      "code": "ministry",
+      "children": [
+        { "name": "工作动态", "code": "ministry-work" },
+        {
+          "name": "政策文件",
+          "code": "ministry-policy-files",
+          "children": [
+            { "name": "国家鼓励发展的重大环保技术装备目录", "code": "ministry-major-equipment-catalogue" },
+            { "name": "环保装备制造业规范条件企业", "code": "ministry-qualified-enterprises" },
+            { "name": "重大环保技术装备创新任务揭榜挂帅", "code": "ministry-innovation-tasks" },
+            { "name": "其他文件", "code": "ministry-other-files" }
+          ]
+        },
+        { "name": "政策解读", "code": "ministry-policy-interpretation" }
+      ]
+    },
+    {
+      "name": "新闻中心",
+      "code": "news",
+      "children": [
+        { "name": "热点关注", "code": "news-hot" },
+        { "name": "通知公告", "code": "news-notice" },
+        { "name": "协会动态", "code": "news-association" },
+        { "name": "会员动态", "code": "news-member" }
+      ]
+    },
+    {
+      "name": "交流培训",
+      "code": "training",
+      "children": [
+        { "name": "会议活动", "code": "training-meetings" },
+        {
+          "name": "人才培训",
+          "code": "training-talent",
+          "children": [
+            { "name": "通知及动态", "code": "training-talent-notices" },
+            { "name": "人才交流平台", "code": "training-talent-exchange" }
+          ]
+        },
+        {
+          "name": "国际交流与合作",
+          "code": "training-international",
+          "children": [
+            { "name": "出海培训", "code": "training-overseas-training" },
+            { "name": "海外考察", "code": "training-overseas-visits" },
+            { "name": "交流对接", "code": "training-business-matching" }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "科技标准",
+      "code": "standards",
+      "children": [
+        {
+          "name": "科技创新及成果转化",
+          "code": "standards-innovation",
+          "children": [
+            { "name": "科技成果评价", "code": "standards-achievement-evaluation" },
+            { "name": "科技成果转化平台", "code": "standards-transfer-platform" }
+          ]
+        },
+        {
+          "name": "标准工作",
+          "code": "standards-work",
+          "children": [
+            { "name": "通知及动态", "code": "standards-work-notices" },
+            { "name": "协会标准发布", "code": "standards-publications" }
+          ]
+        },
+        { "name": "绿色技术推广", "code": "standards-green-promotion" }
+      ]
+    },
+    {
+      "name": "关于协会",
+      "code": "about",
+      "children": [
+        { "name": "协会简介", "code": "about-introduction" },
+        { "name": "组织架构", "code": "about-organization" },
+        { "name": "协会章程", "code": "about-charter" },
+        {
+          "name": "分支机构",
+          "code": "about-branches",
+          "children": [
+            { "name": "水分会", "code": "branch-water" },
+            { "name": "大气分会", "code": "branch-atmosphere" },
+            { "name": "固废分会", "code": "branch-solid-waste" },
+            { "name": "环境监测分会", "code": "branch-monitoring" },
+            { "name": "噪声分会", "code": "branch-noise" },
+            { "name": "紫外线分会", "code": "branch-uv" },
+            { "name": "臭氧分会", "code": "branch-ozone" },
+            { "name": "人工智能分会", "code": "branch-ai" },
+            { "name": "环境工程分会", "code": "branch-engineering" }
+          ]
+        },
+        {
+          "name": "专家委员会",
+          "code": "about-experts",
+          "children": [
+            { "name": "专家视野", "code": "about-expert-insights" }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "会员中心",
+      "code": "member",
+      "children": [
+        { "name": "行业报告", "code": "member-reports" },
+        { "name": "数据中心", "code": "member-data" },
+        { "name": "电子刊物", "code": "member-publications" },
+        { "name": "我的空间", "code": "member-space" }
+      ]
+    },
+    {
+      "name": "视频专区",
+      "code": "videos",
+      "children": [
+        { "name": "视频资讯", "code": "videos-news" },
+        { "name": "会员专享", "code": "videos-members" }
+      ]
+    },
+    {
+      "name": "政策研究",
+      "code": "policy-research",
+      "children": [
+        { "name": "行业报告", "code": "policy-reports" },
+        { "name": "数据中心", "code": "policy-data" },
+        { "name": "国家鼓励发展的重大环保技术装备目录", "code": "policy-major-equipment-catalogue" },
+        { "name": "环保装备制造业规范条件企业", "code": "policy-qualified-enterprises" },
+        { "name": "重大环保技术装备创新任务揭榜挂帅", "code": "policy-innovation-tasks" }
+      ]
+    }
+  ],
+  "homepagePlacements": [
+    { "name": "焦点轮播", "code": "home-focus", "displayType": "carousel", "sourceColumnCode": "news-hot" },
+    { "name": "快捷服务", "code": "home-service-links", "displayType": "link" },
+    { "name": "大会横幅", "code": "home-conference-banner", "displayType": "ad" },
+    { "name": "首页专题入口", "code": "home-special-topics", "displayType": "link" },
+    { "name": "副会长单位", "code": "home-vice-president-members", "displayType": "link" }
+  ]
+}
