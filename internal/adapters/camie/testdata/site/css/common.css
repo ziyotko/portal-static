@@ -441,6 +441,7 @@ img { display: block; max-width: 100%; }
 .pagination .plain { border-color: transparent; background: transparent; }
 .pagination .plain:hover { color: var(--green-600); background: transparent; }
 .pagination .disabled { color: #b9bdbc; pointer-events: none; }
+.pagination .plain:disabled { color: #b9bdbc; cursor: not-allowed; background: transparent; }
 .pagination .ellipsis { min-width: 18px; text-align: center; }
 
 .page-jump { display: flex; align-items: center; justify-content: flex-end; gap: 8px; white-space: nowrap; }

@@ -199,6 +199,31 @@ func TestGenerateCompletePublicSiteAndMemberShells(t *testing.T) {
 			t.Fatalf("partner logo crop %q rendered %d times, want 2", viewBox, count)
 		}
 	}
+	search := readGenerated(t, result.Output, "search.html")
+	for _, marker := range []string{
+		`class="page-shell search-page"`,
+		`class="search-card"`,
+		`class="search-result-list"`,
+		`class="search-result-item" data-search-result hidden`,
+		`class="search-result-meta"`,
+		`class="search-pagination pagination" data-search-pagination`,
+		`data-search-prev`,
+		`data-search-pages`,
+		`data-search-next`,
+	} {
+		if !strings.Contains(search, marker) {
+			t.Fatalf("search page lost original result or pagination structure %q", marker)
+		}
+	}
+	searchScript := readGenerated(t, result.Output, "js/main.js")
+	for _, marker := range []string{`const pageSize = 10;`, `const visiblePages = [];`, `button.className = 'page-number';`, `previousButton.disabled = currentPage === 1`, `nextButton.disabled = currentPage === pageCount`} {
+		if !strings.Contains(searchScript, marker) {
+			t.Fatalf("search pagination lost bounded ten-item behavior %q", marker)
+		}
+	}
+	if strings.Contains(searchScript, `const pageSize = 6;`) {
+		t.Fatal("search pagination reverted to six results per page")
+	}
 	if err := validateSite(result.Output); err != nil {
 		t.Fatal(err)
 	}

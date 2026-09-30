@@ -234,7 +234,7 @@
     const query = (params.get('q') || '').trim();
     const normalizedQuery = query.toLocaleLowerCase('zh-CN');
     const requestedPage = Number.parseInt(params.get('page') || '1', 10);
-    const pageSize = 6;
+    const pageSize = 10;
     const rows = [...searchPage.querySelectorAll('[data-search-result]')];
     const summary = searchPage.querySelector('[data-search-summary]');
     const empty = searchPage.querySelector('[data-search-empty]');
@@ -261,18 +261,42 @@
 
     if (pagesSlot && matches.length > pageSize) {
       pagesSlot.replaceChildren();
+      const visiblePages = [];
       for (let page = 1; page <= pageCount; page += 1) {
+        if (page === 1 || page === pageCount || (page >= currentPage - 2 && page <= currentPage + 2)) {
+          visiblePages.push(page);
+        }
+      }
+      let previousPage = 0;
+      visiblePages.forEach((page) => {
+        if (previousPage && page > previousPage + 1) {
+          const ellipsis = document.createElement('span');
+          ellipsis.className = 'ellipsis';
+          ellipsis.setAttribute('aria-hidden', 'true');
+          ellipsis.textContent = '…';
+          pagesSlot.append(ellipsis);
+        }
         const button = document.createElement('button');
         button.type = 'button';
+        button.className = 'page-number';
         button.textContent = String(page);
         button.classList.toggle('active', page === currentPage);
         if (page === currentPage) button.setAttribute('aria-current', 'page');
         button.addEventListener('click', () => goToPage(page));
         pagesSlot.append(button);
-      }
+        previousPage = page;
+      });
     }
-    searchPage.querySelector('[data-search-prev]')?.addEventListener('click', () => goToPage(Math.max(1, currentPage - 1)));
-    searchPage.querySelector('[data-search-next]')?.addEventListener('click', () => goToPage(Math.min(pageCount, currentPage + 1)));
+    const previousButton = searchPage.querySelector('[data-search-prev]');
+    const nextButton = searchPage.querySelector('[data-search-next]');
+    if (previousButton) {
+      previousButton.disabled = currentPage === 1;
+      previousButton.addEventListener('click', () => goToPage(currentPage - 1));
+    }
+    if (nextButton) {
+      nextButton.disabled = currentPage === pageCount;
+      nextButton.addEventListener('click', () => goToPage(currentPage + 1));
+    }
   }
 
   const wireTabs = (selector) => {
