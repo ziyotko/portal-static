@@ -359,6 +359,17 @@
     });
   });
 
+  document.querySelectorAll('.page-jump input[data-page-prefix]').forEach((input) => {
+    const navigate = () => {
+      const page = Math.min(Number(input.max) || 1, Math.max(Number(input.min) || 1, Number(input.value) || 1));
+      window.location.href = `${input.dataset.pagePrefix}${page}.html`;
+    };
+    input.addEventListener('change', navigate);
+    input.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') navigate();
+    });
+  });
+
   document.querySelectorAll('.language-switch').forEach((button) => {
     button.addEventListener('click', () => showToast('英文版内容将在后续阶段接入'));
   });

@@ -87,8 +87,8 @@
         <div class="partner-grid">
           {{range .PartnerRows}}
           <div class="partner-row"><div class="partner-track">
-            <div class="partner-set">{{range .}}<a class="partner-logo" href="{{.Href}}" target="_blank" rel="noopener noreferrer" aria-label="访问{{.Name}}官网"><img class="partner-logo-art" src="{{root $ .Image}}" alt="{{.Name}}"></a>{{end}}</div>
-            <div class="partner-set" aria-hidden="true">{{range .}}<a class="partner-logo" href="{{.Href}}" target="_blank" rel="noopener noreferrer" tabindex="-1"><img class="partner-logo-art" src="{{root $ .Image}}" alt=""></a>{{end}}</div>
+            <div class="partner-set">{{range .}}<a class="partner-logo" href="{{.Href}}" target="_blank" rel="noopener noreferrer" aria-label="访问{{.Name}}官网"><svg class="partner-logo-art" viewBox="{{.ViewBox}}" aria-hidden="true" focusable="false"><image href="{{root $ .Image}}" width="{{.Width}}" height="{{.Height}}"></image></svg></a>{{end}}</div>
+            <div class="partner-set" aria-hidden="true">{{range .}}<a class="partner-logo" href="{{.Href}}" target="_blank" rel="noopener noreferrer" tabindex="-1"><svg class="partner-logo-art" viewBox="{{.ViewBox}}" aria-hidden="true" focusable="false"><image href="{{root $ .Image}}" width="{{.Width}}" height="{{.Height}}"></image></svg></a>{{end}}</div>
           </div></div>
           {{end}}
         </div>

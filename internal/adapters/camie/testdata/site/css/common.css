@@ -421,17 +421,27 @@ img { display: block; max-width: 100%; }
   gap: 9px;
 }
 
-.pagination button {
+.pagination a,
+.pagination button,
+.pagination > .plain {
   min-width: 34px;
   height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border: 1px solid #d6dad7;
   border-radius: 3px;
   color: #3f4444;
   background: #fff;
 }
+.pagination a:hover,
 .pagination button:hover,
+.pagination a.active,
 .pagination button.active { color: #fff; border-color: var(--green-600); background: var(--green-600); }
 .pagination .plain { border-color: transparent; background: transparent; }
+.pagination .plain:hover { color: var(--green-600); background: transparent; }
+.pagination .disabled { color: #b9bdbc; pointer-events: none; }
+.pagination .ellipsis { min-width: 18px; text-align: center; }
 
 .page-jump { display: flex; align-items: center; justify-content: flex-end; gap: 8px; white-space: nowrap; }
 .page-jump input { width: 62px; height: 32px; border: 1px solid #d6dad7; border-radius: 3px; text-align: center; }
@@ -606,7 +616,6 @@ img { display: block; max-width: 100%; }
   .pagination-wrap { min-height: 110px; grid-template-columns: 1fr; gap: 12px; padding: 18px 4px 25px; text-align: center; }
   .page-jump { justify-content: center; }
   .pagination { gap: 6px; }
-  .pagination button:nth-of-type(n+6):not(:last-child) { display: none; }
   .article-card { padding: 18px 10px 24px; }
   .article-card:not(.video-detail-card) { min-height: 0; }
   .article-header h1 { font-size: 21px; }

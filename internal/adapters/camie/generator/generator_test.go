@@ -95,6 +95,66 @@ func TestGenerateCompletePublicSiteAndMemberShells(t *testing.T) {
 	if strings.Contains(publicDetail, `"member-reports"`) || strings.Contains(publicDetail, `"videos-members"`) {
 		t.Fatal("member column structure leaked into public page metadata")
 	}
+	assertPublicListAndDetailShells(t, result.Output)
+	var noticeColumn model.Column
+	for _, column := range source.Columns {
+		if column.Code == "news-notice" {
+			noticeColumn = column
+			break
+		}
+	}
+	noticeDetail := readGenerated(t, result.Output, fmt.Sprintf("article/2026/09/%d.html", noticeColumn.ID*1000+3))
+	if !strings.Contains(noticeDetail, `class="article-pager"`) {
+		t.Fatal("article detail lost adjacent article navigation")
+	}
+	videoDetail := readGenerated(t, result.Output, "video-detail.html")
+	for _, marker := range []string{
+		`class="content-grid"`,
+		`<aside><ul class="side-menu">`,
+		`class="article-card video-detail-card"`,
+		`class="video-stage"`,
+	} {
+		if !strings.Contains(videoDetail, marker) {
+			t.Fatalf("video detail lost original two-column structure %q", marker)
+		}
+	}
+	var branchColumn, branchParent model.Column
+	for _, column := range source.Columns {
+		if column.Code == "branch-water" {
+			branchColumn = column
+		}
+	}
+	for _, column := range source.Columns {
+		if column.ID == branchColumn.ParentID {
+			branchParent = column
+		}
+	}
+	branchDetail := readGenerated(t, result.Output, fmt.Sprintf("article/2026/09/%d.html", branchColumn.ID*1000+1))
+	expectedActiveBranch := fmt.Sprintf(`class="is-active"><button type="button" aria-expanded="true">%s `, branchParent.Name)
+	expectedCurrentBranch := fmt.Sprintf(`class="current"><a href="../../../list/%d/1.html" aria-current="page">%s</a>`, branchColumn.ID, branchColumn.Name)
+	if !strings.Contains(branchDetail, expectedActiveBranch) || !strings.Contains(branchDetail, expectedCurrentBranch) {
+		t.Fatal("nested article did not activate its ancestor item in the side menu")
+	}
+	listPage := readGenerated(t, result.Output, fmt.Sprintf("list/%d/1.html", noticeColumn.ID))
+	for _, marker := range []string{`<nav class="pagination" aria-label="分页">`, `class="plain disabled"`, `class="page-number active"`, `class="page-jump"`, `data-page-prefix="../../list/`} {
+		if !strings.Contains(listPage, marker) {
+			t.Fatalf("column pagination lost original structure %q", marker)
+		}
+	}
+	topNews := readGenerated(t, result.Output, "list/13/1.html")
+	if strings.Contains(topNews, `共 0 项数据`) || !strings.Contains(topNews, `class="news-row searchable"`) {
+		t.Fatal("parent column page did not aggregate descendant articles")
+	}
+	videoList := readGenerated(t, result.Output, "pages/videos.html")
+	for _, marker := range []string{`class="video-grid-card"`, `class="video-grid"`, `class="video-card searchable"`, `class="video-thumb"`, `class="play-button"`} {
+		if !strings.Contains(videoList, marker) {
+			t.Fatalf("video column lost original card layout %q", marker)
+		}
+	}
+	partyList := readGenerated(t, result.Output, "pages/party.html")
+	if !strings.Contains(partyList, `class="page-shell party-theme"`) {
+		t.Fatal("party column lost its themed page shell")
+	}
 	if !strings.Contains(all.String(), "data-member-list-shell") {
 		t.Fatal("member runtime shell was not generated")
 	}
@@ -114,8 +174,76 @@ func TestGenerateCompletePublicSiteAndMemberShells(t *testing.T) {
 			t.Fatalf("home page lost styled component markup %q", marker)
 		}
 	}
+	friendStart := strings.Index(home, `<div class="friend-links">`)
+	if friendStart < 0 {
+		t.Fatal("home page lost fixed friend links")
+	}
+	friendEnd := strings.Index(home[friendStart:], `</div>`)
+	if friendEnd < 0 {
+		t.Fatal("home page friend links are not closed")
+	}
+	friendLinks := home[friendStart : friendStart+friendEnd]
+	if count := strings.Count(friendLinks, `<a href=`); count != 8 {
+		t.Fatalf("fixed friend links count = %d, want 8", count)
+	}
+	for _, name := range []string{"中华人民共和国国家发展和改革委员会", "中共中央社会工作部", "中华人民共和国民政部", "中华人民共和国工业和信息化部", "中华人民共和国生态环境部", "中华人民共和国科学技术部", "国家知识产权局", "中国机经网"} {
+		if !strings.Contains(friendLinks, name) {
+			t.Fatalf("fixed friend links lost %q", name)
+		}
+	}
+	if count := strings.Count(home, `class="partner-logo"`); count != 24 {
+		t.Fatalf("rendered partner logo count = %d, want 24 including the accessible duplicate tracks", count)
+	}
+	for _, viewBox := range []string{"40 14 526 521", "35 35 280 282", "0 78 438 125", "85 385 809 162", "0 40 1178 716", "0 0 167 63", "0 8 192 176", "0 175 536 190", "10 45 1045 376", "0 0 418 55", "25 105 441 303", "20 112 560 208"} {
+		if count := strings.Count(home, `viewBox="`+viewBox+`"`); count != 2 {
+			t.Fatalf("partner logo crop %q rendered %d times, want 2", viewBox, count)
+		}
+	}
 	if err := validateSite(result.Output); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func assertPublicListAndDetailShells(t *testing.T, root string) {
+	t.Helper()
+	checks := []struct {
+		directory string
+		markers   []string
+	}{
+		{"list", []string{`class="breadcrumb"`, `class="content-grid"`, `<aside><ul class="side-menu">`, `class="is-active"`}},
+		{"article", []string{`data-detail-page`, `data-detail-breadcrumb`, `class="content-grid"`, `<aside><ul class="side-menu">`, `class="is-active"`, `class="article-card`, `class="article-meta"`}},
+	}
+	for _, check := range checks {
+		count := 0
+		err := filepath.WalkDir(filepath.Join(root, check.directory), func(path string, entry os.DirEntry, err error) error {
+			if err != nil || entry.IsDir() || filepath.Ext(path) != ".html" {
+				return err
+			}
+			count++
+			page, readErr := os.ReadFile(path)
+			if readErr != nil {
+				return readErr
+			}
+			for _, marker := range check.markers {
+				if !strings.Contains(string(page), marker) {
+					return fmt.Errorf("%s lost required page structure %q", path, marker)
+				}
+			}
+			if check.directory == "list" && !strings.Contains(string(page), `class="article-card"`) {
+				for _, marker := range []string{`<nav class="pagination" aria-label="分页">`, `class="page-jump"`, `data-page-prefix=`} {
+					if !strings.Contains(string(page), marker) {
+						return fmt.Errorf("%s lost required pagination structure %q", path, marker)
+					}
+				}
+			}
+			return nil
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if count == 0 {
+			t.Fatalf("no generated %s pages were audited", check.directory)
+		}
 	}
 }
 

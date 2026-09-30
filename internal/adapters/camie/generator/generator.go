@@ -46,6 +46,7 @@ type Link struct {
 	Name, Href string
 	Active     bool
 	Number     int
+	Children   []Link
 }
 type Group struct {
 	Name, Href string
@@ -58,7 +59,8 @@ type Branch struct {
 	Name, Image string
 }
 type Partner struct {
-	Name, Href, Image string
+	Name, Href, Image, ViewBox string
+	Width, Height              int
 }
 type Page struct {
 	ActiveNav                             string
@@ -303,13 +305,36 @@ func isPrivateColumnCode(code string) bool {
 
 func groupByID(c *catalog, id int64, limit int) Group {
 	name := ""
+	descendants := map[int64]bool{}
 	for _, column := range c.columns {
 		if column.ID == id {
 			name = column.Name
-			break
 		}
 	}
-	items := c.groups[id]
+	if id > 0 {
+		descendants[id] = true
+		for changed := true; changed; {
+			changed = false
+			for _, column := range c.columns {
+				if !descendants[column.ID] && descendants[column.ParentID] && !isPrivateColumnCode(column.Code) {
+					descendants[column.ID] = true
+					changed = true
+				}
+			}
+		}
+	}
+	articleIDs := map[int64]bool{}
+	for columnID := range descendants {
+		for _, article := range c.groups[columnID] {
+			articleIDs[article.ID] = true
+		}
+	}
+	items := make([]*Article, 0, len(articleIDs))
+	for _, article := range c.all {
+		if articleIDs[article.ID] {
+			items = append(items, article)
+		}
+	}
 	if limit > 0 && len(items) > limit {
 		items = items[:limit]
 	}
@@ -350,13 +375,37 @@ func side(c *catalog, currentCode string) []Link {
 	if top.ID == 0 {
 		return nil
 	}
+	columns := make(map[int64]model.Column, len(c.columns))
+	for _, column := range c.columns {
+		columns[column.ID] = column
+	}
+	activeID := c.byCode[currentCode]
+	if activeID == top.ID {
+		activeID = 0
+		for _, column := range c.columns {
+			if column.ParentID == top.ID && !isPrivateColumnCode(column.Code) {
+				activeID = column.ID
+				break
+			}
+		}
+	} else {
+		for activeID != 0 && columns[activeID].ParentID != top.ID {
+			activeID = columns[activeID].ParentID
+		}
+	}
 	var links []Link
 	for _, column := range c.columns {
 		if column.ParentID != top.ID || isPrivateColumnCode(column.Code) {
 			continue
 		}
-		active := currentCode == column.Code || strings.HasPrefix(currentCode, column.Code+"-")
-		links = append(links, Link{Name: column.Name, Href: groupByID(c, column.ID, 0).Href, Active: active})
+		active := column.ID == activeID
+		link := Link{Name: column.Name, Href: groupByID(c, column.ID, 0).Href, Active: active}
+		for _, child := range c.columns {
+			if child.ParentID == column.ID && !isPrivateColumnCode(child.Code) {
+				link.Children = append(link.Children, Link{Name: child.Name, Href: groupByID(c, child.ID, 0).Href, Active: child.Code == currentCode})
+			}
+		}
+		links = append(links, link)
 	}
 	if len(links) == 0 {
 		links = append(links, Link{Name: top.Name, Href: groupByID(c, top.ID, 0).Href, Active: true})
@@ -543,20 +592,20 @@ func (g *Generator) GenerateSite(ctx context.Context) (result Result, err error)
 		},
 		PartnerRows: [][]Partner{
 			{
-				{Name: "南京大学环境学院", Href: "https://www.nju.edu.cn/", Image: "assets/images/partner-logos/nanjing-university.png"},
-				{Name: "紫金龙净环保新能源股份有限公司", Href: "https://www.longking.com.cn/", Image: "assets/images/partner-logos/longking.png"},
-				{Name: "北京城市排水集团有限责任公司", Href: "https://www.bdc.cn/", Image: "assets/images/partner-logos/beijing-drainage.png"},
-				{Name: "苏州帝瀚环保科技股份有限公司", Href: "https://www.dihillgreen.com/", Image: "assets/images/partner-logos/dihill.png"},
-				{Name: "江苏一环集团有限公司", Href: "http://www.yihuan.com/", Image: "assets/images/partner-logos/jiangsu-yihuan.png"},
-				{Name: "河南康宁特环保科技股份有限公司", Href: "https://www.knthb.com/", Image: "assets/images/partner-logos/kangningte.png"},
+				{Name: "南京大学环境学院", Href: "https://www.nju.edu.cn/", Image: "assets/images/partner-logos/nanjing-university.png", ViewBox: "40 14 526 521", Width: 600, Height: 535},
+				{Name: "紫金龙净环保新能源股份有限公司", Href: "https://www.longking.com.cn/", Image: "assets/images/partner-logos/longking.png", ViewBox: "35 35 280 282", Width: 356, Height: 349},
+				{Name: "北京城市排水集团有限责任公司", Href: "https://www.bdc.cn/", Image: "assets/images/partner-logos/beijing-drainage.png", ViewBox: "0 78 438 125", Width: 438, Height: 258},
+				{Name: "苏州帝瀚环保科技股份有限公司", Href: "https://www.dihillgreen.com/", Image: "assets/images/partner-logos/dihill.png", ViewBox: "85 385 809 162", Width: 945, Height: 944},
+				{Name: "江苏一环集团有限公司", Href: "http://www.yihuan.com/", Image: "assets/images/partner-logos/jiangsu-yihuan.png", ViewBox: "0 40 1178 716", Width: 1178, Height: 784},
+				{Name: "河南康宁特环保科技股份有限公司", Href: "https://www.knthb.com/", Image: "assets/images/partner-logos/kangningte.png", ViewBox: "0 0 167 63", Width: 167, Height: 63},
 			},
 			{
-				{Name: "中国天楹股份有限公司", Href: "https://www.cnty.cn/", Image: "assets/images/partner-logos/cnty.png"},
-				{Name: "杰瑞新能源再生循环科技有限公司", Href: "https://www.jereh.com/cn/", Image: "assets/images/partner-logos/jereh-recycling.png"},
-				{Name: "合肥通用机械研究院有限公司", Href: "http://www.hgmri.com/", Image: "assets/images/partner-logos/hefei-general-machinery.png"},
-				{Name: "长江生态环保集团有限公司", Href: "https://www.yeec.com.cn/", Image: "assets/images/partner-logos/yangtze-ecology.png"},
-				{Name: "科林环保技术有限责任公司", Href: "https://www.kelin-china.com/", Image: "assets/images/partner-logos/kelin.png"},
-				{Name: "中车产业投资有限公司", Href: "https://www.crrcgc.cc/cytz/277_19585/index.html", Image: "assets/images/partner-logos/crrc-investment.png"},
+				{Name: "中国天楹股份有限公司", Href: "https://www.cnty.cn/", Image: "assets/images/partner-logos/cnty.png", ViewBox: "0 8 192 176", Width: 192, Height: 192},
+				{Name: "杰瑞新能源再生循环科技有限公司", Href: "https://www.jereh.com/cn/", Image: "assets/images/partner-logos/jereh-recycling.png", ViewBox: "0 175 536 190", Width: 536, Height: 536},
+				{Name: "合肥通用机械研究院有限公司", Href: "http://www.hgmri.com/", Image: "assets/images/partner-logos/hefei-general-machinery.png", ViewBox: "10 45 1045 376", Width: 1068, Height: 446},
+				{Name: "长江生态环保集团有限公司", Href: "https://www.yeec.com.cn/", Image: "assets/images/partner-logos/yangtze-ecology.png", ViewBox: "0 0 418 55", Width: 418, Height: 55},
+				{Name: "科林环保技术有限责任公司", Href: "https://www.kelin-china.com/", Image: "assets/images/partner-logos/kelin.png", ViewBox: "25 105 441 303", Width: 500, Height: 500},
+				{Name: "中车产业投资有限公司", Href: "https://www.crrcgc.cc/cytz/277_19585/index.html", Image: "assets/images/partner-logos/crrc-investment.png", ViewBox: "20 112 560 208", Width: 600, Height: 434},
 			},
 		},
 	}
@@ -605,9 +654,14 @@ func (g *Generator) GenerateSite(ctx context.Context) (result Result, err error)
 				p.Next = fmt.Sprintf("%s/%d.html", dir, pageNum+1)
 			}
 			// Bounded page controls; all pages remain reachable through previous/next links.
+			lastPage := 0
 			for n := 1; n <= totalPages; n++ {
 				if n == 1 || n == totalPages || (n >= pageNum-2 && n <= pageNum+2) {
+					if lastPage != 0 && n > lastPage+1 {
+						p.Pages = append(p.Pages, Link{})
+					}
 					p.Pages = append(p.Pages, Link{Number: n, Href: fmt.Sprintf("%s/%d.html", dir, n), Active: n == pageNum})
+					lastPage = n
 				}
 			}
 			if err := render(fmt.Sprintf("%s/%d.html", dir, pageNum), "list", p); err != nil {
@@ -650,7 +704,7 @@ func (g *Generator) GenerateSite(ctx context.Context) (result Result, err error)
 			continue
 		}
 		alias := columnAlias(col.Code)
-		if err = makeLists(col.Name, col.Code, fmt.Sprintf("list/%d", col.ID), alias, c.groups[col.ID]); err != nil {
+		if err = makeLists(col.Name, col.Code, fmt.Sprintf("list/%d", col.ID), alias, groupByID(c, col.ID, 0).Items); err != nil {
 			return result, err
 		}
 	}
