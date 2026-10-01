@@ -25,7 +25,7 @@ The browser reads `localStorage["member-token"]`, calls `/business_member/api/me
 
 Private images, attachments, and videos use `/business_portal/api/member-zone/member-files/sign?name=...` at runtime. The video player refreshes its five-minute URL during long playback and restores the playback position. The HTML and search index contain no member body, private file URL, or signed URL. The member and portal APIs must be served under the same origin as the static CAMIE site.
 
-The CAMIE browser gate is for the user interface. The current `dia-platform` external-member middleware also calls the member profile endpoint for each protected request and requires current `active` status; direct API calls cannot rely on the browser gate alone.
+The CAMIE browser gate protects only the user interface. In the restored `dia-platform` code, the external-member middleware validates the member JWT and logout blacklist, but does not check the current member profile or require `active` status. A non-`active` account with a valid token can call the member-zone list, detail, and file-signing APIs directly. The requirement that only active members can read private content is therefore not met at the server boundary. Resolve this in the API server or an upstream gateway before production deployment; browser checks alone cannot enforce it.
 
 ## Template codes
 
