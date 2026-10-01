@@ -126,7 +126,7 @@ func publishDirectory(source, stage, target string) error {
 var references = regexp.MustCompile(`(?i)(?:href|src|poster)="([^"]+)"`)
 
 func validateSite(root string) error {
-	for _, name := range []string{"index.html", "news.html", "videos.html", "detail.html", "video-detail.html", "search.html", "pages/member.html", "pages/member-detail.html", "css/common.css", "css/home.css", "js/main.js", "generated-content.js"} {
+	for _, name := range []string{"index.html", "news.html", "videos.html", "detail.html", "video-detail.html", "search.html", "pages/member.html", "pages/member-detail.html", "css/common.css", "css/home.css", "js/main.js", "js/member.js", "generated-content.js"} {
 		info, err := os.Stat(filepath.Join(root, name))
 		if err != nil {
 			return err

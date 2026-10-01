@@ -518,6 +518,33 @@ img { display: block; max-width: 100%; }
 .video-stage .play-button { width: 76px; height: 76px; }
 .video-stage .play-button::after { left: 31px; top: 21px; border-left-width: 25px; border-top-width: 17px; border-bottom-width: 17px; }
 
+.member-list-card { min-height: 440px; padding: 22px 26px; }
+.member-page[data-member-list-shell]:not(.member-has-columns) .content-grid { grid-template-columns: 1fr; }
+.member-list-card h1 { margin: 0 0 18px; font-size: 24px; }
+.member-row { grid-template-columns: minmax(0, 1fr) auto; }
+.member-row-meta { display: flex; align-items: center; gap: 18px; white-space: nowrap; color: #87919a; font-size: 13px; }
+.member-type { color: var(--green-700); }
+.member-action { display: inline-block; margin-top: 10px; padding: 8px 16px; border: 0; border-radius: 4px; color: #fff; background: var(--green-700); cursor: pointer; }
+.member-action:hover, .member-action:focus-visible { background: var(--green-900); color: #fff; }
+.member-detail-card { min-height: 440px; }
+.member-detail-card > [data-member-content] > img { display: block; max-width: min(100%, 620px); height: auto; margin: 18px auto; }
+.member-detail-card .article-header { overflow-wrap: anywhere; }
+.member-detail-card .article-body { overflow-wrap: anywhere; }
+.member-detail-card .article-body img { max-width: 100%; height: auto; }
+.member-detail-card .article-body table { display: block; max-width: 100%; overflow-x: auto; border-collapse: collapse; }
+.member-detail-card .article-body td, .member-detail-card .article-body th { padding: 7px; border: 1px solid #dfe5e0; }
+.member-data { margin: 18px 0; border-top: 1px solid #e0e5e1; }
+.member-data-row { display: grid; grid-template-columns: minmax(115px, 25%) minmax(0, 1fr); border-bottom: 1px solid #e0e5e1; }
+.member-data-row dt, .member-data-row dd { margin: 0; padding: 11px 14px; overflow-wrap: anywhere; }
+.member-data-row dt { color: #617269; background: #f5f8f5; }
+.member-files { margin: 26px 0; }
+.member-files h2 { font-size: 18px; }
+.member-summary { line-height: 1.8; white-space: pre-wrap; }
+.member-file-error, .member-video-status { color: #9b533e; }
+.member-video-stage { margin: 20px 0; }
+.member-video-stage video { display: block; width: 100%; max-height: 70vh; background: #071728; }
+.member-video-stage .member-action { margin-top: 14px; }
+
 .site-footer {
   color: #fff;
   background: var(--green-900);
@@ -606,6 +633,12 @@ img { display: block; max-width: 100%; }
   .breadcrumb { min-height: 50px; font-size: 14px; overflow: visible; }
   .breadcrumb ol { max-width: 100%; overflow-x: auto; white-space: nowrap; scrollbar-width: none; }
   .content-grid { grid-template-columns: 1fr; gap: 14px; }
+  .member-list-card { min-height: 300px; padding: 16px 10px; }
+  .member-list-card h1 { font-size: 21px; }
+  .member-row { align-items: start; }
+  .member-row-meta { flex-direction: column; align-items: flex-end; gap: 2px; font-size: 11px; }
+  .member-data-row { grid-template-columns: 105px minmax(0, 1fr); }
+  .member-data-row dt, .member-data-row dd { padding: 9px; }
   .side-menu { display: flex; overflow-x: auto; padding: 5px; }
   .side-menu > li { flex: 0 0 auto; }
   .side-menu a, .side-menu button { min-height: 36px; padding: 5px 12px; white-space: nowrap; }

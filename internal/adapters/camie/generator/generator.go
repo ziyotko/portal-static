@@ -56,7 +56,7 @@ type Group struct {
 	Rest       []*Article
 }
 type Branch struct {
-	Name, Image string
+	Name, Code, Image string
 }
 type Partner struct {
 	Name, Href, Image, ViewBox string
@@ -357,6 +357,15 @@ func group(c *catalog, selector string, limit int) Group {
 	return groupByID(c, id, limit)
 }
 
+// Home slots have their own columns under camie-home. Older data sets do not
+// have those columns yet, so their original public section remains a fallback.
+func homeGroup(c *catalog, homeCode, fallbackCode string, limit int) Group {
+	if _, exists := c.byCode[homeCode]; exists {
+		return group(c, homeCode, limit)
+	}
+	return group(c, fallbackCode, limit)
+}
+
 func topColumn(c *catalog, code string) model.Column {
 	id := c.byCode[code]
 	columns := make(map[int64]model.Column, len(c.columns))
@@ -409,6 +418,9 @@ func side(c *catalog, currentCode string) []Link {
 	}
 	if len(links) == 0 {
 		links = append(links, Link{Name: top.Name, Href: groupByID(c, top.ID, 0).Href, Active: true})
+	}
+	if top.Code == "videos" {
+		links = append(links, Link{Name: "会员专享", Href: "pages/member.html?column=会员专享&mode=video"})
 	}
 	return links
 }
@@ -578,17 +590,17 @@ func (g *Generator) GenerateSite(ctx context.Context) (result Result, err error)
 		Title:     "首页",
 		Kind:      "home",
 		BodyClass: "home",
-		Hero:      group(c, g.cfg.Site.HeroColumn, 3).Items,
+		Hero:      homeGroup(c, "home-hero", g.cfg.Site.HeroColumn, 3).Items,
 		Branches: []Branch{
-			{Name: "水分会", Image: "assets/images/branch-water.png"},
-			{Name: "大气分会", Image: "assets/images/branch-atmosphere.png"},
-			{Name: "固废分会", Image: "assets/images/branch-solid-waste.png"},
-			{Name: "环境监测分会", Image: "assets/images/branch-monitoring.png"},
-			{Name: "噪声分会", Image: "assets/images/branch-noise.png"},
-			{Name: "紫外线分会", Image: "assets/images/branch-uv.png"},
-			{Name: "臭氧分会", Image: "assets/images/branch-odor.png"},
-			{Name: "人工智能分会", Image: "assets/images/branch-ai.png"},
-			{Name: "环境工程分会", Image: "assets/images/branch-engineering.png"},
+			{Name: "水分会", Code: "branch-water", Image: "assets/images/branch-water.png"},
+			{Name: "大气分会", Code: "branch-atmosphere", Image: "assets/images/branch-atmosphere.png"},
+			{Name: "固废分会", Code: "branch-solid-waste", Image: "assets/images/branch-solid-waste.png"},
+			{Name: "环境监测分会", Code: "branch-monitoring", Image: "assets/images/branch-monitoring.png"},
+			{Name: "噪声分会", Code: "branch-noise", Image: "assets/images/branch-noise.png"},
+			{Name: "紫外线分会", Code: "branch-uv", Image: "assets/images/branch-uv.png"},
+			{Name: "臭氧分会", Code: "branch-ozone", Image: "assets/images/branch-odor.png"},
+			{Name: "人工智能分会", Code: "branch-ai", Image: "assets/images/branch-ai.png"},
+			{Name: "环境工程分会", Code: "branch-engineering", Image: "assets/images/branch-engineering.png"},
 		},
 		PartnerRows: [][]Partner{
 			{
@@ -610,7 +622,7 @@ func (g *Generator) GenerateSite(ctx context.Context) (result Result, err error)
 		},
 	}
 	for _, n := range []string{"news-notice", "news-association", "news-member"} {
-		home.Notices = append(home.Notices, group(c, n, 6))
+		home.Notices = append(home.Notices, homeGroup(c, "home-"+n, n, 6))
 	}
 	for _, topic := range []struct {
 		code, image string
@@ -622,7 +634,7 @@ func (g *Generator) GenerateSite(ctx context.Context) (result Result, err error)
 		{"training-talent", "assets/images/expert-photo.png"},
 		{"policy-reports", "assets/images/conference-banner.png"},
 	} {
-		entry := group(c, topic.code, 6)
+		entry := homeGroup(c, "home-"+topic.code, topic.code, 6)
 		entry.Image = topic.image
 		home.Topics = append(home.Topics, entry)
 	}
@@ -631,7 +643,7 @@ func (g *Generator) GenerateSite(ctx context.Context) (result Result, err error)
 	if dataCenter.Feature != nil {
 		home.DataCenterURL = dataCenter.Feature.Href
 	}
-	home.Experts = group(c, "about-expert-insights", 3)
+	home.Experts = homeGroup(c, "home-experts", "about-expert-insights", 3)
 	if err = render("index.html", "home", home); err != nil {
 		return result, err
 	}

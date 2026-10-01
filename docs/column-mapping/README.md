@@ -5,6 +5,7 @@
 - [CAAM 静态化栏目取数对照表](caam.md)
 - [MIIC 静态化栏目取数对照表](miic.md)
 - [CAMIE 静态化栏目取数与会员边界](camie.md)
+- [CAMIE 页面各区块、对应栏目及固定/动态内容对照表](camie-site-areas.md)
 
 ## 先区分页面生成方式
 

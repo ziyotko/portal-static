@@ -207,7 +207,7 @@ FROM {{schema}}.template WHERE id=?`, id).Scan(&record.ID, &record.Name, &record
 
 // MaterializeTemplates validates database template syntax and writes an
 // ephemeral, private template bundle for the existing renderers.
-func MaterializeTemplates(records map[string]BoundTemplate) (map[string]string, func() error, error) {
+func MaterializeTemplates(records map[string]BoundTemplate, funcs ...template.FuncMap) (map[string]string, func() error, error) {
 	if len(records) == 0 {
 		return nil, nil, errors.New("no database templates to materialize")
 	}
@@ -233,7 +233,11 @@ func MaterializeTemplates(records map[string]BoundTemplate) (map[string]string, 
 			return fail(fmt.Errorf("database template key %q is invalid", key))
 		}
 		filename := key + ".html.tmpl"
-		if _, err := template.New(filename).Parse(record.Source); err != nil {
+		parser := template.New(filename)
+		for _, funcMap := range funcs {
+			parser = parser.Funcs(funcMap)
+		}
+		if _, err := parser.Parse(record.Source); err != nil {
 			return fail(fmt.Errorf("parse database template %q (%s): %w", key, record.Name, err))
 		}
 		path := filepath.Join(dir, filename)

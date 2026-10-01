@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -23,7 +24,11 @@ func testConfig(t *testing.T) config.Config {
 	var cfg config.Config
 	cfg.Site.SourceRoot = filepath.Join(root, "site")
 	cfg.Site.TemplateRoot = filepath.Join(root, "templates")
-	cfg.Site.DistRoot = filepath.Join(t.TempDir(), "camie")
+	tempRoot, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg.Site.DistRoot = filepath.Join(tempRoot, "camie")
 	cfg.Site.PreviewRoot = cfg.Site.DistRoot
 	cfg.Site.PageName = "环保机械协会"
 	cfg.Site.PageSize = 10
@@ -32,6 +37,28 @@ func testConfig(t *testing.T) config.Config {
 	cfg.Site.HeroColumn = "news-hot"
 	cfg.Site.LockStaleAfter = "30m"
 	return cfg
+}
+
+func TestHomeGroupUsesBoundHomeColumn(t *testing.T) {
+	section := &Article{ID: 1, Title: "栏目文章"}
+	homeArticle := &Article{ID: 2, Title: "首页文章"}
+	c := &catalog{
+		columns: []model.Column{{ID: 1, Code: "news-hot", Name: "热点关注"}, {ID: 2, Code: "home-hero", Name: "重点新闻轮播"}},
+		byCode:  map[string]int64{"news-hot": 1, "home-hero": 2},
+		groups:  map[int64][]*Article{1: {section}, 2: {homeArticle}},
+		all:     []*Article{section, homeArticle},
+	}
+	if got := homeGroup(c, "home-hero", "news-hot", 3); len(got.Items) != 1 || got.Items[0].ID != 2 {
+		t.Fatalf("home slot did not use its bound column: %+v", got)
+	}
+	delete(c.groups, 2)
+	if got := homeGroup(c, "home-hero", "news-hot", 3); len(got.Items) != 0 {
+		t.Fatalf("empty home slot unexpectedly used section content: %+v", got)
+	}
+	delete(c.byCode, "home-hero")
+	if got := homeGroup(c, "home-hero", "news-hot", 3); len(got.Items) != 1 || got.Items[0].ID != 1 {
+		t.Fatalf("legacy data set did not use the section fallback: %+v", got)
+	}
 }
 
 func TestGenerateCompletePublicSiteAndMemberShells(t *testing.T) {
@@ -59,7 +86,7 @@ func TestGenerateCompletePublicSiteAndMemberShells(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, name := range []string{"index.html", "news.html", "videos.html", "search.html", "pages/member.html", "pages/member-detail.html", "generated-content.js"} {
+	for _, name := range []string{"index.html", "news.html", "videos.html", "search.html", "pages/member.html", "pages/member-detail.html", "js/member.js", "generated-content.js"} {
 		if _, err := os.Stat(filepath.Join(result.Output, filepath.FromSlash(name))); err != nil {
 			t.Fatalf("missing %s: %v", name, err)
 		}
@@ -94,6 +121,31 @@ func TestGenerateCompletePublicSiteAndMemberShells(t *testing.T) {
 	publicDetail := readGenerated(t, result.Output, "detail.html")
 	if strings.Contains(publicDetail, `"member-reports"`) || strings.Contains(publicDetail, `"videos-members"`) {
 		t.Fatal("member column structure leaked into public page metadata")
+	}
+	for name, markers := range map[string][]string{
+		"index.html":               {`href="/business_member/register"`, `href="./pages/member.html"`, `href="./videos.html"`},
+		"videos.html":              {`member.html?column=`, `mode=video`},
+		"pages/member.html":        {`data-member-list-shell`, `data-member-columns`, `js/member.js`},
+		"pages/member-detail.html": {`data-member-detail-shell`, `data-member-breadcrumb`, `js/member.js`},
+	} {
+		page := readGenerated(t, result.Output, name)
+		for _, marker := range markers {
+			if !strings.Contains(page, marker) {
+				t.Fatalf("%s missing %q", name, marker)
+			}
+		}
+	}
+	branchHome := readGenerated(t, result.Output, "index.html")
+	branchLinks := regexp.MustCompile(`class="branch-card" href="([^"]+)"`).FindAllStringSubmatch(branchHome, -1)
+	if len(branchLinks) != 9 {
+		t.Fatalf("want 9 branch links, got %d", len(branchLinks))
+	}
+	seenBranchLinks := make(map[string]bool, len(branchLinks))
+	for _, match := range branchLinks {
+		if seenBranchLinks[match[1]] {
+			t.Fatalf("branch cards share a destination: %s", match[1])
+		}
+		seenBranchLinks[match[1]] = true
 	}
 	assertPublicListAndDetailShells(t, result.Output)
 	var noticeColumn model.Column

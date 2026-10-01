@@ -29,7 +29,7 @@
       </section>
 
       <aside class="quick-rail" aria-label="快捷服务">
-        <a href="{{root . "pages/member.html"}}"><img class="quick-icon" src="{{root . "assets/images/icon-join.png"}}" alt="">申请入会</a>
+        <a href="/business_member/register"><img class="quick-icon" src="{{root . "assets/images/icon-join.png"}}" alt="">申请入会</a>
         <a href="{{root . "pages/member.html"}}"><img class="quick-icon" src="{{root . "assets/images/icon-member.png"}}" alt="">会员中心</a>
         <div class="quick-mobile">
           <button class="quick-mobile-trigger" type="button" aria-expanded="false" aria-controls="mobile-qr-card" aria-haspopup="dialog"><img class="quick-icon" src="{{root . "assets/images/icon-mobile.png"}}" alt="">移动媒体</button>
@@ -39,7 +39,7 @@
             <div class="mobile-qr-item"><img src="{{root . "assets/images/qr-wechat-subscription.jpg"}}" alt="CAMIE 微信订阅号二维码"><span>CAMIE</span><strong>微信订阅号</strong></div>
           </div>
         </div>
-        <a href="{{root . "pages/videos.html"}}"><img class="quick-icon" src="{{root . "assets/images/icon-video.png"}}" alt="">视频专区</a>
+        <a href="{{root . "videos.html"}}"><img class="quick-icon" src="{{root . "assets/images/icon-video.png"}}" alt="">视频专区</a>
       </aside>
     </section>
 
@@ -70,7 +70,7 @@
         <section>
           <h2 class="section-title"><a href="{{columnURL . "about-branches"}}"><img src="{{root . "assets/images/leaf-icon.png"}}" alt="">分支机构</a></h2>
           <div class="branch-grid">
-            {{range .Branches}}<a class="branch-card" href="{{columnURL $ "about-branches"}}"><img src="{{root $ .Image}}" alt="">{{.Name}}</a>{{end}}
+            {{range .Branches}}<a class="branch-card" href="{{columnURL $ .Code}}"><img src="{{root $ .Image}}" alt="">{{.Name}}</a>{{end}}
           </div>
         </section>
         <section>

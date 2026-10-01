@@ -134,11 +134,11 @@ DELETE /api/static/jobs/{id}
 
 公共配置只校验平台字段；数据源和适配器分别校验自己的配置。配置中的 `source_root` 与任何输出目录都不得重叠，原门户工程不能作为输出目标。
 
-## CAAM 真实数据库验收
+## CAAM 真实数据库验收（旧版隔离容器工具）
 
 验收命令只读取指定 SQL 文件，只提取 `caam_portal` 段，并在临时 MySQL 8 容器中运行。它不会导入其他数据库、连接 dump 中的内网地址或把 SQL 加入 Git。
 
-先启动 Docker Desktop，然后在仓库根目录执行：
+以下命令属于旧版隔离 dump 验收工具，依赖 Docker；CAAM、MIIC、CAMIE 的日常本地启动不使用它。仅在明确需要复现隔离 dump 验收时执行：
 
 ```bash
 export CAAM_SQL_DUMP='/absolute/path/to/Dump.sql'

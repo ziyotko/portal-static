@@ -1,6 +1,8 @@
 # CAMIE column mapping
 
-CAMIE uses `column.code` as its stable publishing key. Display names may change and are never used to decide access scope.
+For a Chinese, page-by-page maintenance map showing each visible area, its column, and whether it is fixed, statically generated, or fetched live, see [CAMIE 门户页面区块与栏目维护对照表](camie-site-areas.md).
+
+CAMIE public static publishing uses `column.code` as its stable key. Public display names may change without changing the publishing scope; the separate runtime member-column API currently accepts member column IDs or Chinese names.
 
 ## Public navigation roots
 
@@ -17,7 +19,13 @@ CAMIE uses `column.code` as its stable publishing key. Display names may change 
 
 ## Dynamic member boundary
 
-The generator excludes `member`, every `member-*` descendant and `videos-members` from public list pages, article details, and `generated-content.js`. It only emits `pages/member.html` and `pages/member-detail.html` as empty runtime shells. Authentication, member content, and protected media remain outside static generation until the member platform contract is finalized.
+The generator excludes `member`, every `member-*` descendant and `videos-members` from public list pages, article details, and `generated-content.js`. It emits `pages/member.html` and `pages/member-detail.html` as runtime shells; member data is fetched only in the browser.
+
+The browser reads `localStorage["member-token"]`, calls `/business_member/api/member/profile`, and fetches member columns and content only when `data.status` is `active`. Login uses `/business_member/login?returnUrl=...` to return to the current CAMIE page. `member.html?column=行业报告` selects a member column by name (an ID also works); the default is 行业报告 or the first enabled column. Public video navigation links to `member.html?column=会员专享&mode=video` for protected videos.
+
+Private images, attachments, and videos use `/business_portal/api/member-zone/member-files/sign?name=...` at runtime. The video player refreshes its five-minute URL during long playback and restores the playback position. The HTML and search index contain no member body, private file URL, or signed URL. The member and portal APIs must be served under the same origin as the static CAMIE site.
+
+The CAMIE browser gate is for the user interface. The current `dia-platform` external-member middleware also calls the member profile endpoint for each protected request and requires current `active` status; direct API calls cannot rely on the browser gate alone.
 
 ## Template codes
 

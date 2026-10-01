@@ -2,6 +2,7 @@ package portalcms
 
 import (
 	"context"
+	"html/template"
 	"os"
 	"strings"
 	"testing"
@@ -99,5 +100,21 @@ func TestMaterializeTemplatesRejectsInvalidSyntax(t *testing.T) {
 	_, _, err := MaterializeTemplates(map[string]BoundTemplate{"home": {Key: "home", Name: "首页", Source: "{{if}}"}})
 	if err == nil || !strings.Contains(err.Error(), "parse database template") {
 		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestMaterializeTemplatesAcceptsRendererFunctions(t *testing.T) {
+	records := map[string]BoundTemplate{
+		"home": {Key: "home", Name: "首页", Source: `{{define "home"}}{{root . "index.html"}}{{end}}`},
+	}
+	paths, cleanup, err := MaterializeTemplates(records, template.FuncMap{
+		"root": func(...any) string { return "" },
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
+	if _, err := os.Stat(paths["home"]); err != nil {
+		t.Fatal(err)
 	}
 }

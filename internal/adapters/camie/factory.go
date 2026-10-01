@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"html/template"
 	"log/slog"
 	"net/http"
 
@@ -90,7 +91,12 @@ func databaseTemplateSnapshot(ctx context.Context, snapshot coreconfig.Snapshot,
 	if err != nil {
 		return coreconfig.Snapshot{}, nil, err
 	}
-	paths, cleanup, err := portalcms.MaterializeTemplates(records)
+	paths, cleanup, err := portalcms.MaterializeTemplates(records, template.FuncMap{
+		"root":       func(...any) string { return "" },
+		"add":        func(...any) int { return 0 },
+		"columnURL":  func(...any) string { return "" },
+		"articleURL": func(...any) string { return "" },
+	})
 	if err != nil {
 		return coreconfig.Snapshot{}, nil, err
 	}

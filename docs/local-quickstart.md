@@ -8,48 +8,36 @@
 cd /Users/zhitianbai/Project/portal-static
 ```
 
-## 0. 只记住三件事
+## 0. 本机运行原则
 
-1. 先启动 Docker Desktop。
-2. CAAM 日常环境只需要执行一条启动命令。
-3. 预览静态网站必须用 `http://127.0.0.1:8088/`，不要双击 HTML，也不要用 `file://`。
+CAAM、MIIC、CAMIE 都使用本机 MySQL、Redis 和服务进程，不启动 Docker。各站点使用独立数据库、Redis DB、服务端口和静态输出目录。预览静态网站应走本机 HTTP 服务，不要双击 HTML 或使用 `file://`。
 
-## 1. CAAM：一条命令启动全部环境
+切回当前 CAMIE 联调环境时，直接打开 [CAMIE 门户与后台](http://127.0.0.1:18080/)；后台地址为 [CAMIE 内容管理](http://127.0.0.1:18080/business_portal/content/column)。CAMIE 当前使用本机 MySQL 3306、Redis 6379、门户 API 18092、会员 API 18093、静态化 API 19144，详见本机忽略目录中的 `.local/camie-integration/README.md`。
 
-启动：
+本机 3306 已分别保留 `caam_portal` 和 `miic_portal` 数据库。旧 CAAM Docker 库与本机 CAAM 库内容不同，备份在 `.local/db-backups/caam_portal_docker_snapshot_20261001.sql`；不得导入覆盖本机库。旧 `.local/caam-integration/control.sh start` 已禁用，直到本机 CAAM 服务账号和配置完成。`status` 只查看本机进程，不会启动 Docker。
 
-```bash
-./.local/caam-integration/control.sh start
-```
+## 1. CAAM：本机环境状态
 
-查看是否都正常：
+CAAM 当前未启动。日后启动时先确认本机 MySQL 3306、Redis 6379 可用，再使用仅访问 `caam_portal` 的本机数据库账号启动 CAAM 后台、静态化服务和本机 HTTP 预览。旧配置仍指向 Docker 端口 63306/63790，不能直接复用；其中 Redis DB 6/7/8 已被 CAMIE 占用，CAAM 可使用 9/10/11，MIIC 可使用 12/13/14。运行时配置应留在 `.local/`，不要改动原项目中的用户文件。
+
+查看 CAAM 服务端口：
 
 ```bash
 ./.local/caam-integration/control.sh status
 ```
 
-正常时应该看到：
-
-- MySQL 容器：`portal-static-caam-local-mysql`
-- Redis 容器：`portal-static-caam-local-redis`
-- 门户预览容器：`portal-static-caam-local-site`
-- `3000`、`8084`、`9142` 三个监听端口
-- 门户预览容器监听 `8088`
-
-如果 Docker Desktop 没启动，先启动 Docker Desktop，再重新执行 `start`。
-
 ## 2. CAAM：这些地址分别做什么
 
 | 地址 | 用途 | 是否直接打开 |
 | --- | --- | --- |
-| [http://127.0.0.1:3000/business_portal/](http://127.0.0.1:3000/business_portal/) | 门户管理后台 | 是 |
-| [http://127.0.0.1:8088/](http://127.0.0.1:8088/) | 后台生成出来的 CAAM 静态网站 | 是 |
-| [http://127.0.0.1:9142/healthz](http://127.0.0.1:9142/healthz) | CAAM 静态化服务健康检查 | 仅排障 |
+| [http://127.0.0.1:3000/business_portal/](http://127.0.0.1:3000/business_portal/) | CAAM 门户管理后台，需先完成本机启动 | 启动后打开 |
+| [http://127.0.0.1:8088/](http://127.0.0.1:8088/) | CAAM 静态网站的本机 HTTP 预览，需先完成本机启动 | 启动后打开 |
+| [http://127.0.0.1:9142/healthz](http://127.0.0.1:9142/healthz) | CAAM 静态化服务健康检查 | 启动后排障 |
 | `http://127.0.0.1:8084` | 管理后台 API | 不需要直接打开 |
-| `127.0.0.1:63306` | 本地 MySQL | 不用浏览器打开 |
-| `127.0.0.1:63790` | 本地 Redis | 不用浏览器打开 |
+| `127.0.0.1:3306` | 本机 MySQL；使用 `caam_portal` 库 | 不用浏览器打开 |
+| `127.0.0.1:6379` | 本机 Redis；CAAM 使用独立 DB 编号 | 不用浏览器打开 |
 
-当前本地测试后台账号：
+旧 CAAM 测试后台账号（尚未在本机库重新验证）：
 
 ```text
 账号：admin
@@ -119,38 +107,19 @@ file:///Users/zhitianbai/Project/portal-static/dist/caam-live/index.html
 
 因为 HTML 中的 `/business_portal/uploads/...` 是网站绝对路径，只有通过 8088 的 Web 服务才能映射到后台上传目录。
 
-## 4. CAAM：停止、重启和恢复
+## 4. CAAM：停止和恢复
 
-停止全部本地环境：
-
-```bash
-./.local/caam-integration/control.sh stop
-```
-
-重新启动：
-
-```bash
-./.local/caam-integration/control.sh start
-```
-
-一起重启：
-
-```bash
-./.local/caam-integration/control.sh restart
-```
-
-停止不会删除 MySQL 数据。除非明确要重建测试库，否则不要删除 Docker volume，也不要删除 `.local/caam-integration/backend/uploads`。
+旧 CAAM 本地进程可用 `./.local/caam-integration/control.sh stop` 停止。这个命令只停止 CAAM 的 launchctl 服务，不会触碰 MySQL、Redis 或 CAMIE。旧脚本的 `start` 和 `restart` 在本机 CAAM 配置完成前会报错，不会启动 Docker。停止服务不会删除本机 `caam_portal` 数据或 `.local/caam-integration/backend/uploads`。
 
 ## 5. CAAM：改过 portal-static 代码后怎么办
 
-代码发生变化后，重新编译静态化程序，再重启：
+完成本机 CAAM 配置并启动后，代码发生变化时可重新编译静态化程序：
 
 ```bash
 go build -o .local/caam-integration/bin/portal-static ./cmd/portal-static
-./.local/caam-integration/control.sh restart
 ```
 
-然后在后台重新执行一次“生成全站”，再打开 8088 验收。
+然后重启本机 CAAM 静态化进程，在后台重新执行一次“生成全站”，通过本机 HTTP 预览验收。
 
 ## 6. MIIC：先做无数据库完整预览
 
@@ -258,7 +227,7 @@ MIIC 后台“静态化设置”填写：
 
 后台进程和 MIIC 静态化进程必须同时具有同值的 `MIIC_STATIC_TOKEN`。MIIC 上传目录也必须通过预览 Web 服务映射，不能用 `file://` 验收。
 
-当前本机只完成了 CAAM 管理后台的一键环境；MIIC 的真实后台环境需要在拿到 MIIC 数据库后按上述端口单独配置。无数据库 MIIC preview 已经可以随时运行。
+本机已有 `miic_portal` 数据库。MIIC 的真实后台环境仍需配置独立数据库账号、Redis DB 和服务端口；无数据库 MIIC preview 可以随时运行。
 
 ## 9. 以后测试第三个或更多新门户
 
