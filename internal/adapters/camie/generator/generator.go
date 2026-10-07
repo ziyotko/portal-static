@@ -214,6 +214,52 @@ func (g *Generator) load(ctx context.Context) (*catalog, error) {
 			c.groups[id] = kept
 		}
 	}
+	// A home slot controls placement on the front page, not the detail page's
+	// navigation. Prefer an actual public column when the article has one;
+	// otherwise use the public section represented by that home slot.
+	for _, article := range c.all {
+		if !isHomeColumnCode(article.ColumnCode) {
+			continue
+		}
+		preferred := homePublicColumnCode(g.cfg.Site.HeroColumn, article.ColumnCode)
+		var selected model.Column
+		for _, column := range c.columns {
+			if isHomeColumnCode(column.Code) || isPrivateColumnCode(column.Code) {
+				continue
+			}
+			for _, assigned := range c.groups[column.ID] {
+				if assigned.ID != article.ID {
+					continue
+				}
+				if selected.ID == 0 || column.Code == preferred {
+					selected = column
+				}
+				break
+			}
+			if selected.Code == preferred {
+				break
+			}
+		}
+		if selected.ID == 0 {
+			for _, column := range c.columns {
+				if column.Code == preferred {
+					selected = column
+					break
+				}
+			}
+		}
+		if selected.ID == 0 {
+			for _, column := range c.columns {
+				if !isHomeColumnCode(column.Code) && !isPrivateColumnCode(column.Code) {
+					selected = column
+					break
+				}
+			}
+		}
+		if selected.ID != 0 {
+			article.ColumnCode, article.Category = selected.Code, selected.Name
+		}
+	}
 	sort.SliceStable(c.all, func(i, j int) bool {
 		a, b := c.raw[c.all[i].ID], c.raw[c.all[j].ID]
 		if a.IsTop != b.IsTop {
@@ -225,6 +271,24 @@ func (g *Generator) load(ctx context.Context) (*catalog, error) {
 		return a.ID > b.ID
 	})
 	return c, nil
+}
+
+func isHomeColumnCode(code string) bool {
+	return code == "home" || strings.HasPrefix(code, "home-")
+}
+
+func homePublicColumnCode(heroColumn, code string) string {
+	switch code {
+	case "home", "home-hero":
+		if code == "home-hero" && heroColumn != "" {
+			return heroColumn
+		}
+		return "news"
+	case "home-experts":
+		return "about-expert-insights"
+	default:
+		return strings.TrimPrefix(code, "home-")
+	}
 }
 func root(p Page, raw string) string {
 	if raw == "" || strings.HasPrefix(raw, "/") || strings.HasPrefix(raw, "#") {

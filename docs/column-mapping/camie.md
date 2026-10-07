@@ -2,6 +2,8 @@
 
 For a Chinese, page-by-page maintenance map showing each visible area, its column, and whether it is fixed, statically generated, or fetched live, see [CAMIE 门户页面区块与栏目维护对照表](camie-site-areas.md).
 
+For deployment, database separation, same-origin routes, and production acceptance, see [CAMIE 门户部署与运维交接](../camie-deployment.md).
+
 CAMIE public static publishing uses `column.code` as its stable key. Public display names may change without changing the publishing scope; the separate runtime member-column API currently accepts member column IDs or Chinese names.
 
 ## Public navigation roots

@@ -63,6 +63,61 @@ func TestHomeGroupUsesBoundHomeColumn(t *testing.T) {
 	}
 }
 
+func TestHomeArticleDetailsUsePublicSectionSidebar(t *testing.T) {
+	cfg := testConfig(t)
+	source := demo.NewSource()
+	var noticeColumn model.Column
+	for _, column := range source.Columns {
+		if column.Code == "news-notice" {
+			noticeColumn = column
+			break
+		}
+	}
+	if noticeColumn.ID == 0 {
+		t.Fatal("missing notice column fixture")
+	}
+	home := model.Column{ID: 9000, Name: "首页内容", Code: "home"}
+	notices := model.Column{ID: 9001, ParentID: home.ID, Name: "通知公告", Code: "home-news-notice"}
+	experts := model.Column{ID: 9002, ParentID: home.ID, Name: "专家委员会", Code: "home-experts"}
+	source.Columns = append([]model.Column{home, notices, experts}, source.Columns...)
+	shared := source.Items[noticeColumn.ID][0]
+	onlyHome := model.Article{ID: 990001, Type: model.ArticleTypeContent, Title: "仅投放首页的通知", Content: "公开测试正文", PublishTime: time.Date(2026, 9, 28, 9, 0, 0, 0, time.FixedZone("CST", 8*60*60))}
+	expert := model.Article{ID: 990002, Type: model.ArticleTypeContent, Title: "仅投放首页的专家文章", Content: "公开专家正文", PublishTime: onlyHome.PublishTime}
+	source.Items[notices.ID] = []model.Article{shared, onlyHome}
+	source.Items[experts.ID] = []model.Article{expert}
+
+	result, err := New(cfg, source).GenerateSite(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	homePage := readGenerated(t, result.Output, "index.html")
+	for _, check := range []struct {
+		id   int64
+		code string
+	}{
+		{shared.ID, "news-notice"},
+		{onlyHome.ID, "news-notice"},
+		{expert.ID, "about-expert-insights"},
+	} {
+		detail := readGenerated(t, result.Output, fmt.Sprintf("article/2026/09/%d.html", check.id))
+		if !strings.Contains(detail, `data-default-column-code="`+check.code+`"`) {
+			t.Fatalf("article %d did not use public section %s", check.id, check.code)
+		}
+		if strings.Contains(detail, `>首页内容</`) || strings.Contains(detail, `>重点新闻轮播</`) {
+			t.Fatalf("article %d still shows home placement as navigation", check.id)
+		}
+		if !strings.Contains(homePage, fmt.Sprintf("%d.html?from=%s", check.id, check.code)) {
+			t.Fatalf("home link for article %d did not point to public section %s", check.id, check.code)
+		}
+	}
+	if !strings.Contains(readGenerated(t, result.Output, "article/2026/09/990001.html"), `>通知公告</a>`) {
+		t.Fatal("home-only notice detail lost the public notice sidebar")
+	}
+	if !strings.Contains(readGenerated(t, result.Output, "article/2026/09/990002.html"), `>专家委员会`) {
+		t.Fatal("home-only expert detail lost the public expert sidebar")
+	}
+}
+
 func TestSectionPageUsesItsOwnTemplate(t *testing.T) {
 	cfg := testConfig(t)
 	sectionTemplates := t.TempDir()

@@ -1,6 +1,6 @@
 # CAMIE 门户页面区块与栏目维护对照表
 
-> 核对时间：2026-10-02。依据当前 CAMIE 生成器、十份 `camie-*` 数据库模板，以及本机 `camie_portal` 测试库。这里的本机栏目 ID 只是测试数据，正式库应按稳定的 `column.code` 核对，不能照抄 ID。尚未部署正式站。
+> 核对时间：2026-10-07。依据当前 CAMIE 生成器、十份 `camie-*` 数据库模板，以及本机 `camie_portal` 测试库。这里的本机栏目 ID 只是测试数据，正式库应按稳定的 `column.code` 核对，不能照抄 ID。尚未部署正式站。部署前另见 [CAMIE 门户部署与运维交接](../camie-deployment.md)。
 
 Dia 把模板作为页面，栏目直接通过 `column.template_id` 归属模板。本机已把顶部七个导航页面分别设为七条启用的“首页”类型模板；在“栏目管理 → 首页”依次点“首页”“党建专栏”等模板，就能分别看到各自栏目树。`camie-list` 是通用栏目页渲染模板，`camie-article` 是通用详情渲染模板，`camie-layout` 是公共布局。原 CAMIE 的 64 个分类节点仍完整保留；另有 12 个首页专用节点。
 
@@ -51,6 +51,26 @@ Dia 后台已于 2026-09-21 将页面层合并进模板，使用 `column.templat
 | “副会长单位”滚动标志 | Go 生成器的 `PartnerRows` 数组 | **固定**：单位名称、标志文件、官网 URL、排序均写在代码里；**未接入**后台“友情链接管理” | CAMIE 生成器 `PartnerRows` 与 `assets/images/partner-logos/` |
 
 首页标签的“查看更多”效果由点击标签直接进入对应首页专用栏目列表实现；悬停/聚焦只切换当前展示的列表。首页专用栏目的文章与公开分类栏目的文章可为同一篇，需在后台分别投放到两个栏目。旧数据若尚未建立 `home-*` 栏目，生成器会临时回退到原分类栏目；一旦建好首页专用栏目，即使为空也不会回退。
+
+### 首页投放栏目与文章详情侧栏
+
+`home-*` 只决定首页在哪块展示文章。点进文章详情后，左侧显示文章所属的**正式公开栏目树**，不显示“首页内容”栏目树。文章已投放到正式公开栏目时，详情优先用公开归属；若只投放首页，按下表选择详情侧栏和面包屑。首页链接中的 `from` 参数也写入该正式栏目 code。若一篇文章同时出现在多个公开栏目，详情只有一个默认侧栏，维护时应核对生成结果。
+
+| 首页投放栏目 `column.code` | 只投首页时详情使用的正式栏目 `column.code` |
+| --- | --- |
+| `home-hero` 重点新闻轮播 | `adapter.site.hero_column`，当前为 `news-hot` |
+| `home-news-notice` 通知公告 | `news-notice` |
+| `home-news-association` 协会动态 | `news-association` |
+| `home-news-member` 会员动态 | `news-member` |
+| `home-training-meetings` 会议活动 | `training-meetings` |
+| `home-standards-work` 标准工作 | `standards-work` |
+| `home-standards-innovation` 科技创新及成果转化 | `standards-innovation` |
+| `home-training-international` 国际交流与合作 | `training-international` |
+| `home-training-talent` 人才培训 | `training-talent` |
+| `home-policy-reports` 行业报告 | `policy-reports` |
+| `home-experts` 专家委员会 | `about-expert-insights` |
+
+**维护提醒：**只投首页的文章虽然能打开详情，并显示对应正式栏目侧栏，但不会自动出现在该正式栏目的列表中；要让两处都有它，应把同一篇文章 ID 同时投放到首页槽位和正式栏目，不需要复制正文。修改首页投放或正式栏目后，检查首页链接、详情左栏、栏目列表和搜索索引，并确认静态化任务成功。
 
 ## 全站公共区域
 

@@ -128,7 +128,8 @@
   const detailPage = document.querySelector('[data-detail-page]');
   if (detailPage) {
     const requestedCode = new URLSearchParams(window.location.search).get('from');
-    const columnCode = columnPaths[requestedCode] ? requestedCode : detailPage.dataset.defaultColumnCode;
+    const isHomeSlot = requestedCode === 'home' || requestedCode?.startsWith('home-');
+    const columnCode = !isHomeSlot && columnPaths[requestedCode] ? requestedCode : detailPage.dataset.defaultColumnCode;
     const path = columnPaths[columnCode];
     const detailTitle = detailPage.querySelector('.article-header h1')?.textContent.trim();
     const breadcrumbList = detailPage.querySelector('[data-detail-breadcrumb] ol');
