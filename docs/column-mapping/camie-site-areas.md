@@ -1,14 +1,26 @@
 # CAMIE 门户页面区块与栏目维护对照表
 
-> 核对时间：2026-10-01。依据当前 CAMIE 生成器、五份 `camie-*` 数据库模板，以及本机 `camie_portal` 测试库。这里的本机栏目 ID 只是测试数据，正式库应按稳定的 `column.code` 核对，不能照抄 ID。尚未部署正式站。
+> 核对时间：2026-10-02。依据当前 CAMIE 生成器、十份 `camie-*` 数据库模板，以及本机 `camie_portal` 测试库。这里的本机栏目 ID 只是测试数据，正式库应按稳定的 `column.code` 核对，不能照抄 ID。尚未部署正式站。
 
-Dia“栏目管理”按 `column.template_id` 展示现有绑定关系。本机现有 `camie-home` 12 个首页栏目节点、`camie-list` 48 个公开分类节点、`camie-about` 16 个“关于协会”节点。`camie-layout` 是公共布局，`camie-article` 是通用详情渲染器，两者不独立拥有栏目。原 CAMIE 的 64 个分类节点仍完整保留；另有 12 个首页专用节点。当前 Dia 后台不提供 CAMIE 的独立页面分组；在“栏目管理”选择 `CAMIE栏目` 时，会看到党建专栏、部委动态等多棵顶级栏目树。
+Dia 把模板作为页面，栏目直接通过 `column.template_id` 归属模板。本机已把顶部七个导航页面分别设为七条启用的“首页”类型模板；在“栏目管理 → 首页”依次点“首页”“党建专栏”等模板，就能分别看到各自栏目树。`camie-list` 是通用栏目页渲染模板，`camie-article` 是通用详情渲染模板，`camie-layout` 是公共布局。原 CAMIE 的 64 个分类节点仍完整保留；另有 12 个首页专用节点。
+
+| 顶部页面模板 | 稳定编码 | 本机栏目节点数 | 生成页面 |
+| --- | --- | ---: | --- |
+| 首页 | `camie-home` | 12 | `index.html` |
+| 党建专栏 | `camie-party` | 4 | `pages/party.html` 及其子栏目 |
+| 部委动态 | `camie-ministry` | 8 | `pages/ministry.html` 及其子栏目 |
+| 新闻中心 | `camie-news` | 5 | `pages/news.html` 及其子栏目 |
+| 交流培训 | `camie-training` | 9 | `pages/training.html` 及其子栏目 |
+| 科技标准 | `camie-standards` | 8 | `pages/standards.html` 及其子栏目 |
+| 关于协会 | `camie-about` | 16 | `pages/about.html` 及其子栏目 |
+
+视频专区、政策研究和原会员栏目结构仍属于通用 `camie-list` 模板下的 14 个节点；真正的会员内容取自独立的 `member_column`/`member_content`，不会因为此分组改变。
 
 ## CAAM 后台的页面与栏目参照
 
 本机 CAAM 测试库仍使用 `template → page → column`：`page.template_id` 绑定模板，`column.page_id` 绑定页面。其“模板管理”点击“应用页面数”只列关联页面；到“栏目管理”选择一个页面后，才显示该页面的栏目树。示例：`首页`模板 → `首页`页面 → 21 个栏目，`协会概况`模板 → `协会概况`页面 → 12 个栏目。通用栏目、通用详情、专题页面在该测试库中没有栏目。
 
-Dia 后台已于 2026-09-21 将页面层合并进模板，使用 `column.template_id`。因此当前 CAMIE 是“模板 → 栏目”，与 CAAM 测试库的“模板 → 页面 → 栏目”数据结构不同。若以后要恢复 CAAM 式页面管理，需同时调整 Dia 表结构、接口、前端投放流程与静态化取数；只修改 CAMIE 适配器无法让 Dia 后台出现独立页面。上述 CAAM 数量来自本机测试库，用于理解维护关系，不作为正式库的数据基准。
+Dia 后台已于 2026-09-21 将页面层合并进模板，使用 `column.template_id`。因此当前 CAMIE 是“模板（即页面）→ 栏目”，与 CAAM 测试库的“模板 → 页面 → 栏目”数据结构不同。本机用允许多个同时启用的“首页”类型承载七个顶部页面，保留唯一启用的通用“栏目页”类型模板；页面源码按稳定模板编码由 CAMIE 生成器调用。若以后要恢复 CAAM 式独立页面表，仍需调整 Dia 表结构、接口、前端投放流程与静态化取数。上述 CAAM 数量来自本机测试库，用于理解维护关系，不作为正式库的数据基准。
 
 ## 先看懂“死”和“活”
 
@@ -26,16 +38,16 @@ Dia 后台已于 2026-09-21 将页面层合并进模板，使用 `column.templat
 | 页面位置 | 对应栏目 / 数据 | 哪些活、哪些固定 | 维护位置 |
 | --- | --- | --- | --- |
 | 顶部重点新闻轮播 | `home-hero`，最多 3 篇 | **静态活**：标题、封面、发布时间、来源、详情链接。**固定**：轮播位置与切换样式；无内容时没有自动补位 | 后台“栏目管理 → 环保机械协会 → 首页内容 → 重点新闻轮播”及“图文管理”维护；封面在文章里维护 |
-| 轮播右侧三组资讯标签 | 依次为 `home-news-notice`、`home-news-association`、`home-news-member`，每组最多 6 篇 | **静态活**：标签名取首页专用栏目名，列表取对应栏目文章。**固定**：只有这三组、顺序和每组数量上限 | 后台选“环保机械协会”模板，在对应首页子栏目投放；增减标签需改生成器 |
+| 轮播右侧三组资讯标签 | 依次为 `home-news-notice`、`home-news-association`、`home-news-member`，每组最多 6 篇 | **静态活**：标签名取首页专用栏目名，列表取对应栏目文章。**固定**：只有这三组、顺序和每组数量上限 | 后台选“首页”模板，在对应首页子栏目投放；增减标签需改生成器 |
 | 快捷栏“申请入会” | `/business_member/register` | **固定入口**，注册流程属于会员系统 | 模板 `camie-home`；会员系统维护注册流程 |
 | 快捷栏“会员中心” | `pages/member.html` | **固定入口 → 实时活页面** | 模板 `camie-home`；会员栏目与内容见下文 |
 | 快捷栏“移动媒体” | 三张微信二维码图片 | **固定**图片及文字，不从后台二维码、广告或链接表取数 | `assets/images/qr-wechat-service.jpg`、`qr-wechat-video.png`、`qr-wechat-subscription.jpg` 与首页模板 |
 | 快捷栏“视频专区” | `videos.html`，聚合公开视频 | **固定入口**，目标列表是**静态活** | 首页模板固定入口；公开视频文章维护见下文 |
-| 中部六组资讯标签 | 依次为 `home-training-meetings`、`home-standards-work`、`home-standards-innovation`、`home-training-international`、`home-training-talent`、`home-policy-reports`，每组最多 6 篇 | **静态活**：标签名、标题、日期、详情链接。**固定**：六组顺序及每组右侧配图 | 后台选“环保机械协会”模板，在对应首页子栏目投放；图片映射在 CAMIE 生成器中 |
+| 中部六组资讯标签 | 依次为 `home-training-meetings`、`home-standards-work`、`home-standards-innovation`、`home-training-international`、`home-training-talent`、`home-policy-reports`，每组最多 6 篇 | **静态活**：标签名、标题、日期、详情链接。**固定**：六组顺序及每组右侧配图 | 后台选“首页”模板，在对应首页子栏目投放；图片映射在 CAMIE 生成器中 |
 | 大会横幅 | 点击指向 `training-meetings` | **固定**：横幅图 `assets/images/conference-banner.png`；**静态活**：点击目标按栏目 code 找到生成页。当前不读取后台“广告管理” | 首页模板及图片资源；栏目内容在“会议活动”维护 |
 | 横幅下四个专题入口 | `standards-green-promotion`、`policy-major-equipment-catalogue`、`policy-qualified-enterprises`、`policy-innovation-tasks` | **固定**：四个标题和顺序；**静态活**：链接指向各栏目生成页。当前不读取后台“友情链接管理” | 首页模板改标题/数量；后台栏目与文章改目标内容 |
 | “分支机构”九张卡片 | `branch-water`、`branch-atmosphere`、`branch-solid-waste`、`branch-monitoring`、`branch-noise`、`branch-uv`、`branch-ozone`、`branch-ai`、`branch-engineering` | **固定**：九个名称、顺序和图标；**静态活**：每张卡片指向各自栏目。后台新增第十个分支栏目不会自动长出首页卡片 | CAMIE 生成器中的 `Branches` 改卡片；后台栏目与文章改分支内容 |
-| “专家委员会” | 标题到 `about-experts`；内容取 `home-experts` 最多 3 篇 | **静态活**：首篇标题/链接及其余标题。**固定**：首篇配图 `assets/images/expert-photo.png` 和“中国环保机械行业协会／专家委员会”字样，未使用文章封面 | 后台选“环保机械协会”模板，在“首页内容 → 专家委员会”投放；图片、固定字样在首页模板 |
+| “专家委员会” | 标题到 `about-experts`；内容取 `home-experts` 最多 3 篇 | **静态活**：首篇标题/链接及其余标题。**固定**：首篇配图 `assets/images/expert-photo.png` 和“中国环保机械行业协会／专家委员会”字样，未使用文章封面 | 后台选“首页”模板，在“首页内容 → 专家委员会”投放；图片、固定字样在首页模板 |
 | “副会长单位”滚动标志 | Go 生成器的 `PartnerRows` 数组 | **固定**：单位名称、标志文件、官网 URL、排序均写在代码里；**未接入**后台“友情链接管理” | CAMIE 生成器 `PartnerRows` 与 `assets/images/partner-logos/` |
 
 首页标签的“查看更多”效果由点击标签直接进入对应首页专用栏目列表实现；悬停/聚焦只切换当前展示的列表。首页专用栏目的文章与公开分类栏目的文章可为同一篇，需在后台分别投放到两个栏目。旧数据若尚未建立 `home-*` 栏目，生成器会临时回退到原分类栏目；一旦建好首页专用栏目，即使为空也不会回退。
@@ -45,7 +57,7 @@ Dia 后台已于 2026-09-21 将页面层合并进模板，使用 `column.templat
 | 页面位置 | 对应栏目 / 数据 | 当前状态 | 维护位置 |
 | --- | --- | --- | --- |
 | Logo、协会名称、标语 | `brand-logo.png`、`brand-slogan.png` | **固定**图片和站名；不读后台“站点名称/Logo”设置 | `camie-layout` 与图片资源 |
-| 顶部六个主导航 | `party`、`ministry`、`news`、`training`、`standards`、`about` | **固定**显示名称与顺序；**静态活**链接按栏目 code 定位 | `camie-layout`；对应栏目需保持启用且 code 稳定 |
+| 顶部七个导航入口 | 首页，以及 `party`、`ministry`、`news`、`training`、`standards`、`about` | **固定**显示名称与顺序；**静态活**链接按栏目 code 定位 | `camie-layout`；七个页面模板需启用，对应栏目 code 需稳定 |
 | “政策研究” | `policy-research` | **静态活**栏目页，归在“部委动态”的导航高亮下；顶部没有独立主导航按钮 | 后台栏目与文章；入口主要来自专题/其他链接 |
 | 栏目页左侧菜单 | 当前顶级栏目的启用子栏目；二、三级栏目按层级展示 | **静态活**，随栏目树生成；视频栏目另外追加“会员专享”入口 | 后台“栏目管理”维护名称、层级、排序、启用状态；修改后重建 |
 | 面包屑 | 栏目树、当前栏目、详情标题 | **静态活**。公开详情最终是文章标题；会员详情见下文 | 后台栏目名及文章标题；页面模板控制结构 |
@@ -64,7 +76,7 @@ Dia 后台已于 2026-09-21 将页面层合并进模板，使用 `column.templat
 | 其余栏目列表 `list/<栏目ID>/<页码>.html` | 对应每个启用公开栏目的 `column.code`；本机 ID 仅为示例 | **静态活**：10 条/页；文章置顶优先、发布时间倒序。栏目改名不要求改 code |
 | “关于协会/协会简介”内容区 | `about` 页优先取 `about-introduction` 的首篇公开图文；`about-introduction` 自身也有简介页 | **静态活**正文；没有文章时显示“暂无公开内容” |
 | 公开文章详情 `article/YYYY/MM/<文章ID>.html` | 后台公开 `article` + 栏目发布关系 + 附件 | **静态活**：标题、日期、来源、正文、附件、上一篇/下一篇；公开富文本会在生成时净化。文章若设置有效的 HTTP(S) 外链 `url`，列表直接跳外链，不生成该文章的本地详情 |
-| `videos.html`、`pages/videos.html` 与视频详情 | 公开类型 `2` 的视频文章；`videos-news` 的栏目列表也使用视频卡片样式 | **静态活**：视频正文/封面由公开文章维护。文章本身没有视频标签时，详情只显示封面和播放图标，不能凭图标播放 |
+| `videos.html`、`pages/videos.html` 与视频详情 | 公开类型 `2` 的视频文章；`videos-news` 的栏目列表也使用视频卡片样式 | **静态活**：在“图文管理”新增视频并投放到“CAMIE栏目 / 视频资讯”（栏目展示方式须为“视频展示”）；详情优先播放文章的 MP4 附件，也兼容正文中的视频标签。没有视频源时显示提示，不显示假的播放按钮 |
 | 视频侧栏“会员专享” | `pages/member.html?column=会员专享&mode=video` | **固定入口 → 实时活内容**；不把私有视频生成成公开详情 |
 | `detail.html`、`video-detail.html` | 各自取一篇公开图文/视频的兼容别名 | **静态活**兼容页；具体文章以生成时内容为准，不能作为固定文章地址对外长期引用 |
 
@@ -85,7 +97,7 @@ Dia 后台已于 2026-09-21 将页面层合并进模板，使用 `column.templat
 
 ## 本机完整栏目树（按 `column.code` 对照）
 
-下列是本机测试库与 CAMIE 栏目结构文件核对后的 9 个原始一级栏目、64 个分类节点。其“关于协会”一支绑定 `camie-about`，其余绑定 `camie-list`。首页另有 `home` 根栏目及 11 个子栏目，绑定 `camie-home`；首页正文区块只读取上文列出的 `home-*` code。
+下列是本机测试库与 CAMIE 栏目结构文件核对后的 9 个原始一级栏目、64 个分类节点。顶部六个公开栏目分支分别归属上表六条页面模板；视频专区、政策研究及原会员栏目结构归 `camie-list`。首页另有 `home` 根栏目及 11 个子栏目，归 `camie-home`；首页正文区块只读取上文列出的 `home-*` code。
 
 ```text
 党建专栏 party
@@ -136,7 +148,7 @@ Dia 后台已于 2026-09-21 将页面层合并进模板，使用 `column.templat
 2. **下线或删除公开文章**：后台操作后检查旧详情 URL 已失效，列表、首页、搜索均不再出现。自动静态化是尽力而为；若任务失败，恢复服务后手动重建全站并复查。
 3. **改栏目名称、层级、排序或启用状态**：在“栏目管理”维护，保留已有稳定 code。公开页面需要重新生成；首页固定的区块数量、顺序、卡片和配图不会因为新增栏目自动变化。
 4. **改会员栏目与会员内容**：在后台“会员专区”维护 `member_column`/`member_content`，不需要生成公开静态页；使用正式会员账号刷新动态页面核对，并用非正式会员账号核对前端拦截。服务端 `active` 校验尚未实现，需另外验证 API 直调并解决上述上线阻断项。
-5. **改固定区块**：生产模板 `camie-layout`、`camie-home`、`camie-list`、`camie-article`、`camie-about` 的 `source_code` 在后台“模板管理”；固定分支卡片/合作单位映射在生成器；CSS、JS、图片在源码资源目录。修改前先备份模板或资源，再生成到预览/测试目录核对。不要直接编辑 `dist/camie-portal` 或 `dist/camie-preview`。
+5. **改固定区块**：生产模板 `camie-home` 负责首页，`camie-party` 等五条页面模板负责各自栏目树的列表外观，`camie-about` 负责协会简介及其栏目列表；`camie-list` 负责视频/政策等通用列表及搜索、会员动态壳，`camie-article` 负责公开详情，`camie-layout` 负责全站布局。其 `source_code` 在后台“模板管理”；固定分支卡片/合作单位映射在生成器；CSS、JS、图片在源码资源目录。修改前先备份模板或资源，再生成到预览/测试目录核对。不要直接编辑 `dist/camie-portal` 或 `dist/camie-preview`。
 
 当前首页横幅、专题入口、副会长单位和页脚友情链接**没有消费**后台广告/友情链接表；原 `camie-portal/frontend-preview` 中的 `data-display-type="ad/link"` 标记不等于这套生成器已完成接入。
 

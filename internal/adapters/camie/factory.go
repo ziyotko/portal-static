@@ -85,8 +85,11 @@ func databaseTemplateSnapshot(ctx context.Context, snapshot coreconfig.Snapshot,
 		return portalcms.TemplateBinding{Key: key, Name: fallbackName, Type: templateType}
 	}
 	records, err := store.LoadBoundTemplates(ctx, []portalcms.TemplateBinding{
-		binding("layout", "CAMIE公共布局", "home"), binding("home", "环保机械协会", "home"),
-		binding("list", "CAMIE栏目", "column"), binding("article", "CAMIE详情", "detail"), binding("about", "CAMIE协会简介", "column"),
+		binding("layout", "CAMIE公共布局", "special"), binding("home", "首页", "home"),
+		binding("party", "党建专栏", "home"), binding("ministry", "部委动态", "home"),
+		binding("news", "新闻中心", "home"), binding("training", "交流培训", "home"),
+		binding("standards", "科技标准", "home"), binding("about", "关于协会", "home"),
+		binding("list", "CAMIE栏目", "column"), binding("article", "CAMIE详情", "detail"),
 	})
 	if err != nil {
 		return coreconfig.Snapshot{}, nil, err

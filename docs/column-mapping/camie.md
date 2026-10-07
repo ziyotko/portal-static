@@ -21,7 +21,7 @@ CAMIE public static publishing uses `column.code` as its stable key. Public disp
 
 The generator excludes `member`, every `member-*` descendant and `videos-members` from public list pages, article details, and `generated-content.js`. It emits `pages/member.html` and `pages/member-detail.html` as runtime shells; member data is fetched only in the browser.
 
-The browser reads `localStorage["member-token"]`, calls `/business_member/api/member/profile`, and fetches member columns and content only when `data.status` is `active`. Login uses `/business_member/login?returnUrl=...` to return to the current CAMIE page. `member.html?column=行业报告` selects a member column by name (an ID also works); the default is 行业报告 or the first enabled column. Public video navigation links to `member.html?column=会员专享&mode=video` for protected videos.
+The browser reads `localStorage["member-token"]`, calls `/business_member/api/member/profile`, and fetches member columns and content only when `data.status` is `active`. Operations set `adapter.site.member_login_path` and `adapter.site.member_register_path` in the CAMIE YAML config. Both must be root-relative paths routed on the same origin as the static site; the login link appends the current page as `returnUrl`. Regenerate the site after changing either value. Opening generated HTML via `file://` is unsupported because the member routes require an HTTP server and same-origin routing. `member.html?column=行业报告` selects a member column by name (an ID also works); the default is 行业报告 or the first enabled column. Public video navigation links to `member.html?column=会员专享&mode=video` for protected videos.
 
 Private images, attachments, and videos use `/business_portal/api/member-zone/member-files/sign?name=...` at runtime. The video player refreshes its five-minute URL during long playback and restores the playback position. The HTML and search index contain no member body, private file URL, or signed URL. The member and portal APIs must be served under the same origin as the static CAMIE site.
 
@@ -29,4 +29,4 @@ The CAMIE browser gate protects only the user interface. In the restored `dia-pl
 
 ## Template codes
 
-Production binds templates by `template.code`: `camie-layout`, `camie-home`, `camie-list`, `camie-article`, and `camie-about`. The example names are preview fallbacks only.
+Production binds templates by `template.code`: `camie-home`, `camie-party`, `camie-ministry`, `camie-news`, `camie-training`, `camie-standards`, and `camie-about` are the seven enabled `home`-type top-navigation pages. `camie-list` is the single enabled `column`-type shared list renderer; `camie-article` is the `detail` renderer; `camie-layout` is a `special`-type shared layout. The five section pages define `<code>-list` Go template blocks; `camie-about` defines both `about` and `about-list`. The example names are preview fallbacks only.

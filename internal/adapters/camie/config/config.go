@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -19,28 +20,32 @@ import (
 // HTTP authentication, database and output safety are owned by portal-static.
 type Config struct {
 	Site struct {
-		SourceRoot     string
-		DistRoot       string
-		PreviewRoot    string
-		TemplateRoot   string
-		PageName       string
-		PageSize       int
-		Timezone       string
-		MediaBaseURL   string
-		FallbackCover  string
-		HeroColumn     string
-		LockStaleAfter string
+		SourceRoot         string
+		DistRoot           string
+		PreviewRoot        string
+		TemplateRoot       string
+		PageName           string
+		PageSize           int
+		Timezone           string
+		MediaBaseURL       string
+		FallbackCover      string
+		HeroColumn         string
+		LockStaleAfter     string
+		MemberLoginPath    string
+		MemberRegisterPath string
 	}
 	Media media.Config
 }
 
 type adapterDocument struct {
 	Site struct {
-		PageName       string `yaml:"page_name"`
-		PageSize       int    `yaml:"page_size"`
-		FallbackCover  string `yaml:"fallback_cover"`
-		HeroColumn     string `yaml:"hero_column"`
-		LockStaleAfter string `yaml:"lock_stale_after"`
+		PageName           string `yaml:"page_name"`
+		PageSize           int    `yaml:"page_size"`
+		FallbackCover      string `yaml:"fallback_cover"`
+		HeroColumn         string `yaml:"hero_column"`
+		LockStaleAfter     string `yaml:"lock_stale_after"`
+		MemberLoginPath    string `yaml:"member_login_path"`
+		MemberRegisterPath string `yaml:"member_register_path"`
 	} `yaml:"site"`
 }
 
@@ -66,6 +71,14 @@ func FromSnapshot(snapshot coreconfig.Snapshot) (Config, error) {
 	cfg.Site.FallbackCover = adapter.Site.FallbackCover
 	cfg.Site.HeroColumn = adapter.Site.HeroColumn
 	cfg.Site.LockStaleAfter = adapter.Site.LockStaleAfter
+	cfg.Site.MemberLoginPath = adapter.Site.MemberLoginPath
+	cfg.Site.MemberRegisterPath = adapter.Site.MemberRegisterPath
+	if cfg.Site.MemberLoginPath == "" {
+		cfg.Site.MemberLoginPath = "/business_member/login"
+	}
+	if cfg.Site.MemberRegisterPath == "" {
+		cfg.Site.MemberRegisterPath = "/business_member/register"
+	}
 	cfg.Media = snapshot.Media
 
 	// CAMIE templates share layout definitions and therefore must live together.
@@ -101,6 +114,18 @@ func (c Config) Validate() error {
 	}
 	if _, err := media.New(c.Media); err != nil {
 		return err
+	}
+	for name, path := range map[string]string{
+		"member_login_path":    c.Site.MemberLoginPath,
+		"member_register_path": c.Site.MemberRegisterPath,
+	} {
+		if path == "" {
+			continue
+		}
+		parsed, err := url.Parse(path)
+		if err != nil || !strings.HasPrefix(path, "/") || strings.HasPrefix(path, "//") || strings.ContainsAny(path, "\\\r\n\t") || parsed.Scheme != "" || parsed.Host != "" || parsed.Fragment != "" {
+			return fmt.Errorf("camie %s must be a same-origin absolute path", name)
+		}
 	}
 	return nil
 }

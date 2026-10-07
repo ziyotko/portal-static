@@ -477,8 +477,9 @@ img { display: block; max-width: 100%; }
 .article-meta span + span { margin-left: 18px; }
 .article-body { padding: 14px 18px 10px; font-size: 17px; line-height: 2.05; }
 .article-body p { margin: 0 0 16px; text-indent: 2em; }
-.article-pager { display: grid; grid-template-columns: 1fr 1fr; gap: 36px; padding: 16px 0 0; border-top: 1px solid #e0e3e1; color: #596168; font-size: 14px; }
-.article-pager a:last-child { text-align: right; }
+.article-pager { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 36px; padding: 16px 0 0; border-top: 1px solid #e0e3e1; color: #596168; font-size: 14px; }
+.article-pager-prev { grid-column: 1; text-align: left; }
+.article-pager-next { grid-column: 2; text-align: right; }
 .article-pager strong { display: block; color: #a1a5a5; font-weight: 400; }
 
 .video-grid-card { padding: 17px; }
@@ -514,7 +515,8 @@ img { display: block; max-width: 100%; }
 .video-detail-card .article-header { text-align: left; border: 0; padding: 0 0 8px; }
 .video-detail-card .article-header h1 { margin-bottom: 4px; }
 .video-stage { position: relative; aspect-ratio: 2.15; overflow: hidden; border-radius: 4px; background: #071728; }
-.video-stage video { width: 100%; height: 100%; display: block; object-fit: cover; }
+.video-stage video { width: 100%; height: 100%; display: block; object-fit: contain; }
+.video-stage .video-unavailable { position: absolute; inset: 0; display: grid; place-items: center; color: #fff; background: rgba(0, 0, 0, .45); font-size: 16px; }
 .video-stage .play-button { width: 76px; height: 76px; }
 .video-stage .play-button::after { left: 31px; top: 21px; border-left-width: 25px; border-top-width: 17px; border-bottom-width: 17px; }
 
@@ -544,6 +546,7 @@ img { display: block; max-width: 100%; }
 .member-video-stage { margin: 20px 0; }
 .member-video-stage video { display: block; width: 100%; max-height: 70vh; background: #071728; }
 .member-video-stage .member-action { margin-top: 14px; }
+.member-video-stage [hidden] { display: none; }
 
 .site-footer {
   color: #fff;
@@ -654,8 +657,7 @@ img { display: block; max-width: 100%; }
   .article-card:not(.video-detail-card) { min-height: 0; }
   .article-header h1 { font-size: 21px; }
   .article-body { padding: 10px 4px; font-size: 16px; line-height: 1.9; }
-  .article-pager { grid-template-columns: 1fr; gap: 12px; }
-  .article-pager a:last-child { text-align: left; }
+  .article-pager { gap: 12px; }
   .video-grid { grid-template-columns: 1fr; }
   .video-detail-card { padding: 12px; }
   .video-stage { aspect-ratio: 16/9; }

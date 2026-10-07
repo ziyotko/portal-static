@@ -36,6 +36,8 @@ func testConfig(t *testing.T) config.Config {
 	cfg.Site.FallbackCover = "assets/images/hero-building.png"
 	cfg.Site.HeroColumn = "news-hot"
 	cfg.Site.LockStaleAfter = "30m"
+	cfg.Site.MemberLoginPath = "/member-entry/login?site=camie"
+	cfg.Site.MemberRegisterPath = "/member-entry/register"
 	return cfg
 }
 
@@ -58,6 +60,87 @@ func TestHomeGroupUsesBoundHomeColumn(t *testing.T) {
 	delete(c.byCode, "home-hero")
 	if got := homeGroup(c, "home-hero", "news-hot", 3); len(got.Items) != 1 || got.Items[0].ID != 1 {
 		t.Fatalf("legacy data set did not use the section fallback: %+v", got)
+	}
+}
+
+func TestSectionPageUsesItsOwnTemplate(t *testing.T) {
+	cfg := testConfig(t)
+	sectionTemplates := t.TempDir()
+	entries, err := os.ReadDir(cfg.Site.TemplateRoot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, entry := range entries {
+		if entry.IsDir() || filepath.Ext(entry.Name()) != ".tmpl" {
+			continue
+		}
+		body, err := os.ReadFile(filepath.Join(cfg.Site.TemplateRoot, entry.Name()))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(sectionTemplates, entry.Name()), body, 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := os.WriteFile(filepath.Join(sectionTemplates, "party.html.tmpl"), []byte(`{{define "party-list"}}<span data-page-template="party" hidden></span>{{template "list" .}}{{end}}`), 0600); err != nil {
+		t.Fatal(err)
+	}
+	cfg.Site.TemplateRoot = sectionTemplates
+	result, err := New(cfg, demo.NewSource()).GenerateSite(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(readGenerated(t, result.Output, "pages/party.html"), `data-page-template="party"`) {
+		t.Fatal("party page did not use its page template")
+	}
+	if strings.Contains(readGenerated(t, result.Output, "pages/news.html"), `data-page-template="party"`) {
+		t.Fatal("party page template was applied to another section")
+	}
+}
+
+type videoAttachmentSource struct {
+	*demo.Source
+	articleID int64
+}
+
+func (s videoAttachmentSource) FetchAttachments(ctx context.Context, articleID int64) ([]model.Attachment, error) {
+	if articleID == s.articleID {
+		return []model.Attachment{
+			{Name: "说明.pdf", URL: "/business_portal/uploads/article/guide.pdf"},
+			{Name: "演示视频.mp4", URL: "/business_portal/uploads/article/demo.mp4"},
+		}, nil
+	}
+	return s.Source.FetchAttachments(ctx, articleID)
+}
+
+func TestVideoDetailPlaysUploadedMP4Attachment(t *testing.T) {
+	cfg := testConfig(t)
+	source := demo.NewSource()
+	var videoID int64
+	for _, column := range source.Columns {
+		if column.Code == "videos-news" {
+			videoID = source.Items[column.ID][0].ID
+			break
+		}
+	}
+	if videoID == 0 {
+		t.Fatal("missing public video fixture")
+	}
+	result, err := New(cfg, videoAttachmentSource{Source: source, articleID: videoID}).GenerateSite(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	page := readGenerated(t, result.Output, fmt.Sprintf("article/2026/09/%d.html", videoID))
+	for _, marker := range []string{`<video controls`, `preload="metadata"`, `playsinline`, `<source src="/business_portal/uploads/article/demo.mp4" type="video/mp4">`} {
+		if !strings.Contains(page, marker) {
+			t.Fatalf("uploaded video detail missing %q", marker)
+		}
+	}
+	if strings.Contains(page, `class="video-unavailable"`) || strings.Contains(page, `<source src="/business_portal/uploads/article/guide.pdf"`) {
+		t.Fatal("video detail selected a non-video attachment or fallback")
+	}
+	if strings.Contains(page, "附件下载") || strings.Contains(page, `href="/business_portal/uploads/article/demo.mp4"`) {
+		t.Fatal("video detail should play its attachment without a download section")
 	}
 }
 
@@ -123,10 +206,10 @@ func TestGenerateCompletePublicSiteAndMemberShells(t *testing.T) {
 		t.Fatal("member column structure leaked into public page metadata")
 	}
 	for name, markers := range map[string][]string{
-		"index.html":               {`href="/business_member/register"`, `href="./pages/member.html"`, `href="./videos.html"`},
+		"index.html":               {`href="/member-entry/register"`, `href="./pages/member.html"`, `href="./videos.html"`},
 		"videos.html":              {`member.html?column=`, `mode=video`},
-		"pages/member.html":        {`data-member-list-shell`, `data-member-columns`, `js/member.js`},
-		"pages/member-detail.html": {`data-member-detail-shell`, `data-member-breadcrumb`, `js/member.js`},
+		"pages/member.html":        {`data-member-list-shell`, `data-member-columns`, `data-member-login-path="/member-entry/login?site=camie"`, `js/member.js`},
+		"pages/member-detail.html": {`data-member-detail-shell`, `data-member-breadcrumb`, `data-member-login-path="/member-entry/login?site=camie"`, `js/member.js`},
 	} {
 		page := readGenerated(t, result.Output, name)
 		for _, marker := range markers {
@@ -160,6 +243,9 @@ func TestGenerateCompletePublicSiteAndMemberShells(t *testing.T) {
 		t.Fatal("article detail lost adjacent article navigation")
 	}
 	videoDetail := readGenerated(t, result.Output, "video-detail.html")
+	if !strings.Contains(videoDetail, `class="video-unavailable"`) || strings.Contains(videoDetail, `<video controls`) {
+		t.Fatal("video without a playable source should show an unavailable message")
+	}
 	for _, marker := range []string{
 		`class="content-grid"`,
 		`<aside><ul class="side-menu">`,

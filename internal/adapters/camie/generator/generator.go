@@ -39,6 +39,7 @@ type Article struct {
 	Source      string             `json:"source"`
 	Video       bool               `json:"video"`
 	HasVideo    bool               `json:"-"`
+	VideoURL    string             `json:"-"`
 	Content     template.HTML      `json:"-"`
 	Attachments []model.Attachment `json:"-"`
 }
@@ -76,6 +77,7 @@ type Page struct {
 	Notices, Topics                       []Group
 	Experts                               Group
 	DataCenterURL                         string
+	MemberLoginPath, MemberRegisterPath   string
 	Branches                              []Branch
 	PartnerRows                           [][]Partner
 	Total, PageSize, Page, TotalPages     int
@@ -299,6 +301,17 @@ func (g *Generator) content(raw, prefix string) template.HTML {
 	_ = html.Render(&b, doc)
 	return template.HTML(policy.Sanitize(b.String()))
 }
+
+func playableVideoAttachment(attachment model.Attachment) bool {
+	for _, raw := range []string{attachment.Name, attachment.URL} {
+		parsed, err := url.Parse(raw)
+		if err == nil && strings.EqualFold(filepath.Ext(parsed.Path), ".mp4") {
+			return true
+		}
+	}
+	return false
+}
+
 func isPrivateColumnCode(code string) bool {
 	return code == "member" || strings.HasPrefix(code, "member-") || code == "videos-members"
 }
@@ -570,6 +583,8 @@ func (g *Generator) GenerateSite(ctx context.Context) (result Result, err error)
 			p.BodyClass += " party-page"
 		}
 		p.RootPrefix = strings.Repeat("../", strings.Count(file, "/"))
+		p.MemberLoginPath = g.cfg.Site.MemberLoginPath
+		p.MemberRegisterPath = g.cfg.Site.MemberRegisterPath
 		if p.RootPrefix == "" {
 			p.RootPrefix = "./"
 		}
@@ -577,6 +592,14 @@ func (g *Generator) GenerateSite(ctx context.Context) (result Result, err error)
 			v := *p.Article
 			v.Content = g.content(c.raw[v.ID].Content, p.RootPrefix)
 			v.HasVideo = strings.Contains(string(v.Content), "<video")
+			if v.Video {
+				for _, attachment := range v.Attachments {
+					if playableVideoAttachment(attachment) {
+						v.VideoURL = attachment.URL
+						break
+					}
+				}
+			}
 			p.Article = &v
 		}
 		var b bytes.Buffer
@@ -648,6 +671,13 @@ func (g *Generator) GenerateSite(ctx context.Context) (result Result, err error)
 		return result, err
 	}
 	makeLists := func(name, code, dir, alias string, items []*Article) error {
+		listKind := "list"
+		if top := topColumn(c, code); top.ID != 0 {
+			candidate := top.Code + "-list"
+			if templates.Lookup(candidate) != nil {
+				listKind = candidate
+			}
+		}
 		totalPages := (len(items) + g.cfg.Site.PageSize - 1) / g.cfg.Site.PageSize
 		if totalPages < 1 {
 			totalPages = 1
@@ -676,12 +706,12 @@ func (g *Generator) GenerateSite(ctx context.Context) (result Result, err error)
 					lastPage = n
 				}
 			}
-			if err := render(fmt.Sprintf("%s/%d.html", dir, pageNum), "list", p); err != nil {
+			if err := render(fmt.Sprintf("%s/%d.html", dir, pageNum), listKind, p); err != nil {
 				return err
 			}
 			result.Lists++
 			if pageNum == 1 && alias != "" {
-				if err := render(alias, "list", p); err != nil {
+				if err := render(alias, listKind, p); err != nil {
 					return err
 				}
 			}

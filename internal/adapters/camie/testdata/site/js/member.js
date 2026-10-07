@@ -28,10 +28,11 @@
     if (action) status.append(link(action.label, action.href, 'member-action'));
     status.hidden = false;
   };
-  const loginAction = () => ({
-    label: '登录会员账号',
-    href: `/business_member/login?returnUrl=${encodeURIComponent(location.href)}`,
-  });
+  const loginAction = () => {
+    const login = new URL(document.body.dataset.memberLoginPath, location.href);
+    login.searchParams.set('returnUrl', location.href);
+    return { label: '登录会员账号', href: login.href };
+  };
   const showLogin = (expired = false) => setStatus(expired ? '登录已失效，请重新登录。' : '请登录后查看会员内容。', loginAction());
 
   const api = async (path) => {
@@ -287,12 +288,13 @@
     const stage = node('div', 'member-video-stage');
     const video = node('video');
     video.controls = true;
-    video.preload = 'none';
+    video.preload = 'metadata';
     video.playsInline = true;
-    const start = node('button', 'member-action', '播放完整视频');
-    start.type = 'button';
-    const message = node('p', 'member-video-status', '播放前将获取临时授权地址。');
-    stage.append(video, start, message);
+    const retry = node('button', 'member-action', '重试加载视频');
+    retry.type = 'button';
+    retry.hidden = true;
+    const message = node('p', 'member-video-status', '正在加载视频…');
+    stage.append(video, retry, message);
     let timer = 0;
     let refreshing = false;
     let expiry = 0;
@@ -301,8 +303,11 @@
       if (refreshing || !document.contains(video)) return;
       refreshing = true;
       clearTimeout(timer);
+      retry.hidden = true;
+      message.hidden = false;
+      message.textContent = '正在加载视频…';
       const position = Number.isFinite(video.currentTime) ? video.currentTime : 0;
-      const shouldPlay = forcePlay || !video.currentSrc || !video.paused;
+      const shouldPlay = forcePlay || (Boolean(video.currentSrc) && !video.paused);
       try {
         if (!(await verifiedProfile())) {
           const error = new Error('当前账号不是正式会员，无法继续播放。');
@@ -329,8 +334,7 @@
         if (shouldPlay) await video.play();
         expiry = Date.now() + signed.expiresIn * 1000;
         timer = setTimeout(refresh, Math.max(1000, signed.expiresIn * 1000 - 45000));
-        start.hidden = true;
-        message.textContent = '';
+        message.hidden = true;
         retries = 0;
       } catch (error) {
         if (error.code === 401 || error.code === 403) {
@@ -344,23 +348,23 @@
           return;
         }
         message.textContent = error.message || '视频签名失败，请重试。';
-        start.textContent = '重试播放';
-        start.hidden = false;
+        retry.hidden = false;
         if (video.currentSrc && retries < 2) {
           retries += 1;
           setTimeout(() => refresh(shouldPlay), 700);
         }
       } finally { refreshing = false; }
     };
-    start.addEventListener('click', () => refresh(true));
+    retry.addEventListener('click', () => refresh());
     video.addEventListener('play', () => {
       if (expiry && Date.now() > expiry - 30000) refresh();
     });
     video.addEventListener('error', () => {
       if (!refreshing && video.currentSrc && retries < 2) { retries += 1; setTimeout(() => refresh(true), 700); }
-      else if (!refreshing) { message.textContent = '视频播放中断，请重试。'; start.hidden = false; }
+      else if (!refreshing) { message.textContent = '视频播放中断，请重试。'; message.hidden = false; retry.hidden = false; }
     });
     if (cover) signedFile(cover).then((signed) => { video.poster = signed.url; }).catch(() => {});
+    queueMicrotask(() => refresh());
     return stage;
   };
 
