@@ -56,7 +56,8 @@ function Get-NativeText {
     param([string]$FilePath, [string[]]$Arguments, [string]$WorkingDirectory)
     Push-Location -LiteralPath $WorkingDirectory
     try {
-        $text = (& $FilePath @Arguments 2>&1 | Out-String).Trim()
+        # Preserve leading porcelain status columns; only trailing line breaks are noise.
+        $text = (& $FilePath @Arguments 2>&1 | Out-String).TrimEnd()
         if ($LASTEXITCODE -ne 0) { throw "$FilePath $($Arguments -join ' ') failed: $text" }
         return $text
     }
