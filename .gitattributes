@@ -1,0 +1,6 @@
+deploy/camie/scripts/*.sh text eol=lf
+deploy/camie/systemd/*.service text eol=lf
+deploy/camie/nginx/*.conf text eol=lf
+deploy/camie/config/*.yaml text eol=lf
+deploy/camie/config/*.example text eol=lf
+deploy/camie/sql/* text eol=lf

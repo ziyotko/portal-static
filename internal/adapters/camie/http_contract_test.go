@@ -15,7 +15,7 @@ func TestCAMIEHTTPContract(t *testing.T) {
 	var cfg config.Config
 	cfg.Site.SourceRoot, cfg.Site.TemplateRoot = filepath.Join(root, "site"), filepath.Join(root, "templates")
 	cfg.Site.DistRoot, cfg.Site.PreviewRoot = filepath.Join(t.TempDir(), "site"), filepath.Join(t.TempDir(), "preview")
-	cfg.Site.PageName, cfg.Site.HeroColumn, cfg.Site.FallbackCover = "环保机械协会", "news-hot", "assets/images/hero-building.png"
+	cfg.Site.PageName, cfg.Site.HeroColumn, cfg.Site.FallbackCover = "环保机械协会", "news-hot", "assets/images/default-news-cover.png"
 	cfg.Site.PageSize, cfg.Site.Timezone, cfg.Site.LockStaleAfter = 10, "Asia/Shanghai", "30m"
 	service := NewService(generator.New(cfg, demo.NewSource()), cfg.Site.PageSize)
 	contracttest.Run(t, operations(service), []contracttest.PageAlias{

@@ -470,7 +470,6 @@ img { display: block; max-width: 100%; }
 .search-pagination > span { display: flex; gap: 9px; }
 
 .article-card { padding: 25px 18px 30px; }
-.article-card:not(.video-detail-card) { min-height: 890px; }
 .article-header { text-align: center; padding: 0 10px 17px; border-bottom: 1px solid #d5d8d6; }
 .article-header h1 { margin: 0 0 12px; font-size: 26px; line-height: 1.45; font-weight: 500; color: #262a2a; }
 .article-meta { color: #adb1b1; }
@@ -654,7 +653,6 @@ img { display: block; max-width: 100%; }
   .page-jump { justify-content: center; }
   .pagination { gap: 6px; }
   .article-card { padding: 18px 10px 24px; }
-  .article-card:not(.video-detail-card) { min-height: 0; }
   .article-header h1 { font-size: 21px; }
   .article-body { padding: 10px 4px; font-size: 16px; line-height: 1.9; }
   .article-pager { gap: 12px; }

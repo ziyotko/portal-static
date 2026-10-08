@@ -43,11 +43,11 @@ Dia 后台已于 2026-09-21 将页面层合并进模板，使用 `column.templat
 | 快捷栏“会员中心” | `pages/member.html` | **固定入口 → 实时活页面** | 模板 `camie-home`；会员栏目与内容见下文 |
 | 快捷栏“移动媒体” | 三张微信二维码图片 | **固定**图片及文字，不从后台二维码、广告或链接表取数 | `assets/images/qr-wechat-service.jpg`、`qr-wechat-video.png`、`qr-wechat-subscription.jpg` 与首页模板 |
 | 快捷栏“视频专区” | `videos.html`，聚合公开视频 | **固定入口**，目标列表是**静态活** | 首页模板固定入口；公开视频文章维护见下文 |
-| 中部六组资讯标签 | 依次为 `home-training-meetings`、`home-standards-work`、`home-standards-innovation`、`home-training-international`、`home-training-talent`、`home-policy-reports`，每组最多 6 篇 | **静态活**：标签名、标题、日期、详情链接。**固定**：六组顺序及每组右侧配图 | 后台选“首页”模板，在对应首页子栏目投放；图片映射在 CAMIE 生成器中 |
+| 中部六组资讯标签 | 依次为 `home-training-meetings`、`home-standards-work`、`home-standards-innovation`、`home-training-international`、`home-training-talent`、`home-policy-reports`，每组最多 6 篇 | **静态活**：标签名、标题、日期、详情链接；右侧图片取该组第一篇新闻封面，未上传封面时使用全站默认占位图。**固定**：六组顺序 | 后台选“首页”模板，在对应首页子栏目投放；图片在第一篇新闻中维护 |
 | 大会横幅 | 点击指向 `training-meetings` | **固定**：横幅图 `assets/images/conference-banner.png`；**静态活**：点击目标按栏目 code 找到生成页。当前不读取后台“广告管理” | 首页模板及图片资源；栏目内容在“会议活动”维护 |
 | 横幅下四个专题入口 | `standards-green-promotion`、`policy-major-equipment-catalogue`、`policy-qualified-enterprises`、`policy-innovation-tasks` | **固定**：四个标题和顺序；**静态活**：链接指向各栏目生成页。当前不读取后台“友情链接管理” | 首页模板改标题/数量；后台栏目与文章改目标内容 |
 | “分支机构”九张卡片 | `branch-water`、`branch-atmosphere`、`branch-solid-waste`、`branch-monitoring`、`branch-noise`、`branch-uv`、`branch-ozone`、`branch-ai`、`branch-engineering` | **固定**：九个名称、顺序和图标；**静态活**：每张卡片指向各自栏目。后台新增第十个分支栏目不会自动长出首页卡片 | CAMIE 生成器中的 `Branches` 改卡片；后台栏目与文章改分支内容 |
-| “专家委员会” | 标题到 `about-experts`；内容取 `home-experts` 最多 3 篇 | **静态活**：首篇标题/链接及其余标题。**固定**：首篇配图 `assets/images/expert-photo.png` 和“中国环保机械行业协会／专家委员会”字样，未使用文章封面 | 后台选“首页”模板，在“首页内容 → 专家委员会”投放；图片、固定字样在首页模板 |
+| “专家委员会” | 标题到 `about-experts`；内容取 `home-experts` 最多 3 篇 | **静态活**：首篇标题、链接和封面及其余标题；首篇未上传封面时使用全站默认占位图。**固定**：“中国环保机械行业协会／专家委员会”字样 | 后台选“首页”模板，在“首页内容 → 专家委员会”投放；封面在首篇新闻中维护 |
 | “副会长单位”滚动标志 | Go 生成器的 `PartnerRows` 数组 | **固定**：单位名称、标志文件、官网 URL、排序均写在代码里；**未接入**后台“友情链接管理” | CAMIE 生成器 `PartnerRows` 与 `assets/images/partner-logos/` |
 
 首页标签的“查看更多”效果由点击标签直接进入对应首页专用栏目列表实现；悬停/聚焦只切换当前展示的列表。首页专用栏目的文章与公开分类栏目的文章可为同一篇，需在后台分别投放到两个栏目。旧数据若尚未建立 `home-*` 栏目，生成器会临时回退到原分类栏目；一旦建好首页专用栏目，即使为空也不会回退。

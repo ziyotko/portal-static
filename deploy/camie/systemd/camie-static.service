@@ -1,0 +1,24 @@
+[Unit]
+Description=CAMIE Static Site Generator
+After=network-online.target camie-portal.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=camie
+Group=camie
+WorkingDirectory=/opt/camie/current
+EnvironmentFile=/etc/camie/portal-static.env
+ExecStart=/opt/camie/current/bin/portal-static serve --config /etc/camie/portal-static.yaml
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=30
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadOnlyPaths=/opt/camie/current
+ReadWritePaths=/srv/camie
+
+[Install]
+WantedBy=multi-user.target

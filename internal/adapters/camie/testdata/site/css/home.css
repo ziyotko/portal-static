@@ -46,9 +46,28 @@
 .hero-caption { height: 102px; padding: 20px 16px 13px; color: #fff; background: rgba(35, 95, 24, .95); }
 .hero-caption h1 { margin: 0 0 6px; font-size: 24px; line-height: 1.4; }
 .hero-caption p { margin: 0; font-size: 14px; }
-.hero-dots { position: absolute; right: 20px; bottom: 18px; display: flex; gap: 6px; }
-.hero-dots button { width: 16px; height: 2px; padding: 0; border: 0; background: rgba(255,255,255,.55); }
-.hero-dots button.active { background: #6bdc53; }
+.hero-dots { position: absolute; z-index: 2; right: 16px; bottom: 7px; display: flex; gap: 2px; }
+.hero-dots button {
+  position: relative;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.hero-dots button::before {
+  content: "";
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  top: 11px;
+  height: 2px;
+  background: rgba(255,255,255,.55);
+}
+.hero-dots button.active::before { background: #6bdc53; }
+.hero-dots button:focus-visible { outline: 2px solid #fff; outline-offset: -2px; }
 
 @media (prefers-reduced-motion: reduce) {
   .hero-slide, .hero-media img { transition: none; }

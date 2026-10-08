@@ -52,7 +52,7 @@
         <ul class="updates-list">
           {{range $g.Items}}<li class="searchable"><a href="{{root $ .Href}}?from={{.ColumnCode}}">{{.Title}}</a><time>{{.Date}}</time></li>{{end}}
         </ul>
-        <a class="updates-image" href="{{root $ $g.Href}}"><img src="{{root $ $g.Image}}" alt="{{$g.Name}}"></a>
+        {{with $g.Feature}}<a class="updates-image" href="{{root $ $g.Href}}"><img src="{{root $ .Cover}}" alt="{{.Title}}"></a>{{end}}
       </div>
       {{end}}
     </section>
@@ -76,7 +76,7 @@
         <section>
           <h2 class="section-title"><a href="{{columnURL . "about-experts"}}"><img src="{{root . "assets/images/leaf-icon.png"}}" alt="">专家委员会</a></h2>
           {{with .Experts.Feature}}
-          <a class="expert-feature" href="{{root $ .Href}}?from={{.ColumnCode}}"><img src="{{root $ "assets/images/expert-photo.png"}}" alt="专家委员会"><p>{{.Title}}<br><small>中国环保机械行业协会<br>专家委员会</small></p></a>
+          <a class="expert-feature" href="{{root $ .Href}}?from={{.ColumnCode}}"><img src="{{root $ .Cover}}" alt="{{.Title}}"><p>{{.Title}}<br><small>中国环保机械行业协会<br>专家委员会</small></p></a>
           {{end}}
           <ul class="expert-links">{{range .Experts.Rest}}<li><a href="{{root $ .Href}}?from={{.ColumnCode}}">{{.Title}}</a></li>{{end}}</ul>
         </section>

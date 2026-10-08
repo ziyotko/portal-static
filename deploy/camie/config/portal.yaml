@@ -1,0 +1,67 @@
+server:
+  host: 127.0.0.1
+  port: 8092
+  mode: release
+  api_prefix: /business_portal/api
+  upload_dir_prefix: /business_portal
+  max_concurrent_ips: 50
+  max_json_body_mb: 64
+  trusted_proxies:
+    - 127.0.0.1
+  allowed_origins:
+    - __CAMIE_ORIGIN__
+  analytics_rate_limit: 60
+  analytics_rate_window_seconds: 60
+  login_rate_limit: 10
+  login_rate_window_seconds: 300
+  captcha_rate_limit: 30
+  captcha_rate_window_seconds: 60
+  public_rate_limit: 120
+  public_rate_window_seconds: 60
+  upload_rate_limit: 30
+  upload_rate_window_seconds: 60
+  upload_daily_quota_mb: 4096
+  replay_window_seconds: 120
+  replay_max_fail: 10
+  replay_ban_minutes: 15
+
+mysql:
+  host: 127.0.0.1
+  port: 3306
+  user: camie_portal
+  password: PORTAL_DB_PASSWORD
+  db_name: camie_portal
+  charset: utf8mb4
+  parse_time: true
+  loc: Asia/Shanghai
+  timeout: 30s
+  read_timeout: 100s
+  write_timeout: 100s
+  max_idle: 10
+  max_open: 100
+  conn_max_lifetime: 3600
+  conn_max_idle_time: 600
+
+redis:
+  addr: 127.0.0.1:6379
+  password: ""
+  captcha_db: 6
+  anti_replay_db: 7
+  cache_db: 8
+  member_token_addr: ""
+  member_token_password: ""
+  member_token_db: 4
+
+jwt:
+  secret: PORTAL_JWT_SECRET
+  expire_hours: 24
+  issuer: business-portal
+  member_secret: PORTAL_MEMBER_JWT_SECRET
+  member_issuer: business-member
+
+log:
+  level: info
+  path: /var/log/camie/portal
+  max_size: 100
+  max_backups: 1000
+  max_age: 180

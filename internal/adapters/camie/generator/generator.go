@@ -51,7 +51,6 @@ type Link struct {
 }
 type Group struct {
 	Name, Href string
-	Image      string
 	Items      []*Article
 	Feature    *Article
 	Rest       []*Article
@@ -711,19 +710,15 @@ func (g *Generator) GenerateSite(ctx context.Context) (result Result, err error)
 	for _, n := range []string{"news-notice", "news-association", "news-member"} {
 		home.Notices = append(home.Notices, homeGroup(c, "home-"+n, n, 6))
 	}
-	for _, topic := range []struct {
-		code, image string
-	}{
-		{"training-meetings", "assets/images/meeting-photo.png"},
-		{"standards-work", "assets/images/hero-building.png"},
-		{"standards-innovation", "assets/images/hero-water-treatment.jpg"},
-		{"training-international", "assets/images/hero-conference.jpg"},
-		{"training-talent", "assets/images/expert-photo.png"},
-		{"policy-reports", "assets/images/conference-banner.png"},
+	for _, topic := range []string{
+		"training-meetings",
+		"standards-work",
+		"standards-innovation",
+		"training-international",
+		"training-talent",
+		"policy-reports",
 	} {
-		entry := homeGroup(c, "home-"+topic.code, topic.code, 6)
-		entry.Image = topic.image
-		home.Topics = append(home.Topics, entry)
+		home.Topics = append(home.Topics, homeGroup(c, "home-"+topic, topic, 6))
 	}
 	dataCenter := group(c, "policy-data", 1)
 	home.DataCenterURL = dataCenter.Href

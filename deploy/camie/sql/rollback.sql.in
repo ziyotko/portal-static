@@ -1,0 +1,57 @@
+SET NAMES utf8mb4;
+SET @release_version = '__RELEASE_VERSION__';
+
+DELIMITER $$
+DROP PROCEDURE IF EXISTS camie_release_assert_rollback$$
+CREATE PROCEDURE camie_release_assert_rollback()
+BEGIN
+  DECLARE backup_count BIGINT DEFAULT 0;
+  SELECT COUNT(*) INTO backup_count FROM camie_deploy_template_backup WHERE release_version=@release_version;
+  IF backup_count = 0 THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'no template backup exists for this CAMIE release';
+  END IF;
+END$$
+CALL camie_release_assert_rollback()$$
+DROP PROCEDURE camie_release_assert_rollback$$
+DELIMITER ;
+
+START TRANSACTION;
+
+UPDATE template t
+JOIN camie_deploy_template_backup b ON b.release_version=@release_version AND b.template_id=t.id
+SET t.name=b.name, t.code=b.code, t.type=b.type, t.route_path=b.route_path,
+    t.description=b.description, t.status=b.status, t.source_code=b.source_code,
+    t.layout=b.layout, t.updated_at=NOW(3);
+
+UPDATE template t
+LEFT JOIN camie_deploy_template_backup b ON b.release_version=@release_version AND b.template_id=t.id
+SET t.status=0, t.updated_at=NOW(3)
+WHERE t.code IN ('camie-layout','camie-home','camie-party','camie-ministry','camie-news','camie-training','camie-standards','camie-list','camie-article','camie-about')
+  AND b.template_id IS NULL;
+
+UPDATE `column` c
+JOIN camie_deploy_column_backup b ON b.release_version=@release_version AND b.column_id=c.id
+SET c.template_id=b.template_id, c.status=b.status, c.updated_at=NOW(3);
+
+UPDATE `column` c
+LEFT JOIN camie_deploy_column_backup b ON b.release_version=@release_version AND b.column_id=c.id
+SET c.status=0, c.updated_at=NOW(3)
+WHERE c.code IN ('home','home-hero','home-news-notice','home-news-association','home-news-member','home-training-meetings','home-standards-work','home-standards-innovation','home-training-international','home-training-talent','home-policy-reports','home-experts')
+  AND b.column_id IS NULL;
+
+UPDATE setting s
+JOIN camie_deploy_setting_backup b ON b.release_version=@release_version AND b.setting_id=s.id
+SET s.static_path=b.static_path,
+    s.static_program_addr=b.static_program_addr,
+    s.static_program_token_name=b.static_program_token_name,
+    s.updated_at=NOW(3);
+
+UPDATE article_column_publish p
+JOIN `column` c ON c.id=p.column_id
+SET p.template_id=c.template_id, p.updated_at=NOW(3)
+WHERE p.template_id<>c.template_id;
+
+COMMIT;
+
+SELECT @release_version AS rolled_back_release;
+SELECT id, static_path, static_program_addr, static_program_token_name FROM setting;

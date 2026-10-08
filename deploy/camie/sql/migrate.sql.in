@@ -1,0 +1,219 @@
+SET NAMES utf8mb4;
+SET @release_version = '__RELEASE_VERSION__';
+
+DELIMITER $$
+DROP PROCEDURE IF EXISTS camie_release_assert_ready$$
+CREATE PROCEDURE camie_release_assert_ready()
+BEGIN
+  DECLARE issue_count BIGINT DEFAULT 0;
+
+  IF CAST(SUBSTRING_INDEX(VERSION(), '.', 1) AS UNSIGNED) < 8 THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'CAMIE release requires MySQL 8 or newer';
+  END IF;
+
+  SELECT COUNT(*) INTO issue_count FROM information_schema.TABLES
+   WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'page';
+  IF issue_count > 0 THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'legacy page table exists; complete dia-platform page-layer migration first';
+  END IF;
+
+  SELECT COUNT(*) INTO issue_count FROM information_schema.COLUMNS
+   WHERE TABLE_SCHEMA = DATABASE() AND COLUMN_NAME = 'page_id';
+  IF issue_count > 0 THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'legacy page_id columns exist; complete dia-platform page-layer migration first';
+  END IF;
+
+  SELECT COUNT(*) INTO issue_count FROM information_schema.COLUMNS
+   WHERE TABLE_SCHEMA = DATABASE()
+     AND ((TABLE_NAME = 'member_content' AND COLUMN_NAME = 'video_url')
+       OR (TABLE_NAME = 'member_column' AND COLUMN_NAME = 'code'));
+  IF issue_count > 0 THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'legacy member-zone columns exist; complete dia-platform member-zone migration first';
+  END IF;
+
+  SELECT COUNT(*) INTO issue_count FROM (
+    SELECT code FROM template
+     WHERE code IN ('camie-layout','camie-home','camie-party','camie-ministry','camie-news','camie-training','camie-standards','camie-list','camie-article','camie-about')
+     GROUP BY code HAVING COUNT(*) > 1
+  ) duplicate_templates;
+  IF issue_count > 0 THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'duplicate CAMIE template codes must be resolved before migration';
+  END IF;
+
+  SELECT COUNT(*) INTO issue_count FROM (
+    SELECT code FROM `column` GROUP BY code HAVING COUNT(*) > 1
+  ) duplicate_columns;
+  IF issue_count > 0 THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'duplicate active column codes must be resolved before migration';
+  END IF;
+
+  SELECT 6 - COUNT(DISTINCT code) INTO issue_count FROM `column`
+   WHERE code IN ('party','ministry','news','training','standards','about');
+  IF issue_count > 0 THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'required CAMIE navigation root columns are missing';
+  END IF;
+
+  SELECT IF(COUNT(*) = 1, 0, 1) INTO issue_count FROM setting;
+  IF issue_count > 0 THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'setting table must contain exactly one row';
+  END IF;
+END$$
+CALL camie_release_assert_ready()$$
+DROP PROCEDURE camie_release_assert_ready$$
+DELIMITER ;
+
+CREATE TABLE IF NOT EXISTS camie_deploy_template_backup (
+  release_version VARCHAR(100) NOT NULL,
+  template_id BIGINT UNSIGNED NOT NULL,
+  name VARCHAR(100) NOT NULL,
+  code VARCHAR(100) NULL,
+  type VARCHAR(20) NOT NULL,
+  route_path VARCHAR(200) NULL,
+  description VARCHAR(500) NULL,
+  status BIGINT NULL,
+  source_code MEDIUMTEXT NULL,
+  layout MEDIUMTEXT NULL,
+  PRIMARY KEY (release_version, template_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS camie_deploy_column_backup (
+  release_version VARCHAR(100) NOT NULL,
+  column_id BIGINT UNSIGNED NOT NULL,
+  template_id BIGINT UNSIGNED NOT NULL,
+  status BIGINT NULL,
+  PRIMARY KEY (release_version, column_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS camie_deploy_setting_backup (
+  release_version VARCHAR(100) NOT NULL,
+  setting_id BIGINT UNSIGNED NOT NULL,
+  static_path VARCHAR(255) NULL,
+  static_program_addr VARCHAR(100) NULL,
+  static_program_token_name VARCHAR(100) NULL,
+  PRIMARY KEY (release_version, setting_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+START TRANSACTION;
+
+INSERT IGNORE INTO camie_deploy_template_backup
+  (release_version, template_id, name, code, type, route_path, description, status, source_code, layout)
+SELECT @release_version, id, name, code, type, route_path, description, status, source_code, layout
+  FROM template
+ WHERE code IN ('camie-layout','camie-home','camie-party','camie-ministry','camie-news','camie-training','camie-standards','camie-list','camie-article','camie-about');
+
+INSERT IGNORE INTO camie_deploy_column_backup (release_version, column_id, template_id, status)
+SELECT @release_version, id, template_id, status FROM `column`;
+
+INSERT IGNORE INTO camie_deploy_setting_backup
+  (release_version, setting_id, static_path, static_program_addr, static_program_token_name)
+SELECT @release_version, id, static_path, static_program_addr, static_program_token_name FROM setting;
+
+INSERT INTO template (created_at, updated_at, name, code, type, route_path, description, status, source_code, layout)
+SELECT NOW(3), NOW(3), seed.name, seed.code, seed.type, seed.route_path, seed.description, 1, '', ''
+FROM (
+  SELECT CAST('公共布局' AS CHAR(100)) name,
+         CAST('camie-layout' AS CHAR(100)) code,
+         CAST('special' AS CHAR(20)) type,
+         CAST(NULL AS CHAR(200)) route_path,
+         CAST('CAMIE 公共布局' AS CHAR(500)) description
+  UNION ALL SELECT '首页', 'camie-home', 'home', '/index.html', 'CAMIE 首页'
+  UNION ALL SELECT '党建专栏', 'camie-party', 'home', '/pages/party.html', 'CAMIE 导航页面'
+  UNION ALL SELECT '部委动态', 'camie-ministry', 'home', '/pages/ministry.html', 'CAMIE 导航页面'
+  UNION ALL SELECT '新闻中心', 'camie-news', 'home', '/pages/news.html', 'CAMIE 导航页面'
+  UNION ALL SELECT '交流培训', 'camie-training', 'home', '/pages/training.html', 'CAMIE 导航页面'
+  UNION ALL SELECT '科技标准', 'camie-standards', 'home', '/pages/standards.html', 'CAMIE 导航页面'
+  UNION ALL SELECT '通用栏目', 'camie-list', 'column', NULL, 'CAMIE 通用栏目模板'
+  UNION ALL SELECT '通用详情', 'camie-article', 'detail', NULL, 'CAMIE 通用详情模板'
+  UNION ALL SELECT '关于协会', 'camie-about', 'home', '/pages/about.html', 'CAMIE 导航页面'
+) seed
+WHERE NOT EXISTS (SELECT 1 FROM template t WHERE t.code = seed.code);
+
+SET @src_layout = CONVERT(FROM_BASE64('__LAYOUT_BASE64__') USING utf8mb4);
+SET @src_home = CONVERT(FROM_BASE64('__HOME_BASE64__') USING utf8mb4);
+SET @src_party = CONVERT(FROM_BASE64('__PARTY_BASE64__') USING utf8mb4);
+SET @src_ministry = CONVERT(FROM_BASE64('__MINISTRY_BASE64__') USING utf8mb4);
+SET @src_news = CONVERT(FROM_BASE64('__NEWS_BASE64__') USING utf8mb4);
+SET @src_training = CONVERT(FROM_BASE64('__TRAINING_BASE64__') USING utf8mb4);
+SET @src_standards = CONVERT(FROM_BASE64('__STANDARDS_BASE64__') USING utf8mb4);
+SET @src_list = CONVERT(FROM_BASE64('__LIST_BASE64__') USING utf8mb4);
+SET @src_article = CONVERT(FROM_BASE64('__ARTICLE_BASE64__') USING utf8mb4);
+SET @src_about = CONVERT(FROM_BASE64('__ABOUT_BASE64__') USING utf8mb4);
+
+UPDATE template SET name='公共布局', type='special', route_path=NULL, description='CAMIE 公共布局', status=1, source_code=@src_layout, updated_at=NOW(3) WHERE code='camie-layout';
+UPDATE template SET name='首页', type='home', route_path='/index.html', description='CAMIE 首页', status=1, source_code=@src_home, updated_at=NOW(3) WHERE code='camie-home';
+UPDATE template SET name='党建专栏', type='home', route_path='/pages/party.html', description='CAMIE 导航页面', status=1, source_code=@src_party, updated_at=NOW(3) WHERE code='camie-party';
+UPDATE template SET name='部委动态', type='home', route_path='/pages/ministry.html', description='CAMIE 导航页面', status=1, source_code=@src_ministry, updated_at=NOW(3) WHERE code='camie-ministry';
+UPDATE template SET name='新闻中心', type='home', route_path='/pages/news.html', description='CAMIE 导航页面', status=1, source_code=@src_news, updated_at=NOW(3) WHERE code='camie-news';
+UPDATE template SET name='交流培训', type='home', route_path='/pages/training.html', description='CAMIE 导航页面', status=1, source_code=@src_training, updated_at=NOW(3) WHERE code='camie-training';
+UPDATE template SET name='科技标准', type='home', route_path='/pages/standards.html', description='CAMIE 导航页面', status=1, source_code=@src_standards, updated_at=NOW(3) WHERE code='camie-standards';
+UPDATE template SET name='通用栏目', type='column', route_path=NULL, description='CAMIE 通用栏目模板', status=1, source_code=@src_list, updated_at=NOW(3) WHERE code='camie-list';
+UPDATE template SET name='通用详情', type='detail', route_path=NULL, description='CAMIE 通用详情模板', status=1, source_code=@src_article, updated_at=NOW(3) WHERE code='camie-article';
+UPDATE template SET name='关于协会', type='home', route_path='/pages/about.html', description='CAMIE 导航页面', status=1, source_code=@src_about, updated_at=NOW(3) WHERE code='camie-about';
+
+INSERT INTO `column` (created_at, updated_at, name, code, template_id, parent_id, sort, status, display_type)
+SELECT NOW(3), NOW(3), '首页内容', 'home', t.id, 0, 0, 1, 1
+ FROM template t
+ WHERE t.code='camie-home' AND NOT EXISTS (SELECT 1 FROM `column` c WHERE c.code='home');
+
+INSERT INTO `column` (created_at, updated_at, name, code, template_id, parent_id, sort, status, display_type)
+SELECT NOW(3), NOW(3), seed.name, seed.code, t.id, root.id, seed.sort, 1, 1
+  FROM template t
+  JOIN `column` root ON root.code='home'
+  JOIN (
+    SELECT CAST('重点新闻轮播' AS CHAR(100)) name,
+           CAST('home-hero' AS CHAR(100)) code,
+           1 sort
+    UNION ALL SELECT '通知公告', 'home-news-notice', 2
+    UNION ALL SELECT '协会动态', 'home-news-association', 3
+    UNION ALL SELECT '会员动态', 'home-news-member', 4
+    UNION ALL SELECT '会议活动', 'home-training-meetings', 5
+    UNION ALL SELECT '标准工作', 'home-standards-work', 6
+    UNION ALL SELECT '科技创新及成果转化', 'home-standards-innovation', 7
+    UNION ALL SELECT '国际交流与合作', 'home-training-international', 8
+    UNION ALL SELECT '人才培训', 'home-training-talent', 9
+    UNION ALL SELECT '行业报告', 'home-policy-reports', 10
+    UNION ALL SELECT '专家委员会', 'home-experts', 11
+  ) seed
+ WHERE t.code='camie-home'
+   AND NOT EXISTS (SELECT 1 FROM `column` c WHERE c.code=seed.code);
+
+WITH RECURSIVE template_roots AS (
+  SELECT CAST('home' AS CHAR(100)) root_code, CAST('camie-home' AS CHAR(100)) template_code
+  UNION ALL SELECT 'party', 'camie-party'
+  UNION ALL SELECT 'ministry', 'camie-ministry'
+  UNION ALL SELECT 'news', 'camie-news'
+  UNION ALL SELECT 'training', 'camie-training'
+  UNION ALL SELECT 'standards', 'camie-standards'
+  UNION ALL SELECT 'about', 'camie-about'
+  UNION ALL SELECT 'member', 'camie-list'
+  UNION ALL SELECT 'videos', 'camie-list'
+  UNION ALL SELECT 'policy-research', 'camie-list'
+), column_tree AS (
+  SELECT c.id, c.parent_id, r.template_code
+    FROM `column` c JOIN template_roots r ON r.root_code=c.code
+  UNION ALL
+  SELECT child.id, child.parent_id, tree.template_code
+    FROM `column` child JOIN column_tree tree ON child.parent_id=tree.id
+)
+UPDATE `column` c
+JOIN column_tree tree ON tree.id=c.id
+JOIN template t ON t.code=tree.template_code
+SET c.template_id=t.id, c.updated_at=NOW(3);
+
+UPDATE article_column_publish p
+JOIN `column` c ON c.id=p.column_id
+SET p.template_id=c.template_id, p.updated_at=NOW(3)
+WHERE p.template_id<>c.template_id;
+
+UPDATE setting
+SET static_path='/srv/camie/site',
+    static_program_addr='http://127.0.0.1:9144',
+    static_program_token_name='CAMIE_STATIC_TOKEN',
+    updated_at=NOW(3);
+
+COMMIT;
+
+SELECT @release_version AS migrated_release;
+SELECT code, type, status, route_path, CHAR_LENGTH(source_code) AS source_chars
+  FROM template WHERE code LIKE 'camie-%' ORDER BY code;
+SELECT id, static_path, static_program_addr, static_program_token_name FROM setting;

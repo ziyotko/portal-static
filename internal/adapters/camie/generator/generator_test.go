@@ -33,7 +33,7 @@ func testConfig(t *testing.T) config.Config {
 	cfg.Site.PageName = "环保机械协会"
 	cfg.Site.PageSize = 10
 	cfg.Site.Timezone = "Asia/Shanghai"
-	cfg.Site.FallbackCover = "assets/images/hero-building.png"
+	cfg.Site.FallbackCover = "assets/images/default-news-cover.png"
 	cfg.Site.HeroColumn = "news-hot"
 	cfg.Site.LockStaleAfter = "30m"
 	cfg.Site.MemberLoginPath = "/member-entry/login?site=camie"
@@ -66,23 +66,42 @@ func TestHomeGroupUsesBoundHomeColumn(t *testing.T) {
 func TestHomeArticleDetailsUsePublicSectionSidebar(t *testing.T) {
 	cfg := testConfig(t)
 	source := demo.NewSource()
-	var noticeColumn model.Column
+	var noticeColumn, topicColumn, heroColumn model.Column
 	for _, column := range source.Columns {
-		if column.Code == "news-notice" {
+		switch column.Code {
+		case "news-notice":
 			noticeColumn = column
-			break
+		case "training-meetings":
+			topicColumn = column
+		case "news-hot":
+			heroColumn = column
 		}
 	}
 	if noticeColumn.ID == 0 {
 		t.Fatal("missing notice column fixture")
 	}
+	if topicColumn.ID == 0 || len(source.Items[topicColumn.ID]) == 0 {
+		t.Fatal("missing home topic fixture")
+	}
+	topicItems := source.Items[topicColumn.ID]
+	topicItems[0].Cover = "assets/images/hero-water-treatment.jpg"
+	topicTitle := topicItems[0].Title
+	source.Items[topicColumn.ID] = topicItems
+	if heroColumn.ID == 0 || len(source.Items[heroColumn.ID]) == 0 {
+		t.Fatal("missing hero fixture")
+	}
+	heroItems := source.Items[heroColumn.ID]
+	for i := range heroItems {
+		heroItems[i].Cover = ""
+	}
+	source.Items[heroColumn.ID] = heroItems
 	home := model.Column{ID: 9000, Name: "首页内容", Code: "home"}
 	notices := model.Column{ID: 9001, ParentID: home.ID, Name: "通知公告", Code: "home-news-notice"}
 	experts := model.Column{ID: 9002, ParentID: home.ID, Name: "专家委员会", Code: "home-experts"}
 	source.Columns = append([]model.Column{home, notices, experts}, source.Columns...)
 	shared := source.Items[noticeColumn.ID][0]
 	onlyHome := model.Article{ID: 990001, Type: model.ArticleTypeContent, Title: "仅投放首页的通知", Content: "公开测试正文", PublishTime: time.Date(2026, 9, 28, 9, 0, 0, 0, time.FixedZone("CST", 8*60*60))}
-	expert := model.Article{ID: 990002, Type: model.ArticleTypeContent, Title: "仅投放首页的专家文章", Content: "公开专家正文", PublishTime: onlyHome.PublishTime}
+	expert := model.Article{ID: 990002, Type: model.ArticleTypeContent, Title: "仅投放首页的专家文章", Content: "公开专家正文", Cover: "assets/images/video-thumb.png", PublishTime: onlyHome.PublishTime}
 	source.Items[notices.ID] = []model.Article{shared, onlyHome}
 	source.Items[experts.ID] = []model.Article{expert}
 
@@ -115,6 +134,17 @@ func TestHomeArticleDetailsUsePublicSectionSidebar(t *testing.T) {
 	}
 	if !strings.Contains(readGenerated(t, result.Output, "article/2026/09/990002.html"), `>专家委员会`) {
 		t.Fatal("home-only expert detail lost the public expert sidebar")
+	}
+	expertFeature := regexp.MustCompile(`<a class="expert-feature"[^>]*><img src="([^"]+)" alt="仅投放首页的专家文章">`).FindStringSubmatch(homePage)
+	if len(expertFeature) != 2 || expertFeature[1] != "./assets/images/video-thumb.png" {
+		t.Fatalf("expert feature did not use the first article cover: %v", expertFeature)
+	}
+	updatesImage := regexp.MustCompile(`<a class="updates-image"[^>]*><img src="([^"]+)" alt="` + regexp.QuoteMeta(topicTitle) + `">`).FindStringSubmatch(homePage)
+	if len(updatesImage) != 2 || updatesImage[1] != "./assets/images/hero-water-treatment.jpg" {
+		t.Fatalf("updates image did not use the first article cover: %v", updatesImage)
+	}
+	if !regexp.MustCompile(`<a class="hero-slide active"[^>]*>\s*<div class="hero-media"><img src="\./assets/images/default-news-cover\.png"`).MatchString(homePage) {
+		t.Fatal("hero without an article cover did not use the configured default news cover")
 	}
 }
 
@@ -227,6 +257,15 @@ func TestGenerateCompletePublicSiteAndMemberShells(t *testing.T) {
 	for _, name := range []string{"index.html", "news.html", "videos.html", "search.html", "pages/member.html", "pages/member-detail.html", "js/member.js", "generated-content.js"} {
 		if _, err := os.Stat(filepath.Join(result.Output, filepath.FromSlash(name))); err != nil {
 			t.Fatalf("missing %s: %v", name, err)
+		}
+	}
+	homePage := readGenerated(t, result.Output, "index.html")
+	if got := strings.Count(homePage, `class="nav-submenu"`); got != 6 {
+		t.Fatalf("want 6 primary navigation submenus, got %d", got)
+	}
+	for _, label := range []string{"党建要闻", "政策文件", "会员动态", "国际交流与合作", "绿色技术推广", "专家委员会"} {
+		if !regexp.MustCompile(`<div class="nav-submenu">.*?<a href="[^"]+">` + label + `</a>`).MatchString(homePage) {
+			t.Fatalf("primary navigation submenu missing linked item %q", label)
 		}
 	}
 	var all strings.Builder
@@ -416,6 +455,10 @@ func TestGenerateCompletePublicSiteAndMemberShells(t *testing.T) {
 	}
 	if strings.Contains(searchScript, `const pageSize = 6;`) {
 		t.Fatal("search pagination reverted to six results per page")
+	}
+	commonCSS := readGenerated(t, result.Output, "css/common.css")
+	if regexp.MustCompile(`(?s)\.article-card:not\(\.video-detail-card\)\s*\{[^}]*min-height`).MatchString(commonCSS) {
+		t.Fatal("article card height should follow its detail content")
 	}
 	if err := validateSite(result.Output); err != nil {
 		t.Fatal(err)

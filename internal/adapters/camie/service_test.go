@@ -25,7 +25,7 @@ func TestServiceImplementsStandardOperations(t *testing.T) {
 		t.Fatal(err)
 	}
 	cfg.Site.DistRoot, cfg.Site.PreviewRoot = filepath.Join(distRoot, "site"), filepath.Join(previewRoot, "preview")
-	cfg.Site.PageName, cfg.Site.HeroColumn, cfg.Site.FallbackCover = "环保机械协会", "news-hot", "assets/images/hero-building.png"
+	cfg.Site.PageName, cfg.Site.HeroColumn, cfg.Site.FallbackCover = "环保机械协会", "news-hot", "assets/images/default-news-cover.png"
 	cfg.Site.PageSize, cfg.Site.Timezone, cfg.Site.LockStaleAfter = 10, "Asia/Shanghai", "30m"
 	service := NewService(generator.New(cfg, demo.NewSource()), cfg.Site.PageSize)
 	if _, err := service.GenerateSite(context.Background()); err != nil {

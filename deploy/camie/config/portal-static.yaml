@@ -20,15 +20,15 @@ server:
   batch_max_duration: 6h
 
 paths:
-  source_root: ../internal/adapters/camie/testdata/site
-  dist_root: ../dist/camie-portal
-  preview_root: ../dist/camie-preview
+  source_root: /opt/camie/current/share/camie-site
+  dist_root: /srv/camie/site
+  preview_root: /srv/camie/preview
   templates:
-    layout: ../templates/layout.html.tmpl
-    home: ../templates/home.html.tmpl
-    list: ../templates/list.html.tmpl
-    article: ../templates/article.html.tmpl
-    about: ../templates/about.html.tmpl
+    layout: /opt/camie/current/share/camie-preview-templates/layout.html.tmpl
+    home: /opt/camie/current/share/camie-preview-templates/home.html.tmpl
+    list: /opt/camie/current/share/camie-preview-templates/list.html.tmpl
+    article: /opt/camie/current/share/camie-preview-templates/article.html.tmpl
+    about: /opt/camie/current/share/camie-preview-templates/about.html.tmpl
   template_codes:
     layout: camie-layout
     home: camie-home
@@ -56,6 +56,5 @@ adapter:
     hero_column: news-hot
     fallback_cover: assets/images/default-news-cover.png
     lock_stale_after: 30m
-    # Same-origin routes exposed by the reverse proxy; regenerate after changes.
     member_login_path: /business_member/login
     member_register_path: /business_member/register

@@ -1,0 +1,23 @@
+[Unit]
+Description=CAMIE Portal API
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=camie
+Group=camie
+WorkingDirectory=/srv/camie/portal
+EnvironmentFile=/etc/camie/portal.env
+ExecStart=/opt/camie/current/bin/portal
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=30
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/srv/camie/portal /var/log/camie/portal
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,51 @@
+server:
+  host: 127.0.0.1
+  port: 8093
+  mode: release
+  api_prefix: /business_member/api
+  upload_dir_prefix: /business_member
+  max_concurrent_ips: 100
+  max_json_body_mb: 64
+  trusted_proxies:
+    - 127.0.0.1
+  allowed_origins:
+    - __CAMIE_ORIGIN__
+  login_rate_limit: 10
+  captcha_rate_limit: 30
+  public_rate_limit: 300
+  upload_rate_limit: 20
+
+mysql:
+  host: 127.0.0.1
+  port: 3306
+  user: camie_member
+  password: MEMBER_DB_PASSWORD
+  db_name: camie_member
+  charset: utf8mb4
+  max_open: 50
+  max_idle: 10
+  loc: Asia/Shanghai
+  timeout: 30s
+  read_timeout: 100s
+  write_timeout: 100s
+
+redis:
+  addr: 127.0.0.1:6379
+  password: ""
+  captcha_db: 4
+  anti_replay_db: 5
+
+jwt:
+  secret: MEMBER_JWT_SECRET
+  expire_hours: 24
+  issuer: business-member
+
+log:
+  level: info
+  path: /var/log/camie/member/member.log
+  max_size: 100
+  max_backups: 30
+  max_age: 180
+
+certificate:
+  font_path: MEMBER_CERT_FONT

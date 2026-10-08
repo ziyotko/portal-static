@@ -352,7 +352,9 @@
       if (!document.hidden) timer = setInterval(() => showSlide(activeIndex + 1), 5000);
     };
 
-    dots.forEach((dot) => dot.addEventListener('click', () => {
+    dots.forEach((dot) => dot.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
       showSlide(Number(dot.dataset.slideTo));
       start();
     }));
