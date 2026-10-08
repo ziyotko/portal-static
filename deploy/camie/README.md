@@ -26,7 +26,13 @@ file bin/portal bin/member bin/portal-static
 
 ## 2. 首次目录与配置
 
-以 root 执行 `ops/scripts/install-layout.sh <release-dir>`。脚本只创建用户、目录、软链接和服务文件，不会改数据库，也不会启动服务。然后：
+Windows 构建的 tar 不承诺保留 Linux 可执行位，因此必须以 root 通过 Bash 启动安装脚本：
+
+```bash
+sudo bash ops/scripts/install-layout.sh /opt/camie/releases/camie-release-<version>
+```
+
+脚本会立即将版本目录收归 `root:root`、移除组/其他用户写权限，并把三个二进制和运维脚本设为 `0755`；随后创建用户、目录、配置软链接和服务文件。它不会改数据库、切换当前版本或启动服务。然后：
 
 1. 将 `config/*.yaml` 中的 `__CAMIE_ORIGIN__`、数据库和 Redis地址改成生产值，复制到 `/etc/camie/`。
 2. 从 `config/*.env.example` 创建对应 `.env`，写入真实密码与随机密钥，权限设为 `0640 root:camie`。

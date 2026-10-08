@@ -32,6 +32,9 @@ install -d -o camie -g camie -m 0750 \
   /srv/camie/member /srv/camie/member/uploads \
   /var/log/camie/portal /var/log/camie/member
 
+chown -R root:root "$release_dir"
+find "$release_dir" -type d -exec chmod 0755 {} +
+find "$release_dir" -type f -exec chmod 0644 {} +
 chmod 0755 "$release_dir"/bin/* "$release_dir"/ops/scripts/*.sh
 
 install -m 0644 "$release_dir"/ops/systemd/camie-portal.service /etc/systemd/system/camie-portal.service
