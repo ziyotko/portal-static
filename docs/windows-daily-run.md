@@ -18,19 +18,19 @@
 
 ## 一、手动启动 CAMIE 联调环境
 
-以下命令按组件逐个执行。环境首次安装、数据库恢复和前端重新构建不属于日常启动；这里假设 `.local\camie-integration` 和 `.local\redis` 已经准备好。
+以下命令按组件逐个执行。环境首次安装、数据库恢复和前端重新构建不属于日常启动；这里假设 `.local\camie-integration` 已经准备好，并继续使用 Dia 原来的 `D:\Redis-8.0.0-Windows-x64-cygwin`。
 
 四个基础窗口都要保持打开。不要把一个窗口中的环境变量设置好以后，换到另一个窗口启动程序；PowerShell 环境变量只对当前窗口及其子进程生效。
 
 ### CAMIE 窗口一：Redis
 
 ```powershell
-Set-Location D:\WebstormProjects\portal-static\.local\redis\8.10.2\Redis-8.10.2-Windows-x64-msys2
+Set-Location D:\Redis-8.0.0-Windows-x64-cygwin
 
-.\redis-server.exe ..\..\camie-redis.conf
+.\redis-server.exe .\redis.conf
 ```
 
-看到 Redis 已准备接受连接后保持窗口打开。若提示 `6379` 已被占用，先确认是否已有可用的 Redis，不要重复启动第二个实例。
+这就是 Dia 原来使用的 Redis：监听 `127.0.0.1:6379`，提供 16 个逻辑数据库，足够继续使用 Portal 的 DB `6/7/8`。看到 Redis 已准备接受连接后保持窗口打开。若提示 `6379` 已被占用，先确认是否已有可用的 Redis，不要重复启动第二个实例。
 
 ### CAMIE 窗口二：Portal 后端
 
