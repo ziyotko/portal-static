@@ -10,7 +10,8 @@
 - MIIC 静态化服务使用 `9143` 端口和 `miic_portal` 数据库。
 - 当前 CAMIE 本机联调环境使用统一入口 `18080`、Portal API `18092`、Member API `18093`、静态化 API `19144`。
 - CAMIE 的 Portal/静态化连接 `camie_portal`，Member 连接独立的 `camie_member`。
-- CAMIE 手动运行时需要五个 PowerShell 窗口，分别运行 Redis、Portal、Member、portal-static 和本地同源网站。
+- 只测试 CAMIE 公开内容静态化时需要四个 PowerShell 窗口：Redis、Dia Portal 后端、portal-static 和本地同源网站。
+- Member 后端只在测试会员注册登录、会员专区或私有视频时启动，不是公开静态化的前置条件。
 - CAAM 和 MIIC 可以同时启动，但必须分别占用一个 PowerShell 窗口。
 - 每个窗口中的命令都要在同一个窗口内连续执行。
 - 命令中的 `你的MySQL密码` 要替换为实际密码，不要在 `@` 或 `_` 前面添加反斜杠 `\`。
@@ -19,7 +20,7 @@
 
 以下命令按组件逐个执行。环境首次安装、数据库恢复和前端重新构建不属于日常启动；这里假设 `.local\camie-integration` 和 `.local\redis` 已经准备好。
 
-五个窗口都要保持打开。不要把一个窗口中的环境变量设置好以后，换到另一个窗口启动程序；PowerShell 环境变量只对当前窗口及其子进程生效。
+四个基础窗口都要保持打开。不要把一个窗口中的环境变量设置好以后，换到另一个窗口启动程序；PowerShell 环境变量只对当前窗口及其子进程生效。
 
 ### CAMIE 窗口一：Redis
 
@@ -48,22 +49,7 @@ Set-Location .\portal-runtime
 
 Portal API 监听 `127.0.0.1:18092`。这个进程连接 `camie_portal`，并通过 Redis DB `6/7/8` 工作；会员登出黑名单读取 Member 使用的 DB `4`。
 
-### CAMIE 窗口三：Member 后端
-
-```powershell
-Set-Location D:\WebstormProjects\portal-static\.local\camie-integration
-
-$dbPassword = (Get-Content .\db-password -Raw).Trim()
-$env:MEMBER_DB_PASSWORD = $dbPassword
-$env:MEMBER_JWT_SECRET = (Get-Content .\member-jwt-secret -Raw).Trim()
-
-Set-Location .\member-runtime
-.\member-backend.exe
-```
-
-Member API 监听 `127.0.0.1:18093`，只连接 `camie_member`，使用 Redis DB `4/5`。`MEMBER_JWT_SECRET` 与 Portal 窗口中的 `PORTAL_MEMBER_JWT_SECRET` 必须来自同一个文件、保持相同。
-
-### CAMIE 窗口四：静态化服务
+### CAMIE 窗口三：静态化服务
 
 ```powershell
 Set-Location D:\WebstormProjects\portal-static\.local\camie-integration
@@ -79,7 +65,7 @@ $env:CAMIE_STATIC_TOKEN = (Get-Content .\static-token -Raw).Trim()
 
 健康检查地址：[http://127.0.0.1:19144/healthz](http://127.0.0.1:19144/healthz)
 
-### CAMIE 窗口五：本地同源网站
+### CAMIE 窗口四：本地同源网站
 
 ```powershell
 Set-Location D:\WebstormProjects\portal-static\.local\camie-integration
@@ -95,6 +81,25 @@ Portal 后台：[http://127.0.0.1:18080/business_portal/](http://127.0.0.1:18080
 
 Member 登录：[http://127.0.0.1:18080/business_member/login](http://127.0.0.1:18080/business_member/login)
 
+只测试公开静态化时不要操作会员登录和会员专区；Member 后端没有启动时，这部分接口不可用属于正常现象，不影响后台生成公开站点。
+
+### 可选窗口五：Member 后端
+
+只有需要测试会员注册登录、会员资料、会员专区或私有视频时才执行：
+
+```powershell
+Set-Location D:\WebstormProjects\portal-static\.local\camie-integration
+
+$dbPassword = (Get-Content .\db-password -Raw).Trim()
+$env:MEMBER_DB_PASSWORD = $dbPassword
+$env:MEMBER_JWT_SECRET = (Get-Content .\member-jwt-secret -Raw).Trim()
+
+Set-Location .\member-runtime
+.\member-backend.exe
+```
+
+Member API 监听 `127.0.0.1:18093`，只连接 `camie_member`，使用 Redis DB `4/5`。`MEMBER_JWT_SECRET` 与 Portal 窗口中的 `PORTAL_MEMBER_JWT_SECRET` 必须来自同一个文件、保持相同。
+
 ### CAMIE 启动后检查
 
 按顺序打开或执行：
@@ -102,10 +107,13 @@ Member 登录：[http://127.0.0.1:18080/business_member/login](http://127.0.0.1:
 ```powershell
 Invoke-RestMethod http://127.0.0.1:19144/healthz
 Invoke-RestMethod http://127.0.0.1:18080/business_portal/api/site-info
-Invoke-RestMethod http://127.0.0.1:18080/business_member/api/site-info
 ```
 
-三个请求都成功后，再登录 Portal 后台进行内容维护和全站生成。
+两个请求都成功后，即可登录 Portal 后台进行公开内容维护和全站生成。只有启动了可选的 Member 后端，才额外检查：
+
+```powershell
+Invoke-RestMethod http://127.0.0.1:18080/business_member/api/site-info
+```
 
 ## 二、手动启动 CAAM 或 MIIC 静态化服务
 
@@ -161,7 +169,7 @@ go run .\cmd\portal-static serve --config .\configs\miic.example.yaml
 
 管理后台必须在启动前拿到与静态化服务相同的 Token。
 
-本节命令用于 CAAM、MIIC。CAMIE 的 Portal 和 Member 已在第一节分别启动，不要再运行一份占用相同端口的后端。
+本节命令用于 CAAM、MIIC。CAMIE 的 Portal 已在第一节启动；若启用了会员测试，Member 也按第一节的可选步骤启动。不要再运行一份占用相同端口的后端。
 
 如果后台已经启动，先按 `Ctrl + C` 停止，再设置环境变量并重新启动。后台启动以后，在其他 PowerShell 窗口中设置环境变量不会生效。
 
@@ -337,4 +345,4 @@ Portal 后端：CAMIE_STATIC_TOKEN 读取同一个 static-token
 Ctrl + C
 ```
 
-CAMIE 的五个窗口需要分别按 `Ctrl + C`。先停止本地同源网站和静态化服务，再停止 Portal、Member，最后停止 Redis。关闭 PowerShell 后，本窗口中设置的环境变量会自动失效，下次启动时重新执行本页命令即可。
+CAMIE 的四个基础窗口需要分别按 `Ctrl + C`。先停止本地同源网站和静态化服务，再停止 Portal，最后停止 Redis；如果启动了可选的 Member 窗口，也将它停止。关闭 PowerShell 后，本窗口中设置的环境变量会自动失效，下次启动时重新执行本页命令即可。
