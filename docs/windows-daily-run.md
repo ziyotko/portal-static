@@ -254,6 +254,7 @@ database:
 - 不要填写 `$env:`。
 - 不要把实际令牌值 `caam-portal-static-local-token` 或 `miic-portal-static-local-token` 填到“令牌名”中。
 - Windows 输出路径建议使用 `/`，不要只填写相对路径。
+- `configs/*.example.yaml` 的 `allowed_output_root` 默认指向本仓库 `dist`；Dia 可填写其下的站点目录。若 Dia 不传输出路径，静态化服务使用该 YAML 的 `dist_root`。
 
 ## 五、生成全站
 

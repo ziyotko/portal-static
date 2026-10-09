@@ -23,6 +23,7 @@ paths:
   # CAAM 原工程只作为只读页面脚手架。
   source_root: ../../caam-portal/caam-home
   dist_root: ../dist/caam-home
+  allowed_output_root: ../dist
   preview_root: ../dist/caam-preview
   # preview 使用这些只读文件；production 每次直接从 template 表读取源码。
   templates:

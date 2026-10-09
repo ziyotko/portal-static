@@ -50,11 +50,15 @@ func (g *SiteGenerator) ValidateOutputPath(outputPath string) error {
 	if pathsOverlap(source, target) {
 		return fmt.Errorf("%w: path cannot overlap the static source directory", ErrInvalidOutputPath)
 	}
-	if !pathContains(filepath.Clean(g.cfg.Site.DistRoot), target) {
-		return fmt.Errorf("%w: path must be the configured dist_root or one of its descendants", ErrInvalidOutputPath)
+	allowedRoot := strings.TrimSpace(g.cfg.Site.AllowedOutputRoot)
+	if allowedRoot == "" {
+		allowedRoot = g.cfg.Site.DistRoot
 	}
-	if !resolvedPathContains(filepath.Clean(g.cfg.Site.DistRoot), target) {
-		return fmt.Errorf("%w: path escapes the configured dist_root through a symbolic link", ErrInvalidOutputPath)
+	if !pathContains(filepath.Clean(allowedRoot), target) {
+		return fmt.Errorf("%w: path must be the configured allowed_output_root or one of its descendants", ErrInvalidOutputPath)
+	}
+	if !resolvedPathContains(filepath.Clean(allowedRoot), target) {
+		return fmt.Errorf("%w: path escapes the configured allowed_output_root through a symbolic link", ErrInvalidOutputPath)
 	}
 	return nil
 }

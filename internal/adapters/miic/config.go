@@ -26,6 +26,7 @@ type Config struct {
 type SiteConfig struct {
 	SourceRoot        string `yaml:"source_root"`
 	DistRoot          string `yaml:"dist_root"`
+	AllowedOutputRoot string `yaml:"allowed_output_root,omitempty"`
 	PreviewRoot       string `yaml:"preview_root"`
 	NewsTemplate      string `yaml:"news_template"`
 	BusinessTemplate  string `yaml:"business_template"`
@@ -92,7 +93,7 @@ func FromSnapshot(snapshot coreconfig.Snapshot) (Config, error) {
 	}
 	cfg := Config{
 		Site: SiteConfig{
-			SourceRoot: snapshot.Paths.SourceRoot, DistRoot: snapshot.Paths.DistRoot, PreviewRoot: snapshot.Paths.PreviewRoot,
+			SourceRoot: snapshot.Paths.SourceRoot, DistRoot: snapshot.Paths.DistRoot, AllowedOutputRoot: snapshot.Paths.AllowedOutputRoot, PreviewRoot: snapshot.Paths.PreviewRoot,
 			NewsTemplate: snapshot.Paths.Templates["news"], BusinessTemplate: snapshot.Paths.Templates["business"],
 			PlatformsTemplate: snapshot.Paths.Templates["platforms"], AboutTemplate: snapshot.Paths.Templates["about"],
 			ListTemplate: snapshot.Paths.Templates["list"], ArticleTemplate: snapshot.Paths.Templates["article"],
@@ -137,6 +138,9 @@ func LoadLegacyConfig(path string) (Config, error) {
 	}
 	legacy.Site.SourceRoot = resolve(legacy.Site.SourceRoot)
 	legacy.Site.DistRoot = resolve(legacy.Site.DistRoot)
+	if strings.TrimSpace(legacy.Site.AllowedOutputRoot) != "" {
+		legacy.Site.AllowedOutputRoot = resolve(legacy.Site.AllowedOutputRoot)
+	}
 	legacy.Site.PreviewRoot = resolve(legacy.Site.PreviewRoot)
 	legacy.Site.NewsTemplate = resolve(legacy.Site.NewsTemplate)
 	if strings.TrimSpace(legacy.Site.BusinessTemplate) == "" {

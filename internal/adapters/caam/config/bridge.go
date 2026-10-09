@@ -50,7 +50,7 @@ func FromSnapshot(snapshot coreconfig.Snapshot) (Config, error) {
 		Site: SiteConfig{
 			Template: snapshot.Paths.Templates["home"], ListTemplate: snapshot.Paths.Templates["list"],
 			ArticleTemplate: snapshot.Paths.Templates["article"], OutputRoot: snapshot.Paths.SourceRoot,
-			DistRoot: snapshot.Paths.DistRoot, PageSize: adapter.Site.PageSize, Timezone: snapshot.Site.Timezone,
+			DistRoot: snapshot.Paths.DistRoot, AllowedOutputRoot: snapshot.Paths.AllowedOutputRoot, PageSize: adapter.Site.PageSize, Timezone: snapshot.Site.Timezone,
 			LockStaleAfter: adapter.Site.LockStaleAfter, PageName: adapter.Site.PageName, AllowEmptyStats: adapter.Site.AllowEmptyStats,
 		},
 		Columns: adapter.Columns, About: adapter.About, WorkPage: adapter.WorkPage, StatsPage: adapter.StatsPage,

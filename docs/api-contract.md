@@ -34,11 +34,11 @@
 
 | 参数 | 适用端点 | 说明 |
 | --- | --- | --- |
-| `path` | 所有生成/删除操作 | 可选，`paths.dist_root` 本身或其下级绝对目录；缺省使用 `paths.dist_root` |
+| `path` | 所有生成/删除操作 | 可选，`paths.allowed_output_root` 本身或其下级绝对目录；缺省使用 `paths.dist_root` |
 | `gray` | `site`、`pages`、`page` | 可选，字符串 `1` 开启、`2` 关闭；缺省为关闭 |
 | `refresh` | `article` | 可选，`related` 或 `none`；缺省为 `related` |
 
-`lists`、`articles` 和 `topics` 批处理不接受 `gray=1`。`path` 只能是配置 `dist_root` 本身或其下级目录；服务还会拒绝路径穿越和符号链接逃逸。
+`lists`、`articles` 和 `topics` 批处理不接受 `gray=1`。`path` 只能是配置 `allowed_output_root` 本身或其下级目录；未配置该字段时安全根就是 `dist_root`。服务还会拒绝路径穿越、源目录重叠和符号链接逃逸。
 
 ## 4. 批处理
 

@@ -16,6 +16,7 @@ import (
 
 type TopicService struct {
 	Store       *Store
+	DefaultRoot string
 	AllowedRoot string
 	Location    *time.Location
 }
@@ -144,6 +145,9 @@ func (s TopicService) Delete(ctx context.Context, id int64) (contracts.DeleteTop
 func (s TopicService) outputRoot(ctx context.Context) string {
 	if output := strings.TrimSpace(contracts.OptionsFrom(ctx).OutputPath); output != "" {
 		return filepath.Clean(output)
+	}
+	if root := strings.TrimSpace(s.DefaultRoot); root != "" {
+		return filepath.Clean(root)
 	}
 	return filepath.Clean(s.AllowedRoot)
 }

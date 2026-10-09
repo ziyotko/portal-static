@@ -22,6 +22,8 @@ server:
 paths:
   source_root: ../internal/adapters/camie/testdata/site
   dist_root: ../dist/camie-portal
+  # Dia may select this directory or any descendant; omitted means dist_root only.
+  allowed_output_root: ../dist
   preview_root: ../dist/camie-preview
   templates:
     layout: ../templates/layout.html.tmpl

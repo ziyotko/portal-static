@@ -23,6 +23,7 @@ paths:
   # 原工程只作为只读页面脚手架；portal-static 不会写入该目录。
   source_root: ../../miic-portal
   dist_root: ../dist/miic-portal
+  allowed_output_root: ../dist
   preview_root: ../dist/miic-preview
   # preview 使用这些只读文件；production 每次直接从 template 表读取源码。
   # MIIC 确认生产 template.code 后可增加 template_codes 显式绑定；未配置时使用下方页面唯一名称。

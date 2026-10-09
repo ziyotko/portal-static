@@ -20,6 +20,7 @@ import (
 // static file layout.
 type RoutePublisher struct {
 	Store       *Store
+	DefaultRoot string
 	AllowedRoot string
 	Routes      map[string]string
 }
@@ -175,7 +176,10 @@ func (p RoutePublisher) PublishAllLists(ctx context.Context) error {
 func (p RoutePublisher) root(ctx context.Context) (string, error) {
 	root := strings.TrimSpace(contracts.OptionsFrom(ctx).OutputPath)
 	if root == "" {
-		root = p.AllowedRoot
+		root = strings.TrimSpace(p.DefaultRoot)
+		if root == "" {
+			root = p.AllowedRoot
+		}
 	}
 	root, err := filepath.Abs(filepath.Clean(root))
 	if err != nil {

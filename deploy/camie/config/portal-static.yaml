@@ -22,6 +22,7 @@ server:
 paths:
   source_root: /opt/camie/current/share/camie-site
   dist_root: /srv/camie/site
+  allowed_output_root: /srv/camie/site
   preview_root: /srv/camie/preview
   templates:
     layout: /opt/camie/current/share/camie-preview-templates/layout.html.tmpl

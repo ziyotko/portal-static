@@ -106,8 +106,12 @@ func (g *Generator) resolveOutputPath(raw string) (string, error) {
 	if filepath.Dir(target) == target {
 		return "", fmt.Errorf("%w: path must not be a volume root", ErrInvalidOutputPath)
 	}
-	if !safeOutputPath(g.cfg.Site.DistRoot, target) {
-		return "", fmt.Errorf("%w: path must be the configured dist_root or one of its descendants", ErrInvalidOutputPath)
+	allowedRoot := strings.TrimSpace(g.cfg.Site.AllowedOutputRoot)
+	if allowedRoot == "" {
+		allowedRoot = g.cfg.Site.DistRoot
+	}
+	if !safeOutputPath(allowedRoot, target) {
+		return "", fmt.Errorf("%w: path must be the configured allowed_output_root or one of its descendants", ErrInvalidOutputPath)
 	}
 	return target, nil
 }

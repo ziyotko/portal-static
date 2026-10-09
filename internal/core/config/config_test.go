@@ -27,6 +27,9 @@ func TestManagerReloadsGenerationConfigAndDetectsBootstrapChanges(t *testing.T) 
 	if err != nil {
 		t.Fatal(err)
 	}
+	if first.Paths.AllowedOutputRoot != filepath.Clean(filepath.Join(dir, "../dist")) {
+		t.Fatalf("allowed output root = %q", first.Paths.AllowedOutputRoot)
+	}
 	write("cdn\n  base_url: https://cdn.example.com", "127.0.0.1:9143")
 	second, err := manager.Load()
 	if err != nil {
@@ -80,6 +83,7 @@ server:
 paths:
   source_root: .
   dist_root: ../dist/site
+  allowed_output_root: ../dist
   templates:
     news: templates/news.html.tmpl
 media:

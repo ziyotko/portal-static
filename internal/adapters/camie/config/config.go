@@ -22,6 +22,7 @@ type Config struct {
 	Site struct {
 		SourceRoot         string
 		DistRoot           string
+		AllowedOutputRoot  string
 		PreviewRoot        string
 		TemplateRoot       string
 		PageName           string
@@ -63,6 +64,10 @@ func FromSnapshot(snapshot coreconfig.Snapshot) (Config, error) {
 	var cfg Config
 	cfg.Site.SourceRoot = snapshot.Paths.SourceRoot
 	cfg.Site.DistRoot = snapshot.Paths.DistRoot
+	cfg.Site.AllowedOutputRoot = snapshot.Paths.AllowedOutputRoot
+	if strings.TrimSpace(cfg.Site.AllowedOutputRoot) == "" {
+		cfg.Site.AllowedOutputRoot = cfg.Site.DistRoot
+	}
 	cfg.Site.PreviewRoot = snapshot.Paths.PreviewRoot
 	cfg.Site.Timezone = snapshot.Site.Timezone
 	cfg.Site.MediaBaseURL = snapshot.Media.BaseURL
@@ -141,7 +146,7 @@ func ValidateOutput(source, target string) error {
 	if err != nil {
 		return err
 	}
-	if strings.EqualFold(sourceAbs, targetAbs) || targetAbs == filepath.VolumeName(targetAbs)+string(filepath.Separator) {
+	if pathsOverlap(sourceAbs, targetAbs) || targetAbs == filepath.VolumeName(targetAbs)+string(filepath.Separator) {
 		return errors.New("invalid camie output path")
 	}
 	for path := targetAbs; ; path = filepath.Dir(path) {
@@ -157,4 +162,16 @@ func ValidateOutput(source, target string) error {
 		}
 	}
 	return nil
+}
+
+func pathsOverlap(first, second string) bool {
+	return pathContains(first, second) || pathContains(second, first)
+}
+
+func pathContains(parent, child string) bool {
+	relative, err := filepath.Rel(parent, child)
+	if err != nil {
+		return false
+	}
+	return relative == "." || (relative != ".." && !strings.HasPrefix(relative, ".."+string(filepath.Separator)) && !filepath.IsAbs(relative))
 }

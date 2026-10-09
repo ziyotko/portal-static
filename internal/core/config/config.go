@@ -54,13 +54,14 @@ type ServerConfig struct {
 }
 
 type PathsConfig struct {
-	SourceRoot    string            `yaml:"source_root"`
-	DistRoot      string            `yaml:"dist_root"`
-	PreviewRoot   string            `yaml:"preview_root,omitempty"`
-	Templates     map[string]string `yaml:"templates"`
-	TemplateCodes map[string]string `yaml:"template_codes,omitempty"`
-	Routes        map[string]string `yaml:"-"`
-	Assets        []string          `yaml:"assets,omitempty"`
+	SourceRoot        string            `yaml:"source_root"`
+	DistRoot          string            `yaml:"dist_root"`
+	AllowedOutputRoot string            `yaml:"allowed_output_root,omitempty"`
+	PreviewRoot       string            `yaml:"preview_root,omitempty"`
+	Templates         map[string]string `yaml:"templates"`
+	TemplateCodes     map[string]string `yaml:"template_codes,omitempty"`
+	Routes            map[string]string `yaml:"-"`
+	Assets            []string          `yaml:"assets,omitempty"`
 }
 
 type Snapshot struct {
@@ -188,6 +189,19 @@ func (d Document) Validate() error {
 	if filepath.Clean(d.Paths.SourceRoot) == filepath.Clean(d.Paths.DistRoot) {
 		return errors.New("paths.source_root and paths.dist_root must differ")
 	}
+	allowedRoot := d.Paths.AllowedOutputRoot
+	if strings.TrimSpace(allowedRoot) == "" {
+		allowedRoot = d.Paths.DistRoot
+	}
+	if filepath.Dir(filepath.Clean(allowedRoot)) == filepath.Clean(allowedRoot) {
+		return errors.New("paths.allowed_output_root must not be a volume root")
+	}
+	if !pathContains(allowedRoot, d.Paths.DistRoot) {
+		return errors.New("paths.dist_root must equal paths.allowed_output_root or be one of its descendants")
+	}
+	if pathsOverlap(d.Paths.SourceRoot, allowedRoot) {
+		return errors.New("paths.source_root and paths.allowed_output_root must not overlap")
+	}
 	if _, err := media.New(d.Media); err != nil {
 		return err
 	}
@@ -215,13 +229,20 @@ func (d DatabaseConfig) ValidateMySQL() error {
 
 func resolvePaths(base string, paths *PathsConfig) error {
 	resolve := func(value string, relativeTo string) string {
-		if value == "" || filepath.IsAbs(value) {
+		if value == "" {
+			return ""
+		}
+		if filepath.IsAbs(value) {
 			return filepath.Clean(value)
 		}
 		return filepath.Clean(filepath.Join(relativeTo, value))
 	}
 	paths.SourceRoot = resolve(paths.SourceRoot, base)
 	paths.DistRoot = resolve(paths.DistRoot, base)
+	paths.AllowedOutputRoot = resolve(paths.AllowedOutputRoot, base)
+	if strings.TrimSpace(paths.AllowedOutputRoot) == "" {
+		paths.AllowedOutputRoot = paths.DistRoot
+	}
 	paths.PreviewRoot = resolve(paths.PreviewRoot, base)
 	for name, value := range paths.Templates {
 		paths.Templates[name] = resolve(value, paths.SourceRoot)
@@ -230,4 +251,24 @@ func resolvePaths(base string, paths *PathsConfig) error {
 		paths.Assets[index] = resolve(value, paths.SourceRoot)
 	}
 	return nil
+}
+
+func pathsOverlap(first, second string) bool {
+	return pathContains(first, second) || pathContains(second, first)
+}
+
+func pathContains(parent, child string) bool {
+	parent, err := filepath.Abs(filepath.Clean(parent))
+	if err != nil {
+		return false
+	}
+	child, err = filepath.Abs(filepath.Clean(child))
+	if err != nil {
+		return false
+	}
+	relative, err := filepath.Rel(parent, child)
+	if err != nil {
+		return false
+	}
+	return relative == "." || (relative != ".." && !strings.HasPrefix(relative, ".."+string(filepath.Separator)) && !filepath.IsAbs(relative))
 }

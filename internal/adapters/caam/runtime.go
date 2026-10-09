@@ -43,6 +43,7 @@ func NewPreview(snapshot coreconfig.Snapshot, logger *slog.Logger) (config.Confi
 		return config.Config{}, nil, err
 	}
 	cfg.Site.DistRoot = snapshot.Paths.PreviewRoot
+	cfg.Site.AllowedOutputRoot = snapshot.Paths.PreviewRoot
 	site, err := newSiteGenerator(cfg, demo.NewSiteSource(cfg), logger)
 	return cfg, site, err
 }

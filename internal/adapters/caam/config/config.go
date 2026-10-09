@@ -61,18 +61,19 @@ type ServerConfig struct {
 }
 
 type SiteConfig struct {
-	Template        string `yaml:"template"`
-	Output          string `yaml:"output"`
-	ListTemplate    string `yaml:"list_template"`
-	ArticleTemplate string `yaml:"article_template"`
-	OutputRoot      string `yaml:"output_root"`
-	DistRoot        string `yaml:"dist_root"`
-	PageSize        int    `yaml:"page_size"`
-	MediaBaseURL    string `yaml:"media_base_url"`
-	Timezone        string `yaml:"timezone"`
-	LockStaleAfter  string `yaml:"lock_stale_after"`
-	PageName        string `yaml:"page_name"`
-	AllowEmptyStats bool   `yaml:"allow_empty_stats"`
+	Template          string `yaml:"template"`
+	Output            string `yaml:"output"`
+	ListTemplate      string `yaml:"list_template"`
+	ArticleTemplate   string `yaml:"article_template"`
+	OutputRoot        string `yaml:"output_root"`
+	DistRoot          string `yaml:"dist_root"`
+	AllowedOutputRoot string `yaml:"allowed_output_root,omitempty"`
+	PageSize          int    `yaml:"page_size"`
+	MediaBaseURL      string `yaml:"media_base_url"`
+	Timezone          string `yaml:"timezone"`
+	LockStaleAfter    string `yaml:"lock_stale_after"`
+	PageName          string `yaml:"page_name"`
+	AllowEmptyStats   bool   `yaml:"allow_empty_stats"`
 }
 
 type AboutConfig struct {
@@ -322,6 +323,11 @@ func Load(path string) (Config, error) {
 	}
 	if !filepath.IsAbs(cfg.Site.DistRoot) {
 		cfg.Site.DistRoot = filepath.Join(base, cfg.Site.DistRoot)
+	}
+	if strings.TrimSpace(cfg.Site.AllowedOutputRoot) == "" {
+		cfg.Site.AllowedOutputRoot = cfg.Site.DistRoot
+	} else if !filepath.IsAbs(cfg.Site.AllowedOutputRoot) {
+		cfg.Site.AllowedOutputRoot = filepath.Join(base, cfg.Site.AllowedOutputRoot)
 	}
 	if !filepath.IsAbs(cfg.About.Template) {
 		cfg.About.Template = filepath.Join(base, cfg.About.Template)

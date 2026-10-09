@@ -21,7 +21,7 @@
 
 1. 固定同一轮联调验收的 `portal-static`、Portal、Member 代码版本和数据库结构；按 `dia-platform/business/portal/DEPLOY.md` 与 `dia-platform/business/member/DEPLOY.md` 完成数据库迁移与服务配置。旧 SQL 如仍含 `page_id` / `page`，先按门户部署说明核对并迁移，不能直接与当前按 `column.template_id` 取数的结构混用。
 2. 在 `camie_portal` 核对七条顶部页面模板 `camie-home`、`camie-party`、`camie-ministry`、`camie-news`、`camie-training`、`camie-standards`、`camie-about`，以及 `camie-list`、`camie-article`、`camie-layout`。模板须启用、有正确 `type`、`code` 和 `source_code`；栏目绑定到正确模板，稳定 `column.code` 不应因改名而改变。生产生成会从数据库读取模板；仓库示例模板只用于预览和资源打包。
-3. 规划只读资源目录、独立静态产物目录、预览目录和回滚版本目录。`paths.source_root` 指向随本版本发布的 CAMIE `site` 资源；`paths.dist_root`、`paths.preview_root` 与源码目录不能相同或互相包含。服务账号可读资源与配置，可写产物目录及其父目录中的临时发布目录。
+3. 规划只读资源目录、独立静态产物目录、预览目录和回滚版本目录。`paths.source_root` 指向随本版本发布的 CAMIE `site` 资源；`paths.dist_root` 是默认产物目录，`paths.allowed_output_root` 是 Dia 可选路径的安全边界，`paths.preview_root` 是预览目录。所有输出目录均不得与源码目录重叠。服务账号可读资源与配置，可写产物目录及其父目录中的临时发布目录。
 4. 先备份两库、上述上传目录、当前线上静态产物和数据库模板；校验备份可恢复。不要在生成目录中手工改 HTML、JS、CSS；重建会覆盖这些改动。
 
 ## 3. 静态化配置与启动
@@ -34,7 +34,7 @@
 | `database.dsn_env` / `database.schema` | 例如 `CAMIE_DB_DSN` / `camie_portal`；DSN 仅通过受保护环境变量注入 |
 | `server.addr` / `server.token_env` | 内网或回环监听；例如 `127.0.0.1:9144` / `CAMIE_STATIC_TOKEN` |
 | `paths.source_root` | 与构建版本匹配的只读 CAMIE 资源目录 |
-| `paths.dist_root` / `paths.preview_root` | 两个独立的绝对目录；Web 服务只读取正式产物 |
+| `paths.dist_root` / `paths.allowed_output_root` / `paths.preview_root` | 默认正式目录、Dia 可选路径安全根、预览目录；生产若只允许一个目录，可让前两者相同 |
 | `paths.template_codes` | 与上述十条数据库模板的稳定 code 一致 |
 | `adapter.site.page_name` / `hero_column` | `环保机械协会` / `news-hot`；后者也是只有首页轮播投放时详情侧栏的回退栏目 |
 | `adapter.site.member_login_path` / `member_register_path` | 同源根路径 `/business_member/login`、`/business_member/register`；修改后重建全站 |
@@ -50,7 +50,7 @@ curl --fail http://127.0.0.1:9144/healthz
 
 上述命令需要先通过受保护的环境文件注入 `CAMIE_DB_DSN`、`CAMIE_STATIC_TOKEN`；`camie-staging.yaml` 的输出目录须与正式目录不同。长期运行宜使用独立的 systemd unit，按 [通用部署指南](deployment.md) 把站点名、YAML、环境文件、端口、读写目录改成 CAMIE。启动后从 Dia “静态化管理”执行全站生成并确认任务成功。
 
-Dia 门户后台“静态化设置”的**输出路径**必须与此站点的 `dist_root` 一致，**访问地址**必须从后台进程可达，**访问令牌名**填 `CAMIE_STATIC_TOKEN` 之类的环境变量名；Portal 与静态化进程须注入同名同值的令牌。令牌值、数据库口令和 JWT 密钥不得写入 Git 或截图。
+Dia 门户后台“静态化设置”的**输出路径**优先于 `dist_root`，但必须等于 `allowed_output_root` 或位于其下级；Dia 未配置或请求未携带路径时使用 `dist_root`。**访问地址**必须从后台进程可达，**访问令牌名**填 `CAMIE_STATIC_TOKEN` 之类的环境变量名；Portal 与静态化进程须注入同名同值的令牌。令牌值、数据库口令和 JWT 密钥不得写入 Git 或截图。
 
 ## 4. 同域名路由
 

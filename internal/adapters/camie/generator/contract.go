@@ -37,7 +37,11 @@ func (g *Generator) ValidateOutputPath(raw string) error {
 	if !filepath.IsAbs(raw) {
 		return fmt.Errorf("%w: path must be absolute", contracts.ErrInvalidOutputPath)
 	}
-	allowed, err := filepath.Abs(g.cfg.Site.DistRoot)
+	allowedRoot := strings.TrimSpace(g.cfg.Site.AllowedOutputRoot)
+	if allowedRoot == "" {
+		allowedRoot = g.cfg.Site.DistRoot
+	}
+	allowed, err := filepath.Abs(allowedRoot)
 	if err != nil {
 		return err
 	}
@@ -51,7 +55,7 @@ func (g *Generator) ValidateOutputPath(raw string) error {
 	}
 	rel, err := filepath.Rel(allowed, target)
 	if err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) || filepath.IsAbs(rel) {
-		return fmt.Errorf("%w: path must be the configured dist_root or one of its descendants", contracts.ErrInvalidOutputPath)
+		return fmt.Errorf("%w: path must be the configured allowed_output_root or one of its descendants", contracts.ErrInvalidOutputPath)
 	}
 	return configOutput(g.cfg.Site.SourceRoot, target)
 }

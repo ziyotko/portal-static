@@ -54,7 +54,7 @@ func (Factory) Build(ctx context.Context, mode platform.Mode, snapshot coreconfi
 
 func caamProductionOperations(snapshot coreconfig.Snapshot, initialRoutes map[string]string, store *portalcms.Store, validator *generator.SiteGenerator, logger *slog.Logger) httpapi.Operations {
 	base := Operations(validator)
-	base = portalcms.WithRouteAliases(base, portalcms.RoutePublisher{Store: store, AllowedRoot: snapshot.Paths.DistRoot, Routes: initialRoutes}, portalcms.LegacyCAAMMainFiles())
+	base = portalcms.WithRouteAliases(base, portalcms.RoutePublisher{Store: store, DefaultRoot: snapshot.Paths.DistRoot, AllowedRoot: snapshot.Paths.AllowedOutputRoot, Routes: initialRoutes}, portalcms.LegacyCAAMMainFiles())
 	base = withCAAMTopics(base, store, snapshot)
 	load := func(ctx context.Context) (httpapi.Operations, func() error, error) {
 		productionSnapshot, cleanup, err := caamDatabaseTemplateSnapshot(ctx, snapshot, store)
@@ -66,7 +66,7 @@ func caamProductionOperations(snapshot coreconfig.Snapshot, initialRoutes map[st
 			return httpapi.Operations{}, nil, errors.Join(err, cleanup())
 		}
 		operations := Operations(service)
-		operations = portalcms.WithRouteAliases(operations, portalcms.RoutePublisher{Store: store, AllowedRoot: snapshot.Paths.DistRoot, Routes: productionSnapshot.Paths.Routes}, portalcms.LegacyCAAMMainFiles())
+		operations = portalcms.WithRouteAliases(operations, portalcms.RoutePublisher{Store: store, DefaultRoot: snapshot.Paths.DistRoot, AllowedRoot: snapshot.Paths.AllowedOutputRoot, Routes: productionSnapshot.Paths.Routes}, portalcms.LegacyCAAMMainFiles())
 		return operations, cleanup, nil
 	}
 	return httpapi.ReloadingOperations(base, load)
@@ -74,7 +74,7 @@ func caamProductionOperations(snapshot coreconfig.Snapshot, initialRoutes map[st
 
 func withCAAMTopics(operations httpapi.Operations, store *portalcms.Store, snapshot coreconfig.Snapshot) httpapi.Operations {
 	location, _ := time.LoadLocation(snapshot.Site.Timezone)
-	service := portalcms.TopicService{Store: store, AllowedRoot: snapshot.Paths.DistRoot, Location: location}
+	service := portalcms.TopicService{Store: store, DefaultRoot: snapshot.Paths.DistRoot, AllowedRoot: snapshot.Paths.AllowedOutputRoot, Location: location}
 	operations.GenerateTopics = func(ctx context.Context) (any, error) { return service.GenerateAll(ctx) }
 	operations.GenerateTopic = func(ctx context.Context, id int64) (any, error) { return service.Generate(ctx, id) }
 	operations.DeleteTopic = func(ctx context.Context, id int64) (any, error) { return service.Delete(ctx, id) }

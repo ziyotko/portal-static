@@ -31,6 +31,7 @@ func (Factory) Build(ctx context.Context, mode platform.Mode, snapshot coreconfi
 			return nil, err
 		}
 		cfg.Site.DistRoot = cfg.Site.PreviewRoot
+		cfg.Site.AllowedOutputRoot = cfg.Site.PreviewRoot
 		service := NewService(generator.New(cfg, demo.NewSource()), cfg.Site.PageSize)
 		return platform.NewRuntime(operations(service), nil)
 	case platform.Production:

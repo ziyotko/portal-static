@@ -27,6 +27,7 @@ func (Factory) Build(ctx context.Context, mode platform.Mode, snapshot coreconfi
 	switch mode {
 	case platform.Preview:
 		cfg.Site.DistRoot = cfg.Site.PreviewRoot
+		cfg.Site.AllowedOutputRoot = cfg.Site.PreviewRoot
 		service, err := New(cfg, demo.NewSource(), logger)
 		if err != nil {
 			return nil, err
@@ -76,7 +77,7 @@ func buildMIICProductionRuntime(ctx context.Context, snapshot coreconfig.Snapsho
 
 func miicProductionOperations(snapshot coreconfig.Snapshot, initialRoutes map[string]string, cfg Config, store *portalcms.Store, validator *Generator, logger *slog.Logger) httpapi.Operations {
 	base := httpapi.OperationsForGenerator(validator, NormalizePageName, "页面名必须是：资讯动态、核心业务、服务平台或关于我们")
-	base = portalcms.WithRouteAliases(base, portalcms.RoutePublisher{Store: store, AllowedRoot: snapshot.Paths.DistRoot, Routes: initialRoutes}, portalcms.LegacyMainFiles("news", "business", "platforms", "about"))
+	base = portalcms.WithRouteAliases(base, portalcms.RoutePublisher{Store: store, DefaultRoot: snapshot.Paths.DistRoot, AllowedRoot: snapshot.Paths.AllowedOutputRoot, Routes: initialRoutes}, portalcms.LegacyMainFiles("news", "business", "platforms", "about"))
 	base = withMIICTopics(base, store, snapshot)
 	load := func(ctx context.Context) (httpapi.Operations, func() error, error) {
 		productionSnapshot, cleanup, err := miicDatabaseTemplateSnapshot(ctx, snapshot, cfg, store)
@@ -96,7 +97,7 @@ func miicProductionOperations(snapshot coreconfig.Snapshot, initialRoutes map[st
 			return httpapi.Operations{}, nil, errors.Join(err, cleanup())
 		}
 		operations := httpapi.OperationsForGenerator(service, NormalizePageName, "页面名必须是：资讯动态、核心业务、服务平台或关于我们")
-		operations = portalcms.WithRouteAliases(operations, portalcms.RoutePublisher{Store: store, AllowedRoot: snapshot.Paths.DistRoot, Routes: productionSnapshot.Paths.Routes}, portalcms.LegacyMainFiles("news", "business", "platforms", "about"))
+		operations = portalcms.WithRouteAliases(operations, portalcms.RoutePublisher{Store: store, DefaultRoot: snapshot.Paths.DistRoot, AllowedRoot: snapshot.Paths.AllowedOutputRoot, Routes: productionSnapshot.Paths.Routes}, portalcms.LegacyMainFiles("news", "business", "platforms", "about"))
 		return operations, cleanup, nil
 	}
 	return httpapi.ReloadingOperations(base, load)
@@ -104,7 +105,7 @@ func miicProductionOperations(snapshot coreconfig.Snapshot, initialRoutes map[st
 
 func withMIICTopics(operations httpapi.Operations, store *portalcms.Store, snapshot coreconfig.Snapshot) httpapi.Operations {
 	location, _ := time.LoadLocation(snapshot.Site.Timezone)
-	service := portalcms.TopicService{Store: store, AllowedRoot: snapshot.Paths.DistRoot, Location: location}
+	service := portalcms.TopicService{Store: store, DefaultRoot: snapshot.Paths.DistRoot, AllowedRoot: snapshot.Paths.AllowedOutputRoot, Location: location}
 	operations.GenerateTopics = func(ctx context.Context) (any, error) { return service.GenerateAll(ctx) }
 	operations.GenerateTopic = func(ctx context.Context, id int64) (any, error) { return service.Generate(ctx, id) }
 	operations.DeleteTopic = func(ctx context.Context, id int64) (any, error) { return service.Delete(ctx, id) }

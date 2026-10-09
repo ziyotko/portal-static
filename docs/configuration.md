@@ -33,6 +33,7 @@ server:
 paths:
   source_root: /srv/portal-source/example
   dist_root: /srv/portal-static/example/site
+  allowed_output_root: /srv/portal-static/example
   preview_root: /srv/portal-static/preview/example
   templates:
     home: templates/home.html.tmpl
@@ -107,7 +108,8 @@ EXAMPLE_DB_DSN='portal_reader:password@tcp(127.0.0.1:3306)/example_portal?charse
 | 字段 | 说明 |
 | --- | --- |
 | `source_root` | 原门户静态资源脚手架，只读；不是 Portal CMS 生产模板的权威来源 |
-| `dist_root` | `generate` 和默认生产操作输出目录 |
+| `dist_root` | `generate` 和未传 `path` 时的默认生产输出目录 |
+| `allowed_output_root` | Dia 请求可指定的安全输出根；可选，缺省等于 `dist_root` |
 | `preview_root` | `preview` 输出目录 |
 | `templates` | preview 所需模板名到路径映射；相对路径以 `source_root` 为基准。Portal CMS production 会以数据库模板覆盖这些路径 |
 | `template_codes` | 可选；内部模板 Key 到唯一 `template.code` 的生产绑定。未设置时使用适配器定义的唯一模板名称 |
@@ -116,7 +118,7 @@ EXAMPLE_DB_DSN='portal_reader:password@tcp(127.0.0.1:3306)/example_portal?charse
 约束：
 
 - `source_root` 与任何输出目录不能相同或重叠。
-- HTTP 请求中的 `path` 必须是绝对非根目录，并且只能等于 `dist_root` 或位于其下级目录；还会检查已有符号链接祖先。
+- HTTP 请求中的 `path` 必须是绝对非根目录，并且只能等于 `allowed_output_root` 或位于其下级目录；还会检查已有符号链接祖先。`dist_root` 必须位于该安全根内。
 - 不允许把 `miic-portal`、`caam-portal` 或其他源工程作为输出目录。
 - 运行账号需要读取源目录、写入输出目录和创建同级临时目录的权限。
 

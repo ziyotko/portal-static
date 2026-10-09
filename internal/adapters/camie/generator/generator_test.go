@@ -2,6 +2,7 @@ package generator
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -13,6 +14,7 @@ import (
 	"portal-static/internal/adapters/camie/config"
 	"portal-static/internal/adapters/camie/demo"
 	"portal-static/internal/adapters/camie/model"
+	"portal-static/internal/contracts"
 )
 
 func testConfig(t *testing.T) config.Config {
@@ -39,6 +41,29 @@ func testConfig(t *testing.T) config.Config {
 	cfg.Site.MemberLoginPath = "/member-entry/login?site=camie"
 	cfg.Site.MemberRegisterPath = "/member-entry/register"
 	return cfg
+}
+
+func TestRequestedOutputUsesAllowedRootInsteadOfDefaultDistRoot(t *testing.T) {
+	cfg := testConfig(t)
+	parent := t.TempDir()
+	cfg.Site.DistRoot = filepath.Join(parent, "default-site")
+	cfg.Site.AllowedOutputRoot = filepath.Join(parent, "published")
+	requested := filepath.Join(cfg.Site.AllowedOutputRoot, "dia-site")
+	generator := New(cfg, demo.NewSource())
+
+	if err := generator.ValidateOutputPath(requested); err != nil {
+		t.Fatalf("requested Dia output was rejected: %v", err)
+	}
+	if err := generator.ValidateOutputPath(filepath.Join(parent, "outside")); !errors.Is(err, contracts.ErrInvalidOutputPath) {
+		t.Fatalf("outside output error = %v, want ErrInvalidOutputPath", err)
+	}
+	result, err := generator.GenerateSite(contracts.WithOptions(context.Background(), requested, false))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if filepath.Clean(result.Output) != filepath.Clean(requested) {
+		t.Fatalf("output = %q, want %q", result.Output, requested)
+	}
 }
 
 func TestHomeGroupUsesBoundHomeColumn(t *testing.T) {
