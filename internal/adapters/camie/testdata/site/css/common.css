@@ -556,6 +556,9 @@ img { display: block; max-width: 100%; }
 .friend-links { display: flex; flex-wrap: wrap; gap: 5px 30px; font-size: 16px; }
 .friend-links a:hover { text-decoration: underline; }
 .copyright { margin-top: 13px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,.1); text-align: center; }
+.beian-record { display: inline-flex; align-items: center; gap: 4px; vertical-align: middle; white-space: nowrap; }
+.beian-record:hover { text-decoration: underline; }
+.beian-record img { display: block; width: 20px; height: 20px; }
 
 .toast {
   position: fixed;

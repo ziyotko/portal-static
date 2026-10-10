@@ -53,6 +53,25 @@ BEGIN
     SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'required CAMIE navigation root columns are missing';
   END IF;
 
+  SELECT COUNT(*) INTO issue_count
+    FROM article_column_publish p
+    JOIN `column` legacy ON legacy.id=p.column_id
+   WHERE (legacy.code='home' OR legacy.code LIKE 'home-%')
+     AND NOT EXISTS (
+       SELECT 1 FROM article_column_publish current_p
+       JOIN `column` current_c ON current_c.id=current_p.column_id AND current_c.status=1
+        WHERE current_p.article_id=p.article_id
+          AND current_c.code=CASE legacy.code
+            WHEN 'home' THEN 'news-hot'
+            WHEN 'home-hero' THEN 'news-hot'
+            WHEN 'home-experts' THEN 'about-expert-insights'
+            ELSE SUBSTRING(legacy.code, 6)
+          END
+     );
+  IF issue_count > 0 THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'publish legacy home articles to their formal columns before migration';
+  END IF;
+
   SELECT IF(COUNT(*) = 1, 0, 1) INTO issue_count FROM setting;
   IF issue_count > 0 THEN
     SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'setting table must contain exactly one row';
@@ -99,7 +118,7 @@ INSERT IGNORE INTO camie_deploy_template_backup
   (release_version, template_id, name, code, type, route_path, description, status, source_code, layout)
 SELECT @release_version, id, name, code, type, route_path, description, status, source_code, layout
   FROM template
- WHERE code IN ('camie-layout','camie-home','camie-party','camie-ministry','camie-news','camie-training','camie-standards','camie-list','camie-article','camie-about');
+ WHERE code IN ('camie-layout','camie-home','camie-home-legacy','camie-party','camie-ministry','camie-news','camie-training','camie-standards','camie-list','camie-article','camie-about');
 
 INSERT IGNORE INTO camie_deploy_column_backup (release_version, column_id, template_id, status)
 SELECT @release_version, id, template_id, status FROM `column`;
@@ -150,36 +169,20 @@ UPDATE template SET name='通用栏目', type='column', route_path=NULL, descrip
 UPDATE template SET name='通用详情', type='detail', route_path=NULL, description='CAMIE 通用详情模板', status=1, source_code=@src_article, updated_at=NOW(3) WHERE code='camie-article';
 UPDATE template SET name='关于协会', type='home', route_path='/pages/about.html', description='CAMIE 导航页面', status=1, source_code=@src_about, updated_at=NOW(3) WHERE code='camie-about';
 
-INSERT INTO `column` (created_at, updated_at, name, code, template_id, parent_id, sort, status, display_type)
-SELECT NOW(3), NOW(3), '首页内容', 'home', t.id, 0, 0, 1, 1
- FROM template t
- WHERE t.code='camie-home' AND NOT EXISTS (SELECT 1 FROM `column` c WHERE c.code='home');
+INSERT INTO template (created_at, updated_at, name, code, type, route_path, description, status, source_code, layout)
+SELECT NOW(3), NOW(3), '历史首页栏目（已停用）', 'camie-home-legacy', 'special', NULL,
+       '旧首页栏目归档，仅保留历史投放记录', 0, '', ''
+ WHERE EXISTS (SELECT 1 FROM `column` WHERE code='home' OR code LIKE 'home-%')
+   AND NOT EXISTS (SELECT 1 FROM template WHERE code='camie-home-legacy');
 
-INSERT INTO `column` (created_at, updated_at, name, code, template_id, parent_id, sort, status, display_type)
-SELECT NOW(3), NOW(3), seed.name, seed.code, t.id, root.id, seed.sort, 1, 1
-  FROM template t
-  JOIN `column` root ON root.code='home'
-  JOIN (
-    SELECT CAST('重点新闻轮播' AS CHAR(100)) name,
-           CAST('home-hero' AS CHAR(100)) code,
-           1 sort
-    UNION ALL SELECT '通知公告', 'home-news-notice', 2
-    UNION ALL SELECT '协会动态', 'home-news-association', 3
-    UNION ALL SELECT '会员动态', 'home-news-member', 4
-    UNION ALL SELECT '会议活动', 'home-training-meetings', 5
-    UNION ALL SELECT '标准工作', 'home-standards-work', 6
-    UNION ALL SELECT '科技创新及成果转化', 'home-standards-innovation', 7
-    UNION ALL SELECT '国际交流与合作', 'home-training-international', 8
-    UNION ALL SELECT '人才培训', 'home-training-talent', 9
-    UNION ALL SELECT '行业报告', 'home-policy-reports', 10
-    UNION ALL SELECT '专家委员会', 'home-experts', 11
-  ) seed
- WHERE t.code='camie-home'
-   AND NOT EXISTS (SELECT 1 FROM `column` c WHERE c.code=seed.code);
+UPDATE template SET status=0, updated_at=NOW(3) WHERE code='camie-home-legacy';
+UPDATE `column` c
+JOIN template t ON t.code='camie-home-legacy'
+SET c.template_id=t.id, c.status=0, c.updated_at=NOW(3)
+WHERE c.code='home' OR c.code LIKE 'home-%';
 
 WITH RECURSIVE template_roots AS (
-  SELECT CAST('home' AS CHAR(100)) root_code, CAST('camie-home' AS CHAR(100)) template_code
-  UNION ALL SELECT 'party', 'camie-party'
+  SELECT CAST('party' AS CHAR(100)) root_code, CAST('camie-party' AS CHAR(100)) template_code
   UNION ALL SELECT 'ministry', 'camie-ministry'
   UNION ALL SELECT 'news', 'camie-news'
   UNION ALL SELECT 'training', 'camie-training'

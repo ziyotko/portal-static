@@ -37,40 +37,20 @@ Dia 后台已于 2026-09-21 将页面层合并进模板，使用 `column.templat
 
 | 页面位置 | 对应栏目 / 数据 | 哪些活、哪些固定 | 维护位置 |
 | --- | --- | --- | --- |
-| 顶部重点新闻轮播 | `home-hero`，最多 3 篇 | **静态活**：标题、封面、发布时间、来源、详情链接。**固定**：轮播位置与切换样式；无内容时没有自动补位 | 后台“栏目管理 → 环保机械协会 → 首页内容 → 重点新闻轮播”及“图文管理”维护；封面在文章里维护 |
-| 轮播右侧三组资讯标签 | 依次为 `home-news-notice`、`home-news-association`、`home-news-member`，每组最多 6 篇 | **静态活**：标签名取首页专用栏目名，列表取对应栏目文章。**固定**：只有这三组、顺序和每组数量上限 | 后台选“首页”模板，在对应首页子栏目投放；增减标签需改生成器 |
+| 顶部重点新闻轮播 | `adapter.site.hero_column`，当前为 `news-hot`，最多 3 篇 | **静态活**：标题、封面、发布时间、来源、详情链接。**固定**：轮播位置与切换样式；无内容时没有自动补位 | 在“新闻中心 → 热点关注”维护文章和封面 |
+| 轮播右侧三组资讯标签 | 依次为 `news-notice`、`news-association`、`news-member`，每组最多 6 篇 | **静态活**：标签名、列表和目标链接均取正式栏目。**固定**：三组顺序和每组数量上限 | 在“新闻中心”对应栏目维护；增减标签需改生成器 |
 | 快捷栏“申请入会” | `/business_member/register` | **固定入口**，注册流程属于会员系统 | 模板 `camie-home`；会员系统维护注册流程 |
 | 快捷栏“会员中心” | `pages/member.html` | **固定入口 → 实时活页面** | 模板 `camie-home`；会员栏目与内容见下文 |
 | 快捷栏“移动媒体” | 三张微信二维码图片 | **固定**图片及文字，不从后台二维码、广告或链接表取数 | `assets/images/qr-wechat-service.jpg`、`qr-wechat-video.png`、`qr-wechat-subscription.jpg` 与首页模板 |
 | 快捷栏“视频专区” | `videos.html`，聚合公开视频 | **固定入口**，目标列表是**静态活** | 首页模板固定入口；公开视频文章维护见下文 |
-| 中部六组资讯标签 | 依次为 `home-training-meetings`、`home-standards-work`、`home-standards-innovation`、`home-training-international`、`home-training-talent`、`home-policy-reports`，每组最多 6 篇 | **静态活**：标签名、标题、日期、详情链接；右侧图片取该组第一篇新闻封面，未上传封面时使用全站默认占位图。**固定**：六组顺序 | 后台选“首页”模板，在对应首页子栏目投放；图片在第一篇新闻中维护 |
+| 中部六组资讯标签 | 依次为 `training-meetings`、`standards-work`、`standards-innovation`、`training-international`、`training-talent`、`policy-reports`，每组最多 6 篇 | **静态活**：标签名、标题、日期、详情及栏目链接；右侧图片取该组第一篇新闻封面，未上传封面时使用全站默认占位图。**固定**：六组顺序 | 在“交流培训”“科技标准”“政策研究”的对应栏目维护 |
 | 大会横幅 | 点击指向 `training-meetings` | **固定**：横幅图 `assets/images/conference-banner.png`；**静态活**：点击目标按栏目 code 找到生成页。当前不读取后台“广告管理” | 首页模板及图片资源；栏目内容在“会议活动”维护 |
 | 横幅下四个专题入口 | `standards-green-promotion`、`policy-major-equipment-catalogue`、`policy-qualified-enterprises`、`policy-innovation-tasks` | **固定**：四个标题和顺序；**静态活**：链接指向各栏目生成页。当前不读取后台“友情链接管理” | 首页模板改标题/数量；后台栏目与文章改目标内容 |
 | “分支机构”九张卡片 | `branch-water`、`branch-atmosphere`、`branch-solid-waste`、`branch-monitoring`、`branch-noise`、`branch-uv`、`branch-ozone`、`branch-ai`、`branch-engineering` | **固定**：九个名称、顺序和图标；**静态活**：每张卡片指向各自栏目。后台新增第十个分支栏目不会自动长出首页卡片 | CAMIE 生成器中的 `Branches` 改卡片；后台栏目与文章改分支内容 |
-| “专家委员会” | 标题到 `about-experts`；内容取 `home-experts` 最多 3 篇 | **静态活**：首篇标题、链接和封面及其余标题；首篇未上传封面时使用全站默认占位图。**固定**：“中国环保机械行业协会／专家委员会”字样 | 后台选“首页”模板，在“首页内容 → 专家委员会”投放；封面在首篇新闻中维护 |
+| “专家委员会” | 标题到 `about-experts`；内容取 `about-expert-insights` 最多 3 篇 | **静态活**：首篇标题、链接和封面及其余标题；首篇未上传封面时使用全站默认占位图。**固定**：“中国环保机械行业协会／专家委员会”字样 | 在“关于协会 → 专家委员会 → 专家视野”维护文章和封面 |
 | “副会长单位”滚动标志 | Go 生成器的 `PartnerRows` 数组 | **固定**：单位名称、标志文件、官网 URL、排序均写在代码里；**未接入**后台“友情链接管理” | CAMIE 生成器 `PartnerRows` 与 `assets/images/partner-logos/` |
 
-首页标签的“查看更多”效果由点击标签直接进入对应首页专用栏目列表实现；悬停/聚焦只切换当前展示的列表。首页专用栏目的文章与公开分类栏目的文章可为同一篇，需在后台分别投放到两个栏目。旧数据若尚未建立 `home-*` 栏目，生成器会临时回退到原分类栏目；一旦建好首页专用栏目，即使为空也不会回退。
-
-### 首页投放栏目与文章详情侧栏
-
-`home-*` 只决定首页在哪块展示文章。点进文章详情后，左侧显示文章所属的**正式公开栏目树**，不显示“首页内容”栏目树。文章已投放到正式公开栏目时，详情优先用公开归属；若只投放首页，按下表选择详情侧栏和面包屑。首页链接中的 `from` 参数也写入该正式栏目 code。若一篇文章同时出现在多个公开栏目，详情只有一个默认侧栏，维护时应核对生成结果。
-
-| 首页投放栏目 `column.code` | 只投首页时详情使用的正式栏目 `column.code` |
-| --- | --- |
-| `home-hero` 重点新闻轮播 | `adapter.site.hero_column`，当前为 `news-hot` |
-| `home-news-notice` 通知公告 | `news-notice` |
-| `home-news-association` 协会动态 | `news-association` |
-| `home-news-member` 会员动态 | `news-member` |
-| `home-training-meetings` 会议活动 | `training-meetings` |
-| `home-standards-work` 标准工作 | `standards-work` |
-| `home-standards-innovation` 科技创新及成果转化 | `standards-innovation` |
-| `home-training-international` 国际交流与合作 | `training-international` |
-| `home-training-talent` 人才培训 | `training-talent` |
-| `home-policy-reports` 行业报告 | `policy-reports` |
-| `home-experts` 专家委员会 | `about-expert-insights` |
-
-**维护提醒：**只投首页的文章虽然能打开详情，并显示对应正式栏目侧栏，但不会自动出现在该正式栏目的列表中；要让两处都有它，应把同一篇文章 ID 同时投放到首页槽位和正式栏目，不需要复制正文。修改首页投放或正式栏目后，检查首页链接、详情左栏、栏目列表和搜索索引，并确认静态化任务成功。
+首页标签悬停或聚焦时切换展示列表，点击直接进入对应正式栏目。首页只从正式栏目读取文章，无须再投放到“首页内容”下的同名栏目。旧 `home` / `home-*` 栏目不再参与公开静态化。发布前的 SQL 检查会阻止仍有文章只投放在旧首页栏目；应先在对应正式栏目完成发布。迁移脚本把旧首页栏目移到停用的“历史首页栏目”模板，保留原投放记录供核对，并使“首页”模板不再显示这些重复栏目。
 
 ## 全站公共区域
 
@@ -117,7 +97,7 @@ Dia 后台已于 2026-09-21 将页面层合并进模板，使用 `column.templat
 
 ## 本机完整栏目树（按 `column.code` 对照）
 
-下列是本机测试库与 CAMIE 栏目结构文件核对后的 9 个原始一级栏目、64 个分类节点。顶部六个公开栏目分支分别归属上表六条页面模板；视频专区、政策研究及原会员栏目结构归 `camie-list`。首页另有 `home` 根栏目及 11 个子栏目，归 `camie-home`；首页正文区块只读取上文列出的 `home-*` code。
+下列是本机测试库与 CAMIE 栏目结构文件核对后的 9 个原始一级栏目、64 个分类节点。顶部六个公开栏目分支分别归属上表六条页面模板；视频专区、政策研究及原会员栏目结构归 `camie-list`。首页不需要独立栏目树，正文区块按上表从其他正式栏目取数。旧库若仍有 `home` / `home-*` 栏目，生成器会忽略它们。
 
 ```text
 党建专栏 party

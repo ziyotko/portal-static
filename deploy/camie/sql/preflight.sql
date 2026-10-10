@@ -33,7 +33,23 @@ SELECT 'BLOCKER', 'duplicate_column_codes', COUNT(*) FROM (
 UNION ALL
 SELECT 'BLOCKER', 'missing_required_navigation_roots', 6 - COUNT(DISTINCT code)
   FROM `column`
- WHERE code IN ('party','ministry','news','training','standards','about');
+ WHERE code IN ('party','ministry','news','training','standards','about')
+UNION ALL
+SELECT 'BLOCKER', 'legacy_home_articles_missing_formal_publication', COUNT(*)
+  FROM article_column_publish p
+  JOIN `column` legacy ON legacy.id=p.column_id
+ WHERE (legacy.code='home' OR legacy.code LIKE 'home-%')
+   AND NOT EXISTS (
+     SELECT 1 FROM article_column_publish current_p
+     JOIN `column` current_c ON current_c.id=current_p.column_id AND current_c.status=1
+      WHERE current_p.article_id=p.article_id
+        AND current_c.code=CASE legacy.code
+          WHEN 'home' THEN 'news-hot'
+          WHEN 'home-hero' THEN 'news-hot'
+          WHEN 'home-experts' THEN 'about-expert-insights'
+          ELSE SUBSTRING(legacy.code, 6)
+        END
+   );
 
 SELECT 'INFO' AS severity, 'publication_template_mismatch' AS check_name, COUNT(*) AS issue_count
   FROM article_column_publish p

@@ -66,32 +66,10 @@ func TestRequestedOutputUsesAllowedRootInsteadOfDefaultDistRoot(t *testing.T) {
 	}
 }
 
-func TestHomeGroupUsesBoundHomeColumn(t *testing.T) {
-	section := &Article{ID: 1, Title: "栏目文章"}
-	homeArticle := &Article{ID: 2, Title: "首页文章"}
-	c := &catalog{
-		columns: []model.Column{{ID: 1, Code: "news-hot", Name: "热点关注"}, {ID: 2, Code: "home-hero", Name: "重点新闻轮播"}},
-		byCode:  map[string]int64{"news-hot": 1, "home-hero": 2},
-		groups:  map[int64][]*Article{1: {section}, 2: {homeArticle}},
-		all:     []*Article{section, homeArticle},
-	}
-	if got := homeGroup(c, "home-hero", "news-hot", 3); len(got.Items) != 1 || got.Items[0].ID != 2 {
-		t.Fatalf("home slot did not use its bound column: %+v", got)
-	}
-	delete(c.groups, 2)
-	if got := homeGroup(c, "home-hero", "news-hot", 3); len(got.Items) != 0 {
-		t.Fatalf("empty home slot unexpectedly used section content: %+v", got)
-	}
-	delete(c.byCode, "home-hero")
-	if got := homeGroup(c, "home-hero", "news-hot", 3); len(got.Items) != 1 || got.Items[0].ID != 1 {
-		t.Fatalf("legacy data set did not use the section fallback: %+v", got)
-	}
-}
-
-func TestHomeArticleDetailsUsePublicSectionSidebar(t *testing.T) {
+func TestHomeReadsFormalSectionsAndIgnoresLegacyHomeColumns(t *testing.T) {
 	cfg := testConfig(t)
 	source := demo.NewSource()
-	var noticeColumn, topicColumn, heroColumn model.Column
+	var noticeColumn, topicColumn, heroColumn, expertColumn model.Column
 	for _, column := range source.Columns {
 		switch column.Code {
 		case "news-notice":
@@ -100,6 +78,8 @@ func TestHomeArticleDetailsUsePublicSectionSidebar(t *testing.T) {
 			topicColumn = column
 		case "news-hot":
 			heroColumn = column
+		case "about-expert-insights":
+			expertColumn = column
 		}
 	}
 	if noticeColumn.ID == 0 {
@@ -115,6 +95,9 @@ func TestHomeArticleDetailsUsePublicSectionSidebar(t *testing.T) {
 	if heroColumn.ID == 0 || len(source.Items[heroColumn.ID]) == 0 {
 		t.Fatal("missing hero fixture")
 	}
+	if expertColumn.ID == 0 {
+		t.Fatal("missing expert fixture")
+	}
 	heroItems := source.Items[heroColumn.ID]
 	for i := range heroItems {
 		heroItems[i].Cover = ""
@@ -123,12 +106,15 @@ func TestHomeArticleDetailsUsePublicSectionSidebar(t *testing.T) {
 	home := model.Column{ID: 9000, Name: "首页内容", Code: "home"}
 	notices := model.Column{ID: 9001, ParentID: home.ID, Name: "通知公告", Code: "home-news-notice"}
 	experts := model.Column{ID: 9002, ParentID: home.ID, Name: "专家委员会", Code: "home-experts"}
-	source.Columns = append([]model.Column{home, notices, experts}, source.Columns...)
+	legacyHero := model.Column{ID: 9003, ParentID: home.ID, Name: "重点新闻轮播", Code: "home-hero"}
+	source.Columns = append([]model.Column{home, notices, experts, legacyHero}, source.Columns...)
 	shared := source.Items[noticeColumn.ID][0]
 	onlyHome := model.Article{ID: 990001, Type: model.ArticleTypeContent, Title: "仅投放首页的通知", Content: "公开测试正文", PublishTime: time.Date(2026, 9, 28, 9, 0, 0, 0, time.FixedZone("CST", 8*60*60))}
-	expert := model.Article{ID: 990002, Type: model.ArticleTypeContent, Title: "仅投放首页的专家文章", Content: "公开专家正文", Cover: "assets/images/video-thumb.png", PublishTime: onlyHome.PublishTime}
+	expert := model.Article{ID: 990002, Type: model.ArticleTypeContent, Title: "正式专家栏目文章", Content: "公开专家正文", Cover: "assets/images/video-thumb.png", PublishTime: onlyHome.PublishTime}
 	source.Items[notices.ID] = []model.Article{shared, onlyHome}
-	source.Items[experts.ID] = []model.Article{expert}
+	source.Items[experts.ID] = []model.Article{onlyHome}
+	source.Items[legacyHero.ID] = []model.Article{onlyHome}
+	source.Items[expertColumn.ID] = []model.Article{expert}
 
 	result, err := New(cfg, source).GenerateSite(context.Background())
 	if err != nil {
@@ -140,7 +126,6 @@ func TestHomeArticleDetailsUsePublicSectionSidebar(t *testing.T) {
 		code string
 	}{
 		{shared.ID, "news-notice"},
-		{onlyHome.ID, "news-notice"},
 		{expert.ID, "about-expert-insights"},
 	} {
 		detail := readGenerated(t, result.Output, fmt.Sprintf("article/2026/09/%d.html", check.id))
@@ -154,13 +139,24 @@ func TestHomeArticleDetailsUsePublicSectionSidebar(t *testing.T) {
 			t.Fatalf("home link for article %d did not point to public section %s", check.id, check.code)
 		}
 	}
-	if !strings.Contains(readGenerated(t, result.Output, "article/2026/09/990001.html"), `>通知公告</a>`) {
-		t.Fatal("home-only notice detail lost the public notice sidebar")
-	}
 	if !strings.Contains(readGenerated(t, result.Output, "article/2026/09/990002.html"), `>专家委员会`) {
-		t.Fatal("home-only expert detail lost the public expert sidebar")
+		t.Fatal("formal expert detail lost the public expert sidebar")
 	}
-	expertFeature := regexp.MustCompile(`<a class="expert-feature"[^>]*><img src="([^"]+)" alt="仅投放首页的专家文章">`).FindStringSubmatch(homePage)
+	if strings.Contains(homePage, onlyHome.Title) {
+		t.Fatal("legacy home-only article leaked into homepage")
+	}
+	if _, err := os.Stat(filepath.Join(result.Output, "article/2026/09/990001.html")); !os.IsNotExist(err) {
+		t.Fatalf("legacy home-only article was generated: %v", err)
+	}
+	for _, legacy := range []string{"list/9000/1.html", "list/9001/1.html", "list/9002/1.html", "list/9003/1.html"} {
+		if _, err := os.Stat(filepath.Join(result.Output, legacy)); !os.IsNotExist(err) {
+			t.Fatalf("legacy home column list was generated: %s: %v", legacy, err)
+		}
+	}
+	if !strings.Contains(homePage, fmt.Sprintf(`data-href="./list/%d/1.html"`, noticeColumn.ID)) || !strings.Contains(homePage, fmt.Sprintf(`data-href="./list/%d/1.html"`, topicColumn.ID)) {
+		t.Fatal("homepage section labels did not link to formal column lists")
+	}
+	expertFeature := regexp.MustCompile(`<a class="expert-feature"[^>]*><img src="([^"]+)" alt="正式专家栏目文章">`).FindStringSubmatch(homePage)
 	if len(expertFeature) != 2 || expertFeature[1] != "./assets/images/video-thumb.png" {
 		t.Fatalf("expert feature did not use the first article cover: %v", expertFeature)
 	}
@@ -285,6 +281,24 @@ func TestGenerateCompletePublicSiteAndMemberShells(t *testing.T) {
 		}
 	}
 	homePage := readGenerated(t, result.Output, "index.html")
+	for _, text := range []string{"京公网安备11010202009494", "京ICP备09071629号", "技术支持：机械工业信息中心"} {
+		if !strings.Contains(homePage, text) {
+			t.Fatalf("home footer missing %q", text)
+		}
+	}
+	if !strings.Contains(homePage, `<img src="./assets/images/beian-emblem.png" alt="" width="20" height="20">京公网安备11010202009494`) {
+		t.Fatal("home footer missing the public security emblem before its filing number")
+	}
+	if _, err := os.Stat(filepath.Join(result.Output, "assets/images/beian-emblem.png")); err != nil {
+		t.Fatalf("missing public security emblem asset: %v", err)
+	}
+	for _, name := range []string{"pages/about.html", "list/36/1.html"} {
+		page := readGenerated(t, result.Output, name)
+		breadcrumb := regexp.MustCompile(`<nav class="breadcrumb"[^>]*>.*?</nav>`).FindString(page)
+		if got := strings.Count(breadcrumb, "协会简介"); got != 1 {
+			t.Fatalf("%s breadcrumb repeats 协会简介 %d times: %s", name, got, breadcrumb)
+		}
+	}
 	if got := strings.Count(homePage, `class="nav-submenu"`); got != 6 {
 		t.Fatalf("want 6 primary navigation submenus, got %d", got)
 	}

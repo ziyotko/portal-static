@@ -120,6 +120,11 @@ func (g *Generator) load(ctx context.Context) (*catalog, error) {
 			return nil, err
 		}
 		for _, col := range columns {
+			// Legacy homepage placement columns duplicate public sections. The
+			// homepage now reads those public sections directly.
+			if isHomeColumnCode(col.Code) {
+				continue
+			}
 			if col.ID <= 0 || seen[col.ID] {
 				return nil, fmt.Errorf("invalid or cyclic column %d", col.ID)
 			}
@@ -213,52 +218,6 @@ func (g *Generator) load(ctx context.Context) (*catalog, error) {
 			c.groups[id] = kept
 		}
 	}
-	// A home slot controls placement on the front page, not the detail page's
-	// navigation. Prefer an actual public column when the article has one;
-	// otherwise use the public section represented by that home slot.
-	for _, article := range c.all {
-		if !isHomeColumnCode(article.ColumnCode) {
-			continue
-		}
-		preferred := homePublicColumnCode(g.cfg.Site.HeroColumn, article.ColumnCode)
-		var selected model.Column
-		for _, column := range c.columns {
-			if isHomeColumnCode(column.Code) || isPrivateColumnCode(column.Code) {
-				continue
-			}
-			for _, assigned := range c.groups[column.ID] {
-				if assigned.ID != article.ID {
-					continue
-				}
-				if selected.ID == 0 || column.Code == preferred {
-					selected = column
-				}
-				break
-			}
-			if selected.Code == preferred {
-				break
-			}
-		}
-		if selected.ID == 0 {
-			for _, column := range c.columns {
-				if column.Code == preferred {
-					selected = column
-					break
-				}
-			}
-		}
-		if selected.ID == 0 {
-			for _, column := range c.columns {
-				if !isHomeColumnCode(column.Code) && !isPrivateColumnCode(column.Code) {
-					selected = column
-					break
-				}
-			}
-		}
-		if selected.ID != 0 {
-			article.ColumnCode, article.Category = selected.Code, selected.Name
-		}
-	}
 	sort.SliceStable(c.all, func(i, j int) bool {
 		a, b := c.raw[c.all[i].ID], c.raw[c.all[j].ID]
 		if a.IsTop != b.IsTop {
@@ -276,19 +235,6 @@ func isHomeColumnCode(code string) bool {
 	return code == "home" || strings.HasPrefix(code, "home-")
 }
 
-func homePublicColumnCode(heroColumn, code string) string {
-	switch code {
-	case "home", "home-hero":
-		if code == "home-hero" && heroColumn != "" {
-			return heroColumn
-		}
-		return "news"
-	case "home-experts":
-		return "about-expert-insights"
-	default:
-		return strings.TrimPrefix(code, "home-")
-	}
-}
 func root(p Page, raw string) string {
 	if raw == "" || strings.HasPrefix(raw, "/") || strings.HasPrefix(raw, "#") {
 		return raw
@@ -431,15 +377,6 @@ func group(c *catalog, selector string, limit int) Group {
 		id = c.byName[selector]
 	}
 	return groupByID(c, id, limit)
-}
-
-// Home slots have their own columns under camie-home. Older data sets do not
-// have those columns yet, so their original public section remains a fallback.
-func homeGroup(c *catalog, homeCode, fallbackCode string, limit int) Group {
-	if _, exists := c.byCode[homeCode]; exists {
-		return group(c, homeCode, limit)
-	}
-	return group(c, fallbackCode, limit)
 }
 
 func topColumn(c *catalog, code string) model.Column {
@@ -676,7 +613,7 @@ func (g *Generator) GenerateSite(ctx context.Context) (result Result, err error)
 		Title:     "首页",
 		Kind:      "home",
 		BodyClass: "home",
-		Hero:      homeGroup(c, "home-hero", g.cfg.Site.HeroColumn, 3).Items,
+		Hero:      group(c, g.cfg.Site.HeroColumn, 3).Items,
 		Branches: []Branch{
 			{Name: "水分会", Code: "branch-water", Image: "assets/images/branch-water.png"},
 			{Name: "大气分会", Code: "branch-atmosphere", Image: "assets/images/branch-atmosphere.png"},
@@ -708,7 +645,7 @@ func (g *Generator) GenerateSite(ctx context.Context) (result Result, err error)
 		},
 	}
 	for _, n := range []string{"news-notice", "news-association", "news-member"} {
-		home.Notices = append(home.Notices, homeGroup(c, "home-"+n, n, 6))
+		home.Notices = append(home.Notices, group(c, n, 6))
 	}
 	for _, topic := range []string{
 		"training-meetings",
@@ -718,14 +655,14 @@ func (g *Generator) GenerateSite(ctx context.Context) (result Result, err error)
 		"training-talent",
 		"policy-reports",
 	} {
-		home.Topics = append(home.Topics, homeGroup(c, "home-"+topic, topic, 6))
+		home.Topics = append(home.Topics, group(c, topic, 6))
 	}
 	dataCenter := group(c, "policy-data", 1)
 	home.DataCenterURL = dataCenter.Href
 	if dataCenter.Feature != nil {
 		home.DataCenterURL = dataCenter.Feature.Href
 	}
-	home.Experts = homeGroup(c, "home-experts", "about-expert-insights", 3)
+	home.Experts = group(c, "about-expert-insights", 3)
 	if err = render("index.html", "home", home); err != nil {
 		return result, err
 	}
