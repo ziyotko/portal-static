@@ -268,6 +268,8 @@ BLOCKER
 
 数据库关联使用稳定业务 Code，不依赖开发环境中的数据库自增 ID。
 
+CAMIE 的 `adapter.site.template_source` 缺省为 `file`；即使现有环境配置没有该字段，新版静态化程序也从发布包 `share/camie-preview-templates/*.tmpl` 读取渲染模板。数据库仍用于栏目和文章数据以及模板归属。今后要改为 `database`，须显式配置该值，重启静态化服务并重建全站。现有 `migrate.sql` 仍会同步 `source_code`，将来交由运维直接维护数据库模板时，须先调整迁移脚本，避免后续发布覆盖后台修改。
+
 **推荐接入发布流水线：**发布包解压并校验后、切换 `/opt/camie/current` 前，由部署流水线自动调用包内 `ops/scripts/apply-release-db.sh`。它先备份两库和持久化文件，再运行 `preflight.sql`；只有全部 `BLOCKER` 为 0 才执行 `migrate.sql`，最后核对十条启用模板并记录本版本的迁移哈希。任何步骤失败都返回非零状态，流水线必须停止，不得继续切换版本。运维不再分别手工执行两份 SQL。
 
 ```bash

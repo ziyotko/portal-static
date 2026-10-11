@@ -25,6 +25,7 @@ type Config struct {
 		AllowedOutputRoot  string
 		PreviewRoot        string
 		TemplateRoot       string
+		TemplateSource     string
 		PageName           string
 		PageSize           int
 		Timezone           string
@@ -47,6 +48,7 @@ type adapterDocument struct {
 		LockStaleAfter     string `yaml:"lock_stale_after"`
 		MemberLoginPath    string `yaml:"member_login_path"`
 		MemberRegisterPath string `yaml:"member_register_path"`
+		TemplateSource     string `yaml:"template_source"`
 	} `yaml:"site"`
 }
 
@@ -78,6 +80,10 @@ func FromSnapshot(snapshot coreconfig.Snapshot) (Config, error) {
 	cfg.Site.LockStaleAfter = adapter.Site.LockStaleAfter
 	cfg.Site.MemberLoginPath = adapter.Site.MemberLoginPath
 	cfg.Site.MemberRegisterPath = adapter.Site.MemberRegisterPath
+	cfg.Site.TemplateSource = adapter.Site.TemplateSource
+	if cfg.Site.TemplateSource == "" {
+		cfg.Site.TemplateSource = "file"
+	}
 	if cfg.Site.MemberLoginPath == "" {
 		cfg.Site.MemberLoginPath = "/business_member/login"
 	}
@@ -104,6 +110,9 @@ func FromSnapshot(snapshot coreconfig.Snapshot) (Config, error) {
 func (c Config) Validate() error {
 	if c.Site.SourceRoot == "" || c.Site.DistRoot == "" || c.Site.TemplateRoot == "" {
 		return errors.New("camie source, dist and template roots are required")
+	}
+	if c.Site.TemplateSource != "" && c.Site.TemplateSource != "file" && c.Site.TemplateSource != "database" {
+		return fmt.Errorf("camie template_source must be file or database, got %q", c.Site.TemplateSource)
 	}
 	if c.Site.PageSize < 1 || c.Site.PageSize > 100 {
 		return errors.New("camie page_size must be between 1 and 100")

@@ -52,6 +52,9 @@ media:
 
 adapter:
   site:
+    # Use packaged .tmpl files during frequent development; change to database
+    # when operations takes ownership of template.source_code.
+    template_source: file
     page_name: 环保机械协会
     page_size: 10
     hero_column: news-hot

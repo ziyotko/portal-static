@@ -110,7 +110,7 @@ demo 数据和模板测试脚手架放在适配器 `testdata`，不要保留临�
 - SQL 标识符经过安全校验；
 - 查询接受 context，并受请求或任务超时控制；
 - 发布关系、草稿和未审核排除有测试覆盖。
-- 生产模板通过明确的 `template.code` 或唯一名称绑定读取 `template.source_code`；不得依赖已删除的 `page` 表，也不得把本地文件作为静默回退。
+- Portal CMS 适配器一般通过明确的 `template.code` 或唯一名称绑定读取 `template.source_code`；CAMIE 缺省使用发布包模板，显式配置 `adapter.site.template_source: database` 后才读取数据库模板。不得依赖已删除的 `page` 表，也不得在数据库模板加载失败时静默回退到本地文件。
 - 每次生成操作读取一致的模板快照，后台模板修改应在下一次操作生效。
 - 启动和生成都校验缺失绑定、禁用记录、类型不符、选择歧义、空源码、大小、模板语法和路由安全。
 

@@ -10,7 +10,7 @@
 | --- | --- | --- |
 | `dia-platform/business/portal` 后台和 API | `camie_portal` | 公开栏目、文章、模板、会员专区的 `member_column` / `member_content`；公开上传和私有文件 |
 | `dia-platform/business/member` 会员系统 | `camie_member` | 注册、登录、会员资料、会籍状态；签发 `member-token` |
-| `portal-static` 的 CAMIE 进程 | **只读** `camie_portal` | 根据公开内容和数据库模板生成静态文件；不连接 `camie_member` |
+| `portal-static` 的 CAMIE 进程 | **只读** `camie_portal` | 根据公开内容和所配置的模板来源生成静态文件；不连接 `camie_member` |
 | 对外 Web 服务 | 无 | 同一域名下托管静态站、两套前端和两套 API |
 
 两库应分别备份和恢复；`camie_portal` 的会员专区内容表属于门户库，不能误移到 `camie_member`。门户后台与静态化程序共用门户库，但应使用各自最小权限账号。会员系统使用独立账号连接会员库。数据库之外，还须备份门户公开上传、会员专区私有上传、会员系统上传、数据库模板源码、运行配置和静态产物当前版本；密钥单独安全保存。
@@ -20,7 +20,7 @@
 ## 2. 版本、数据和目录准备
 
 1. 固定同一轮联调验收的 `portal-static`、Portal、Member 代码版本和数据库结构；按 `dia-platform/business/portal/DEPLOY.md` 与 `dia-platform/business/member/DEPLOY.md` 完成数据库迁移与服务配置。旧 SQL 如仍含 `page_id` / `page`，先按门户部署说明核对并迁移，不能直接与当前按 `column.template_id` 取数的结构混用。
-2. 在 `camie_portal` 核对七条顶部页面模板 `camie-home`、`camie-party`、`camie-ministry`、`camie-news`、`camie-training`、`camie-standards`、`camie-about`，以及 `camie-list`、`camie-article`、`camie-layout`。模板须启用、有正确 `type`、`code` 和 `source_code`；栏目绑定到正确模板，稳定 `column.code` 不应因改名而改变。生产生成会从数据库读取模板；仓库示例模板只用于预览和资源打包。
+2. 在 `camie_portal` 核对七条顶部页面模板 `camie-home`、`camie-party`、`camie-ministry`、`camie-news`、`camie-training`、`camie-standards`、`camie-about`，以及 `camie-list`、`camie-article`、`camie-layout`。模板须启用、有正确 `type` 和 `code`；栏目绑定到正确模板，稳定 `column.code` 不应因改名而改变。当前缺省 `file` 模式使用发布包内 `.tmpl` 渲染，数据库仍提供栏目、文章和模板归属；切到 `database` 时还需确认这些模板的 `source_code` 非空且正确。
 3. 规划只读资源目录、独立静态产物目录、预览目录和回滚版本目录。`paths.source_root` 指向随本版本发布的 CAMIE `site` 资源；`paths.dist_root` 是默认产物目录，`paths.allowed_output_root` 是 Dia 可选路径的安全边界，`paths.preview_root` 是预览目录。所有输出目录均不得与源码目录重叠。服务账号可读资源与配置，可写产物目录及其父目录中的临时发布目录。
 4. 先备份两库、上述上传目录、当前线上静态产物和数据库模板；校验备份可恢复。不要在生成目录中手工改 HTML、JS、CSS；重建会覆盖这些改动。
 
@@ -38,11 +38,14 @@
 | `paths.source_root` | 与构建版本匹配的只读 CAMIE 资源目录 |
 | `paths.dist_root` / `paths.allowed_output_root` / `paths.preview_root` | 默认正式目录、Dia 可选路径安全根、预览目录；生产若只允许一个目录，可让前两者相同 |
 | `paths.template_codes` | 与上述十条数据库模板的稳定 code 一致 |
+| `adapter.site.template_source` | 缺省为 `file`，现有配置无需加该行；从同版本发布包的 `share/camie-preview-templates/*.tmpl` 渲染。今后由运维维护数据库模板时显式改为 `database`，从 `template.source_code` 渲染，并重启静态化进程、生成全站 |
 | `adapter.site.page_name` / `hero_column` | `环保机械协会` / `news-hot`；后者也是只有首页轮播投放时详情侧栏的回退栏目 |
 | `adapter.site.member_login_path` / `member_register_path` | 同源根路径 `/business_member/login`、`/business_member/register`；修改后重建全站 |
 | `media` | 上传路径按实际反代或对象存储地址配置；生成后检查封面、附件、公开视频均可访问 |
 
 构建前在仓库根目录执行 `go test ./...`、`go vet ./...`，再构建二进制。`portal-static preview --config <CAMIE配置>` 使用**内置演示数据**，可检查页面结构与资源，但不能证明目标库的栏目和文章正确；目标库验收应将 `dist_root` 指向隔离目录后执行 `portal-static generate --config <隔离配置>`。核对完产物，再用正式配置启动一站一进程的静态化服务。例如：
+
+`file` 模式下只改 `.tmpl` 无须先更新数据库 `source_code` 才能看到页面变化，但仍须发布同版本程序和模板资源并重建页面。发布包的 `db/migrate.sql` 目前仍会写入模板源码及栏目归属等数据；有数据库变更的版本必须按发布流水线执行。切到 `database` 模式前，应核对数据库模板已是目标版本；切换后发布脚本仍可能覆盖运维在后台改过的 `source_code`，届时要调整迁移策略。
 
 ```bash
 /opt/portal-static/current/portal-static generate --config /etc/portal-static/camie-staging.yaml

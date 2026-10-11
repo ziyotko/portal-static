@@ -78,7 +78,7 @@ flowchart LR
 
 ### 3.2 Generate
 
-`generate` 连接生产数据源并同步生成整站，适合首次发布、部署验收和离线任务。使用 Portal CMS 时，模板角色按 `template.code` 或唯一名称绑定，直接从 `template.source_code` 读取；每次操作重新取得模板快照。生成结果写入 `paths.dist_root`，并按 `route_path` 发布后台预览 URL 对应的兼容文件。
+`generate` 连接生产数据源并同步生成整站，适合首次发布、部署验收和离线任务。使用 Portal CMS 时，模板角色按 `template.code` 或唯一名称绑定。CAMIE 缺省从发布包内的 `.tmpl` 读取，显式设置 `adapter.site.template_source: database` 才读取 `template.source_code`；其他适配器遵循各自配置。生成结果写入 `paths.dist_root`，并按 `route_path` 发布后台预览 URL 对应的兼容文件。
 
 ### 3.3 Serve
 

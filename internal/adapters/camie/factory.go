@@ -7,6 +7,8 @@ import (
 	"html/template"
 	"log/slog"
 	"net/http"
+	"os"
+	"path/filepath"
 
 	"portal-static/internal/adapters/camie/config"
 	"portal-static/internal/adapters/camie/demo"
@@ -35,11 +37,15 @@ func (Factory) Build(ctx context.Context, mode platform.Mode, snapshot coreconfi
 		service := NewService(generator.New(cfg, demo.NewSource()), cfg.Site.PageSize)
 		return platform.NewRuntime(operations(service), nil)
 	case platform.Production:
+		cfg, err := config.FromSnapshot(snapshot)
+		if err != nil {
+			return nil, err
+		}
 		store, err := portalcms.Open(snapshot.Database, snapshot.Site.Timezone)
 		if err != nil {
 			return nil, err
 		}
-		initial, cleanup, err := databaseTemplateSnapshot(ctx, snapshot, store)
+		initial, cleanup, err := productionTemplateSnapshot(ctx, snapshot, store, cfg.Site.TemplateSource)
 		if err != nil {
 			_ = store.Close()
 			return nil, err
@@ -53,7 +59,7 @@ func (Factory) Build(ctx context.Context, mode platform.Mode, snapshot coreconfi
 			return nil, err
 		}
 		load := func(ctx context.Context) (httpapi.Operations, func() error, error) {
-			current, cleanup, err := databaseTemplateSnapshot(ctx, snapshot, store)
+			current, cleanup, err := productionTemplateSnapshot(ctx, snapshot, store, cfg.Site.TemplateSource)
 			if err != nil {
 				return httpapi.Operations{}, nil, err
 			}
@@ -67,6 +73,47 @@ func (Factory) Build(ctx context.Context, mode platform.Mode, snapshot coreconfi
 	default:
 		return nil, fmt.Errorf("unsupported CAMIE runtime mode %q", mode)
 	}
+}
+
+func productionTemplateSnapshot(ctx context.Context, snapshot coreconfig.Snapshot, store *portalcms.Store, source string) (coreconfig.Snapshot, func() error, error) {
+	switch source {
+	case "file":
+		if err := validateFileTemplates(snapshot.Paths.Templates); err != nil {
+			return coreconfig.Snapshot{}, nil, err
+		}
+		return snapshot, func() error { return nil }, nil
+	case "database":
+		return databaseTemplateSnapshot(ctx, snapshot, store)
+	default:
+		return coreconfig.Snapshot{}, nil, fmt.Errorf("unsupported CAMIE template source %q", source)
+	}
+}
+
+func validateFileTemplates(paths map[string]string) error {
+	for _, key := range []string{"layout", "home", "list", "article", "about"} {
+		path := paths[key]
+		if path == "" {
+			return fmt.Errorf("camie file template %q path is required", key)
+		}
+		info, err := os.Stat(path)
+		if err != nil {
+			return fmt.Errorf("read camie file template %q: %w", key, err)
+		}
+		if !info.Mode().IsRegular() {
+			return fmt.Errorf("camie file template %q is not a regular file: %s", key, path)
+		}
+	}
+	root := filepath.Dir(paths["layout"])
+	parsed, err := template.New("portal").Funcs(camieTemplateFuncs()).ParseGlob(filepath.Join(root, "*.tmpl"))
+	if err != nil {
+		return fmt.Errorf("parse camie file templates: %w", err)
+	}
+	for _, name := range []string{"head", "foot", "home", "list", "article", "about"} {
+		if parsed.Lookup(name) == nil {
+			return fmt.Errorf("camie file template definition %q is missing", name)
+		}
+	}
+	return nil
 }
 
 func productionService(ctx context.Context, snapshot coreconfig.Snapshot, store *portalcms.Store) (*Service, error) {
@@ -95,17 +142,21 @@ func databaseTemplateSnapshot(ctx context.Context, snapshot coreconfig.Snapshot,
 	if err != nil {
 		return coreconfig.Snapshot{}, nil, err
 	}
-	paths, cleanup, err := portalcms.MaterializeTemplates(records, template.FuncMap{
-		"root":       func(...any) string { return "" },
-		"add":        func(...any) int { return 0 },
-		"columnURL":  func(...any) string { return "" },
-		"articleURL": func(...any) string { return "" },
-	})
+	paths, cleanup, err := portalcms.MaterializeTemplates(records, camieTemplateFuncs())
 	if err != nil {
 		return coreconfig.Snapshot{}, nil, err
 	}
 	snapshot.Paths.Templates = paths
 	return snapshot, cleanup, nil
+}
+
+func camieTemplateFuncs() template.FuncMap {
+	return template.FuncMap{
+		"root":       func(...any) string { return "" },
+		"add":        func(...any) int { return 0 },
+		"columnURL":  func(...any) string { return "" },
+		"articleURL": func(...any) string { return "" },
+	}
 }
 
 func operations(service *Service) httpapi.Operations {

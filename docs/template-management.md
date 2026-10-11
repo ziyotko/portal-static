@@ -1,6 +1,6 @@
 # 数据库模板管理与运维交接
 
-Portal CMS 生产模板以 `template` 表为唯一权威来源。新版数据模型不含 `page` 表；`portal-static` 在每次生成操作开始时按明确选择器读取模板快照，仅执行只读查询。
+Portal CMS 通常以 `template` 表为生产模板来源。CAMIE 缺省使用 `file`，渲染时读取发布包内 `.tmpl`，原有配置不加 `adapter.site.template_source` 也会生效；显式改成 `database` 后按明确选择器读取 `template.source_code`。新版数据模型不含 `page` 表；`portal-static` 对数据库只执行只读查询。
 
 ## 1. 模板角色与绑定
 
@@ -14,6 +14,8 @@ Portal CMS 生产模板以 `template` 表为唯一权威来源。新版数据模
 `column.template_id` 表示栏目归属的主模板，用于数据隔离和父子栏目校验，不是栏目列表页渲染模板。列表页使用唯一绑定的 `type=column` 公共模板；详情页使用唯一绑定的 `type=detail` 公共模板。这与当前 `dia-platform` 的 `ColumnService.GetColumnPublishes` 和详情预览规则一致。`article_column_publish.template_id` 必须与关联栏目的 `template_id` 一致才视为有效发布关系。
 
 ## 2. 热加载和校验
+
+以下模板快照规则适用于数据库模式。CAMIE 文件模式在启动和每次生成前校验包内模板文件及语法，生成时直接读取这些文件；后台保存 `source_code` 不会改变生成结果。
 
 每次生成操作都会重新读取 `id/name/code/type/route_path/status/source_code/layout`，执行以下校验后将源码写入受控临时文件：
 
