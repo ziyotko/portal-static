@@ -268,6 +268,17 @@ BLOCKER
 
 数据库关联使用稳定业务 Code，不依赖开发环境中的数据库自增 ID。
 
+**推荐接入发布流水线：**发布包解压并校验后、切换 `/opt/camie/current` 前，由部署流水线自动调用包内 `ops/scripts/apply-release-db.sh`。它先备份两库和持久化文件，再运行 `preflight.sql`；只有全部 `BLOCKER` 为 0 才执行 `migrate.sql`，最后核对十条启用模板并记录本版本的迁移哈希。任何步骤失败都返回非零状态，流水线必须停止，不得继续切换版本。运维不再分别手工执行两份 SQL。
+
+```bash
+MYSQL_BACKUP_LOGIN_PATH=camie-backup MYSQL_MIGRATE_LOGIN_PATH=camie-migrate \
+  /opt/camie/releases/camie-release-<version>/ops/scripts/apply-release-db.sh \
+  /opt/camie/releases/camie-release-<version> \
+  /安全备份目录/camie-before-<version>
+```
+
+脚本需以 root 运行；两种 MySQL login path 应提前由运维安全配置，迁移账号只需 `camie_portal` 的必要写权限。备份目录每次发布使用新路径。发布流水线仍需在迁移成功后部署同版本程序与资源、生成全站并验收。当前仓库没有管理正式环境的 CI/CD 流水线，运维需要把上述脚本固定接入现有发布任务，才能做到上线时自动执行。
+
 ---
 
 ### rollback.sql
