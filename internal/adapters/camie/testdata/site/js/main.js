@@ -131,9 +131,8 @@
     const isHomeSlot = requestedCode === 'home' || requestedCode?.startsWith('home-');
     const columnCode = !isHomeSlot && columnPaths[requestedCode] ? requestedCode : detailPage.dataset.defaultColumnCode;
     const path = columnPaths[columnCode];
-    const detailTitle = detailPage.querySelector('.article-header h1')?.textContent.trim();
     const breadcrumbList = detailPage.querySelector('[data-detail-breadcrumb] ol');
-    if (path?.length && detailTitle && breadcrumbList) {
+    if (path?.length && breadcrumbList) {
       breadcrumbList.replaceChildren();
       const homeItem = document.createElement('li');
       const homeLink = document.createElement('a');
@@ -141,20 +140,21 @@
       homeLink.textContent = '首页';
       homeItem.append(homeLink);
       breadcrumbList.append(homeItem);
-      path.forEach((label) => {
+      path.forEach((label, index) => {
         const item = document.createElement('li');
-        const link = document.createElement('a');
-        link.href = '#';
-        link.textContent = label;
-        item.append(link);
+        if (index === path.length - 1) {
+          const current = document.createElement('span');
+          current.setAttribute('aria-current', 'page');
+          current.textContent = label;
+          item.append(current);
+        } else {
+          const link = document.createElement('a');
+          link.href = '#';
+          link.textContent = label;
+          item.append(link);
+        }
         breadcrumbList.append(item);
       });
-      const titleItem = document.createElement('li');
-      const current = document.createElement('span');
-      current.setAttribute('aria-current', 'page');
-      current.textContent = detailTitle;
-      titleItem.append(current);
-      breadcrumbList.append(titleItem);
 
       const menuItems = [...detailPage.querySelectorAll('.side-menu a, .side-menu button')];
       const target = [...path].reverse().map((label) => menuItems.find((item) => elementLabel(item) === label)).find(Boolean);

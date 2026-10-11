@@ -122,13 +122,19 @@ func TestHomeReadsFormalSectionsAndIgnoresLegacyHomeColumns(t *testing.T) {
 	}
 	homePage := readGenerated(t, result.Output, "index.html")
 	for _, check := range []struct {
-		id   int64
-		code string
+		id       int64
+		code     string
+		title    string
+		category string
 	}{
-		{shared.ID, "news-notice"},
-		{expert.ID, "about-expert-insights"},
+		{shared.ID, "news-notice", shared.Title, noticeColumn.Name},
+		{expert.ID, "about-expert-insights", expert.Title, expertColumn.Name},
 	} {
 		detail := readGenerated(t, result.Output, fmt.Sprintf("article/2026/09/%d.html", check.id))
+		breadcrumb := regexp.MustCompile(`<nav class="breadcrumb"[^>]*>.*?</nav>`).FindString(detail)
+		if strings.Contains(breadcrumb, check.title) || !strings.Contains(breadcrumb, `<span aria-current="page">`+check.category+`</span>`) {
+			t.Fatalf("article %d breadcrumb should end at its category: %s", check.id, breadcrumb)
+		}
 		if !strings.Contains(detail, `data-default-column-code="`+check.code+`"`) {
 			t.Fatalf("article %d did not use public section %s", check.id, check.code)
 		}
