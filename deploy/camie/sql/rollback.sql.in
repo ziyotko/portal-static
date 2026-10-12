@@ -36,7 +36,9 @@ SET c.template_id=b.template_id, c.status=b.status, c.updated_at=NOW(3);
 UPDATE `column` c
 LEFT JOIN camie_deploy_column_backup b ON b.release_version=@release_version AND b.column_id=c.id
 SET c.status=0, c.updated_at=NOW(3)
-WHERE c.code IN ('home','home-hero','home-news-notice','home-news-association','home-news-member','home-training-meetings','home-standards-work','home-standards-innovation','home-training-international','home-training-talent','home-policy-reports','home-experts')
+WHERE c.code IN ('home-news-notice','home-news-association','home-news-member',
+                 'home-training-meetings','home-standards-work','home-standards-innovation',
+                 'home-training-international','home-training-talent','home-experts')
   AND b.column_id IS NULL;
 
 UPDATE setting s

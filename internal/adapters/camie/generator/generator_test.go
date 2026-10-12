@@ -36,7 +36,7 @@ func testConfig(t *testing.T) config.Config {
 	cfg.Site.PageSize = 10
 	cfg.Site.Timezone = "Asia/Shanghai"
 	cfg.Site.FallbackCover = "assets/images/default-news-cover.png"
-	cfg.Site.HeroColumn = "news-hot"
+	cfg.Site.HeroColumn = "home-hero"
 	cfg.Site.LockStaleAfter = "30m"
 	cfg.Site.MemberLoginPath = "/member-entry/login?site=camie"
 	cfg.Site.MemberRegisterPath = "/member-entry/register"
@@ -66,19 +66,23 @@ func TestRequestedOutputUsesAllowedRootInsteadOfDefaultDistRoot(t *testing.T) {
 	}
 }
 
-func TestHomeReadsFormalSectionsAndIgnoresLegacyHomeColumns(t *testing.T) {
+func TestHomeReusesPublicSectionsAndKeepsIndependentPlacements(t *testing.T) {
 	cfg := testConfig(t)
 	source := demo.NewSource()
-	var noticeColumn, topicColumn, policyColumn, heroColumn, expertColumn, expertParentColumn model.Column
+	var homeColumn, noticeColumn, topicColumn, policyColumn, publicPolicyColumn, heroColumn, expertColumn, expertParentColumn model.Column
 	for _, column := range source.Columns {
 		switch column.Code {
+		case "home":
+			homeColumn = column
 		case "news-notice":
 			noticeColumn = column
 		case "training-meetings":
 			topicColumn = column
-		case "policy-research":
+		case "home-policy-reports":
 			policyColumn = column
-		case "news-hot":
+		case "policy-research":
+			publicPolicyColumn = column
+		case "home-hero":
 			heroColumn = column
 		case "about-expert-insights":
 			expertColumn = column
@@ -92,8 +96,8 @@ func TestHomeReadsFormalSectionsAndIgnoresLegacyHomeColumns(t *testing.T) {
 	if topicColumn.ID == 0 || len(source.Items[topicColumn.ID]) == 0 {
 		t.Fatal("missing home topic fixture")
 	}
-	if policyColumn.ID == 0 {
-		t.Fatal("missing policy research fixture")
+	if homeColumn.ID == 0 || policyColumn.ID == 0 || publicPolicyColumn.ID == 0 {
+		t.Fatal("missing independent homepage fixtures")
 	}
 	topicItems := source.Items[topicColumn.ID]
 	topicItems[0].Cover = "assets/images/hero-water-treatment.jpg"
@@ -105,23 +109,19 @@ func TestHomeReadsFormalSectionsAndIgnoresLegacyHomeColumns(t *testing.T) {
 	if expertColumn.ID == 0 || expertParentColumn.ID == 0 {
 		t.Fatal("missing expert fixture")
 	}
-	heroItems := source.Items[heroColumn.ID]
-	for i := range heroItems {
-		heroItems[i].Cover = ""
-	}
-	source.Items[heroColumn.ID] = heroItems
-	home := model.Column{ID: 9000, Name: "首页内容", Code: "home"}
-	notices := model.Column{ID: 9001, ParentID: home.ID, Name: "通知公告", Code: "home-news-notice"}
-	experts := model.Column{ID: 9002, ParentID: home.ID, Name: "专家委员会", Code: "home-experts"}
-	legacyHero := model.Column{ID: 9003, ParentID: home.ID, Name: "重点新闻轮播", Code: "home-hero"}
-	source.Columns = append([]model.Column{home, notices, experts, legacyHero}, source.Columns...)
+	notices := model.Column{ID: 9001, ParentID: homeColumn.ID, Name: "通知公告", Code: "home-news-notice"}
+	experts := model.Column{ID: 9002, ParentID: homeColumn.ID, Name: "专家委员会", Code: "home-experts"}
+	source.Columns = append(source.Columns, notices, experts)
 	shared := source.Items[noticeColumn.ID][0]
 	onlyHome := model.Article{ID: 990001, Type: model.ArticleTypeContent, Title: "仅投放首页的通知", Content: "公开测试正文", PublishTime: time.Date(2026, 9, 28, 9, 0, 0, 0, time.FixedZone("CST", 8*60*60))}
 	expert := model.Article{ID: 990002, Type: model.ArticleTypeContent, Title: "正式专家栏目文章", Content: "公开专家正文", Cover: "assets/images/video-thumb.png", PublishTime: onlyHome.PublishTime}
 	parentExpert := model.Article{ID: 990003, Type: model.ArticleTypeContent, Title: "直接发布在专家委员会的文章", Content: "专家委员会正文", PublishTime: time.Date(2026, 9, 27, 9, 0, 0, 0, time.FixedZone("CST", 8*60*60))}
+	heroOnly := model.Article{ID: 990004, Type: model.ArticleTypeContent, Title: "首页独立轮播", Content: "轮播正文", PublishTime: onlyHome.PublishTime}
+	policyOnly := model.Article{ID: 990005, Type: model.ArticleTypeContent, Title: "首页独立政策研究", Content: "政策正文", PublishTime: onlyHome.PublishTime}
 	source.Items[notices.ID] = []model.Article{shared, onlyHome}
 	source.Items[experts.ID] = []model.Article{onlyHome}
-	source.Items[legacyHero.ID] = []model.Article{onlyHome}
+	source.Items[heroColumn.ID] = []model.Article{heroOnly}
+	source.Items[policyColumn.ID] = []model.Article{policyOnly}
 	source.Items[expertColumn.ID] = []model.Article{expert}
 	source.Items[expertParentColumn.ID] = []model.Article{parentExpert}
 
@@ -161,20 +161,45 @@ func TestHomeReadsFormalSectionsAndIgnoresLegacyHomeColumns(t *testing.T) {
 	if strings.Contains(homePage, onlyHome.Title) {
 		t.Fatal("legacy home-only article leaked into homepage")
 	}
+	for _, check := range []struct {
+		article model.Article
+		code    string
+	}{{heroOnly, "home-hero"}, {policyOnly, "home-policy-reports"}} {
+		if !strings.Contains(homePage, fmt.Sprintf("%d.html?from=%s", check.article.ID, check.code)) {
+			t.Fatalf("independent homepage article %d was not rendered", check.article.ID)
+		}
+		detail := readGenerated(t, result.Output, fmt.Sprintf("article/2026/09/%d.html", check.article.ID))
+		if !strings.Contains(detail, `data-default-column-code="`+check.code+`"`) || strings.Contains(detail, `>首页内容</a>`) {
+			t.Fatalf("independent homepage article %d has wrong section path", check.article.ID)
+		}
+	}
 	if _, err := os.Stat(filepath.Join(result.Output, "article/2026/09/990001.html")); !os.IsNotExist(err) {
 		t.Fatalf("legacy home-only article was generated: %v", err)
 	}
-	for _, legacy := range []string{"list/9000/1.html", "list/9001/1.html", "list/9002/1.html", "list/9003/1.html"} {
+	for _, legacy := range []string{
+		fmt.Sprintf("list/%d/1.html", homeColumn.ID),
+		fmt.Sprintf("list/%d/1.html", heroColumn.ID),
+		fmt.Sprintf("list/%d/1.html", policyColumn.ID),
+		"list/9001/1.html", "list/9002/1.html",
+	} {
 		if _, err := os.Stat(filepath.Join(result.Output, legacy)); !os.IsNotExist(err) {
-			t.Fatalf("legacy home column list was generated: %s: %v", legacy, err)
+			t.Fatalf("homepage placement list was generated: %s: %v", legacy, err)
 		}
 	}
-	if !strings.Contains(homePage, fmt.Sprintf(`data-href="./list/%d/1.html"`, noticeColumn.ID)) || !strings.Contains(homePage, fmt.Sprintf(`data-href="./list/%d/1.html"`, topicColumn.ID)) {
-		t.Fatal("homepage section labels did not link to formal column lists")
+	heroDetail := readGenerated(t, result.Output, "article/2026/09/990004.html")
+	if !strings.Contains(heroDetail, "home-placement-detail") || strings.Contains(heroDetail, `<ul class="side-menu">`) {
+		t.Fatal("independent hero detail still shows homepage placements as a sidebar")
 	}
-	policyButton := fmt.Sprintf(`data-href="./list/%d/1.html" type="button">政策研究</button>`, policyColumn.ID)
+	policyDetail := readGenerated(t, result.Output, "article/2026/09/990005.html")
+	if !strings.Contains(policyDetail, `>行业报告</a>`) || strings.Contains(policyDetail, `>轮播图</a>`) {
+		t.Fatal("independent policy detail did not use the public policy sidebar")
+	}
+	if !strings.Contains(homePage, fmt.Sprintf(`data-href="./list/%d/1.html"`, noticeColumn.ID)) || !strings.Contains(homePage, fmt.Sprintf(`data-href="./list/%d/1.html"`, topicColumn.ID)) {
+		t.Fatal("homepage reused section labels did not link to public column lists")
+	}
+	policyButton := fmt.Sprintf(`data-href="./list/%d/1.html" type="button">政策研究</button>`, publicPolicyColumn.ID)
 	if !strings.Contains(homePage, policyButton) {
-		t.Fatalf("homepage policy research tab did not link to its parent column: %s", policyButton)
+		t.Fatalf("homepage policy research tab did not link to the public section: %s", policyButton)
 	}
 	expertFeature := regexp.MustCompile(`<a class="expert-feature"[^>]*><img src="([^"]+)" alt="正式专家栏目文章">`).FindStringSubmatch(homePage)
 	if len(expertFeature) != 2 || expertFeature[1] != "./assets/images/video-thumb.png" {
@@ -589,6 +614,9 @@ func assertPublicListAndDetailShells(t *testing.T, root string) {
 				return readErr
 			}
 			for _, marker := range check.markers {
+				if check.directory == "article" && strings.Contains(string(page), "home-placement-detail") && (marker == `<aside><ul class="side-menu">` || marker == `class="is-active"`) {
+					continue
+				}
 				if !strings.Contains(string(page), marker) {
 					return fmt.Errorf("%s lost required page structure %q", path, marker)
 				}

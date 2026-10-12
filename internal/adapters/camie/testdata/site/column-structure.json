@@ -147,7 +147,8 @@
     }
   ],
   "homepagePlacements": [
-    { "name": "焦点轮播", "code": "home-focus", "displayType": "carousel", "sourceColumnCode": "news-hot" },
+    { "name": "轮播图", "code": "home-hero", "displayType": "carousel" },
+    { "name": "政策研究", "code": "home-policy-reports", "displayType": "list" },
     { "name": "快捷服务", "code": "home-service-links", "displayType": "link" },
     { "name": "大会横幅", "code": "home-conference-banner", "displayType": "ad" },
     { "name": "首页专题入口", "code": "home-special-topics", "displayType": "link" },

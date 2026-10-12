@@ -57,7 +57,7 @@ adapter:
     template_source: file
     page_name: 环保机械协会
     page_size: 10
-    hero_column: news-hot
+    hero_column: home-hero
     fallback_cover: assets/images/default-news-cover.png
     lock_stale_after: 30m
     member_login_path: /business_member/login

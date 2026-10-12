@@ -110,6 +110,7 @@ func New(cfg config.Config, source Source) *Generator { return &Generator{cfg: c
 func (g *Generator) load(ctx context.Context) (*catalog, error) {
 	c := &catalog{groups: map[int64][]*Article{}, byID: map[int64]*Article{}, byName: map[string]int64{}, byCode: map[string]int64{}, raw: map[int64]model.Article{}}
 	queue := []int64{0}
+	var homeRootIDs []int64
 	seen := map[int64]bool{}
 	restricted := map[int64]bool{}
 	zone, _ := time.LoadLocation(g.cfg.Site.Timezone)
@@ -121,9 +122,7 @@ func (g *Generator) load(ctx context.Context) (*catalog, error) {
 			return nil, err
 		}
 		for _, col := range columns {
-			// Legacy homepage placement columns duplicate public sections. The
-			// homepage now reads those public sections directly.
-			if isHomeColumnCode(col.Code) {
+			if isDuplicateHomeColumnCode(col.Code) {
 				continue
 			}
 			if col.ID <= 0 || seen[col.ID] {
@@ -142,6 +141,12 @@ func (g *Generator) load(ctx context.Context) (*catalog, error) {
 			}
 			c.byCode[col.Code] = col.ID
 			c.columns = append(c.columns, col)
+			if col.Code == "home" {
+				// Load the homepage placements after public columns so shared
+				// articles keep their public section as the canonical category.
+				homeRootIDs = append(homeRootIDs, col.ID)
+				continue
+			}
 			queue = append(queue, col.ID)
 			_, items, err := g.source.FetchColumnArticles(ctx, col.ID)
 			if err != nil {
@@ -197,6 +202,9 @@ func (g *Generator) load(ctx context.Context) (*catalog, error) {
 				c.groups[col.ID] = append(c.groups[col.ID], v)
 			}
 		}
+		if len(queue) == 0 && len(homeRootIDs) > 0 {
+			queue, homeRootIDs = homeRootIDs, nil
+		}
 	}
 	if len(restricted) > 0 {
 		filtered := c.all[:0]
@@ -232,8 +240,15 @@ func (g *Generator) load(ctx context.Context) (*catalog, error) {
 	return c, nil
 }
 
-func isHomeColumnCode(code string) bool {
-	return code == "home" || strings.HasPrefix(code, "home-")
+func isDuplicateHomeColumnCode(code string) bool {
+	switch code {
+	case "home-news-notice", "home-news-association", "home-news-member",
+		"home-training-meetings", "home-standards-work", "home-standards-innovation",
+		"home-training-international", "home-training-talent", "home-experts":
+		return true
+	default:
+		return false
+	}
 }
 
 func root(p Page, raw string) string {
@@ -363,8 +378,19 @@ func groupByID(c *catalog, id int64, limit int) Group {
 		items = items[:limit]
 	}
 	href := "news.html"
-	if id > 0 {
-		href = fmt.Sprintf("list/%d/1.html", id)
+	switch code {
+	case "home", "home-hero":
+		href = "index.html"
+	case "home-policy-reports":
+		if publicID := c.byCode["policy-research"]; publicID > 0 {
+			href = fmt.Sprintf("list/%d/1.html", publicID)
+		} else {
+			href = "index.html"
+		}
+	default:
+		if id > 0 {
+			href = fmt.Sprintf("list/%d/1.html", id)
+		}
 	}
 	out := Group{Name: name, Href: href, Items: items}
 	if len(items) > 0 {
@@ -400,6 +426,12 @@ func topColumn(c *catalog, code string) model.Column {
 func side(c *catalog, currentCode string) []Link {
 	top := topColumn(c, currentCode)
 	if top.ID == 0 {
+		return nil
+	}
+	if top.Code == "home" {
+		if currentCode == "home-policy-reports" {
+			return side(c, "policy-research")
+		}
 		return nil
 	}
 	columns := make(map[int64]model.Column, len(c.columns))
@@ -519,7 +551,9 @@ func (g *Generator) GenerateSite(ctx context.Context) (result Result, err error)
 		}
 		var path []string
 		for current := column; current.ID != 0; current = columnsByID[current.ParentID] {
-			path = append(path, current.Name)
+			if current.Code != "home" {
+				path = append(path, current.Name)
+			}
 		}
 		for left, right := 0, len(path)-1; left < right; left, right = left+1, right-1 {
 			path[left], path[right] = path[right], path[left]
@@ -565,7 +599,7 @@ func (g *Generator) GenerateSite(ctx context.Context) (result Result, err error)
 			currentColumn = p.Article.ColumnCode
 		}
 		top := topColumn(c, currentColumn)
-		if top.ID != 0 && top.Code != currentColumn {
+		if top.ID != 0 && top.Code != currentColumn && top.Code != "home" {
 			parent := Link{Name: top.Name, Href: groupByID(c, top.ID, 0).Href}
 			p.Parent = &parent
 		}
@@ -583,7 +617,9 @@ func (g *Generator) GenerateSite(ctx context.Context) (result Result, err error)
 				if !ok {
 					break
 				}
-				ancestors = append(ancestors, Link{Name: col.Name, Href: groupByID(c, col.ID, 0).Href})
+				if col.Code != "home" {
+					ancestors = append(ancestors, Link{Name: col.Name, Href: groupByID(c, col.ID, 0).Href})
+				}
 				parentID = col.ParentID
 			}
 			for left, right := 0, len(ancestors)-1; left < right; left, right = left+1, right-1 {
@@ -665,7 +701,7 @@ func (g *Generator) GenerateSite(ctx context.Context) (result Result, err error)
 		"standards-innovation",
 		"training-international",
 		"training-talent",
-		"policy-research",
+		"home-policy-reports",
 	} {
 		home.Topics = append(home.Topics, group(c, topic, 6))
 	}
@@ -727,7 +763,7 @@ func (g *Generator) GenerateSite(ctx context.Context) (result Result, err error)
 		return nil
 	}
 	for _, col := range c.columns {
-		if isPrivateColumnCode(col.Code) {
+		if isPrivateColumnCode(col.Code) || col.Code == "home" || strings.HasPrefix(col.Code, "home-") {
 			continue
 		}
 		if col.Name == "关于协会" || col.Name == "协会简介" {
@@ -785,6 +821,9 @@ func (g *Generator) GenerateSite(ctx context.Context) (result Result, err error)
 			continue
 		}
 		p := Page{Title: a.Title, ColumnCode: a.ColumnCode, Kind: "article", BodyClass: "article-page", Article: a, Side: side(c, a.ColumnCode), BackHref: group(c, a.ColumnCode, 0).Href}
+		if a.ColumnCode == "home-hero" {
+			p.BodyClass += " home-placement-detail"
+		}
 		if a.Video {
 			p.Kind = "video"
 			p.BodyClass = "video-page"

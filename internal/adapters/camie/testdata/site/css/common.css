@@ -308,6 +308,8 @@ img { display: block; max-width: 100%; }
   align-items: start;
 }
 
+.home-placement-detail .content-grid { grid-template-columns: minmax(0, 1fr); }
+
 .side-menu {
   margin: 0;
   padding: 6px 0;
@@ -577,17 +579,9 @@ img { display: block; max-width: 100%; }
 .beian-record:hover { text-decoration: underline; }
 .beian-record img { display: block; width: 20px; height: 20px; }
 
-.quick-rail { display: grid; gap: 4px; margin-top: 30px; }
-.quick-rail.is-following {
-  position: fixed;
-  z-index: 44;
-  top: 24px;
-  left: var(--quick-rail-left);
-  width: var(--quick-rail-width);
-  margin-top: 0;
-}
-.quick-rail-global,
-.quick-rail-global.is-following {
+.quick-rail {
+  display: grid;
+  gap: 4px;
   position: fixed;
   z-index: 44;
   top: 220px;
@@ -672,11 +666,14 @@ img { display: block; max-width: 100%; }
 
 @media (min-width: 781px) and (max-width: 1435px) {
   .page-shell:not(.home-page) > .page-inner { width: min(var(--content-width), calc(100% - 200px)); }
-  .quick-rail-global,
-  .quick-rail-global.is-following { right: 8px; width: 70px; }
-  .quick-rail-global > a,
-  .quick-rail-global .quick-mobile-trigger { height: 78px; font-size: 14px; }
-  .quick-rail-global .quick-icon { width: 30px; height: 30px; }
+  .quick-rail { right: 8px; width: 70px; }
+  .quick-rail > a,
+  .quick-rail .quick-mobile-trigger { height: 78px; font-size: 14px; }
+  .quick-rail .quick-icon { width: 30px; height: 30px; }
+}
+
+@media (min-width: 781px) and (max-width: 900px) {
+  .search-form { width: calc(100vw - 560px); }
 }
 
 @media (max-width: 780px) {
@@ -705,10 +702,7 @@ img { display: block; max-width: 100%; }
   .nav-submenu { position: static; width: 100%; padding-left: 16px; opacity: 1; visibility: visible; transform: none; box-shadow: none; background: rgba(0,0,0,.08); }
   .page-shell { min-height: 620px; }
   .page-inner { width: calc(100% - 28px); }
-  .quick-rail,
-  .quick-rail.is-following,
-  .quick-rail-global,
-  .quick-rail-global.is-following { position: static; width: auto; margin: 30px auto 0; grid-template-columns: repeat(4, 1fr); }
+  .quick-rail { position: static; width: auto; margin: 30px auto 0; grid-template-columns: repeat(4, 1fr); }
   .quick-rail-global { width: calc(100% - 28px); margin-block: 30px; }
   .quick-rail > a, .quick-mobile-trigger { height: auto; min-height: 58px; }
   .mobile-qr-card { position: fixed; top: 50%; right: auto; left: 50%; width: min(650px, calc(100vw - 30px)); gap: clamp(6px, 2vw, 14px); padding: clamp(9px, 2.5vw, 18px); transform: translate(-50%, -50%); }

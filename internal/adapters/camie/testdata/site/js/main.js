@@ -27,40 +27,6 @@
     menuButton.setAttribute('aria-expanded', String(open));
   });
 
-  const quickRail = document.querySelector('.quick-rail');
-  if (quickRail && !quickRail.classList.contains('quick-rail-global')) {
-    const desktopRail = window.matchMedia('(min-width: 781px)');
-    let railDocumentTop = 0;
-    let railFrame = 0;
-
-    const syncQuickRail = () => {
-      railFrame = 0;
-      if (!desktopRail.matches) {
-        quickRail.classList.remove('is-following');
-        return;
-      }
-      quickRail.classList.toggle('is-following', window.scrollY + 24 >= railDocumentTop);
-    };
-
-    const measureQuickRail = () => {
-      quickRail.classList.remove('is-following');
-      const rect = quickRail.getBoundingClientRect();
-      railDocumentTop = window.scrollY + rect.top;
-      quickRail.style.setProperty('--quick-rail-left', `${rect.left}px`);
-      quickRail.style.setProperty('--quick-rail-width', `${rect.width}px`);
-      syncQuickRail();
-    };
-
-    const requestQuickRailSync = () => {
-      if (!railFrame) railFrame = window.requestAnimationFrame(syncQuickRail);
-    };
-
-    measureQuickRail();
-    window.addEventListener('scroll', requestQuickRailSync, { passive: true });
-    window.addEventListener('resize', measureQuickRail);
-    desktopRail.addEventListener?.('change', measureQuickRail);
-  }
-
   document.querySelectorAll('.side-menu button[aria-expanded]').forEach((button) => {
     button.addEventListener('click', () => {
       button.setAttribute('aria-expanded', String(button.getAttribute('aria-expanded') !== 'true'));

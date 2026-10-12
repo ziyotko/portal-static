@@ -53,17 +53,23 @@ BEGIN
     SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'required CAMIE navigation root columns are missing';
   END IF;
 
+  SELECT 3 - COUNT(DISTINCT code) INTO issue_count FROM `column`
+   WHERE code IN ('home','home-hero','home-policy-reports');
+  IF issue_count > 0 THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'required CAMIE homepage placement columns are missing';
+  END IF;
+
   SELECT COUNT(*) INTO issue_count
     FROM article_column_publish p
     JOIN `column` legacy ON legacy.id=p.column_id
-   WHERE (legacy.code='home' OR legacy.code LIKE 'home-%')
+   WHERE legacy.code IN ('home-news-notice','home-news-association','home-news-member',
+                         'home-training-meetings','home-standards-work','home-standards-innovation',
+                         'home-training-international','home-training-talent','home-experts')
      AND NOT EXISTS (
        SELECT 1 FROM article_column_publish current_p
        JOIN `column` current_c ON current_c.id=current_p.column_id AND current_c.status=1
         WHERE current_p.article_id=p.article_id
           AND current_c.code=CASE legacy.code
-            WHEN 'home' THEN 'news-hot'
-            WHEN 'home-hero' THEN 'news-hot'
             WHEN 'home-experts' THEN 'about-expert-insights'
             ELSE SUBSTRING(legacy.code, 6)
           END
@@ -169,17 +175,27 @@ UPDATE template SET name='通用栏目', type='column', route_path=NULL, descrip
 UPDATE template SET name='通用详情', type='detail', route_path=NULL, description='CAMIE 通用详情模板', status=1, source_code=@src_article, updated_at=NOW(3) WHERE code='camie-article';
 UPDATE template SET name='关于协会', type='home', route_path='/pages/about.html', description='CAMIE 导航页面', status=1, source_code=@src_about, updated_at=NOW(3) WHERE code='camie-about';
 
+UPDATE `column` c
+JOIN template t ON t.code='camie-home'
+SET c.template_id=t.id, c.status=1, c.updated_at=NOW(3)
+WHERE c.code IN ('home','home-hero','home-policy-reports');
+
 INSERT INTO template (created_at, updated_at, name, code, type, route_path, description, status, source_code, layout)
 SELECT NOW(3), NOW(3), '历史首页栏目（已停用）', 'camie-home-legacy', 'special', NULL,
        '旧首页栏目归档，仅保留历史投放记录', 0, '', ''
- WHERE EXISTS (SELECT 1 FROM `column` WHERE code='home' OR code LIKE 'home-%')
+ WHERE EXISTS (SELECT 1 FROM `column` WHERE code IN
+   ('home-news-notice','home-news-association','home-news-member','home-training-meetings',
+    'home-standards-work','home-standards-innovation','home-training-international',
+    'home-training-talent','home-experts'))
    AND NOT EXISTS (SELECT 1 FROM template WHERE code='camie-home-legacy');
 
 UPDATE template SET status=0, updated_at=NOW(3) WHERE code='camie-home-legacy';
 UPDATE `column` c
 JOIN template t ON t.code='camie-home-legacy'
 SET c.template_id=t.id, c.status=0, c.updated_at=NOW(3)
-WHERE c.code='home' OR c.code LIKE 'home-%';
+WHERE c.code IN ('home-news-notice','home-news-association','home-news-member',
+                 'home-training-meetings','home-standards-work','home-standards-innovation',
+                 'home-training-international','home-training-talent','home-experts');
 
 WITH RECURSIVE template_roots AS (
   SELECT CAST('party' AS CHAR(100)) root_code, CAST('camie-party' AS CHAR(100)) template_code
