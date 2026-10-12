@@ -67,8 +67,9 @@ func TestTemplateSourceDefaultsToFileForExistingCAMIEConfig(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	withoutSetting := strings.Replace(string(example), "    template_source: file\n", "", 1)
-	if withoutSetting == string(example) {
+	normalized := strings.ReplaceAll(string(example), "\r\n", "\n")
+	withoutSetting := strings.Replace(normalized, "    template_source: file\n", "", 1)
+	if withoutSetting == normalized {
 		t.Fatal("example config has no template_source setting to remove")
 	}
 	path := filepath.Join(t.TempDir(), "camie.yaml")

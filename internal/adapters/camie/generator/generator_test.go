@@ -69,7 +69,7 @@ func TestRequestedOutputUsesAllowedRootInsteadOfDefaultDistRoot(t *testing.T) {
 func TestHomeReadsFormalSectionsAndIgnoresLegacyHomeColumns(t *testing.T) {
 	cfg := testConfig(t)
 	source := demo.NewSource()
-	var noticeColumn, topicColumn, policyColumn, heroColumn, expertColumn model.Column
+	var noticeColumn, topicColumn, policyColumn, heroColumn, expertColumn, expertParentColumn model.Column
 	for _, column := range source.Columns {
 		switch column.Code {
 		case "news-notice":
@@ -82,6 +82,8 @@ func TestHomeReadsFormalSectionsAndIgnoresLegacyHomeColumns(t *testing.T) {
 			heroColumn = column
 		case "about-expert-insights":
 			expertColumn = column
+		case "about-experts":
+			expertParentColumn = column
 		}
 	}
 	if noticeColumn.ID == 0 {
@@ -100,7 +102,7 @@ func TestHomeReadsFormalSectionsAndIgnoresLegacyHomeColumns(t *testing.T) {
 	if heroColumn.ID == 0 || len(source.Items[heroColumn.ID]) == 0 {
 		t.Fatal("missing hero fixture")
 	}
-	if expertColumn.ID == 0 {
+	if expertColumn.ID == 0 || expertParentColumn.ID == 0 {
 		t.Fatal("missing expert fixture")
 	}
 	heroItems := source.Items[heroColumn.ID]
@@ -116,10 +118,12 @@ func TestHomeReadsFormalSectionsAndIgnoresLegacyHomeColumns(t *testing.T) {
 	shared := source.Items[noticeColumn.ID][0]
 	onlyHome := model.Article{ID: 990001, Type: model.ArticleTypeContent, Title: "仅投放首页的通知", Content: "公开测试正文", PublishTime: time.Date(2026, 9, 28, 9, 0, 0, 0, time.FixedZone("CST", 8*60*60))}
 	expert := model.Article{ID: 990002, Type: model.ArticleTypeContent, Title: "正式专家栏目文章", Content: "公开专家正文", Cover: "assets/images/video-thumb.png", PublishTime: onlyHome.PublishTime}
+	parentExpert := model.Article{ID: 990003, Type: model.ArticleTypeContent, Title: "直接发布在专家委员会的文章", Content: "专家委员会正文", PublishTime: time.Date(2026, 9, 27, 9, 0, 0, 0, time.FixedZone("CST", 8*60*60))}
 	source.Items[notices.ID] = []model.Article{shared, onlyHome}
 	source.Items[experts.ID] = []model.Article{onlyHome}
 	source.Items[legacyHero.ID] = []model.Article{onlyHome}
 	source.Items[expertColumn.ID] = []model.Article{expert}
+	source.Items[expertParentColumn.ID] = []model.Article{parentExpert}
 
 	result, err := New(cfg, source).GenerateSite(context.Background())
 	if err != nil {
@@ -134,6 +138,7 @@ func TestHomeReadsFormalSectionsAndIgnoresLegacyHomeColumns(t *testing.T) {
 	}{
 		{shared.ID, "news-notice", shared.Title, noticeColumn.Name},
 		{expert.ID, "about-expert-insights", expert.Title, expertColumn.Name},
+		{parentExpert.ID, "about-experts", parentExpert.Title, expertParentColumn.Name},
 	} {
 		detail := readGenerated(t, result.Output, fmt.Sprintf("article/2026/09/%d.html", check.id))
 		breadcrumb := regexp.MustCompile(`<nav class="breadcrumb"[^>]*>.*?</nav>`).FindString(detail)
@@ -268,29 +273,26 @@ func TestVideoDetailPlaysUploadedMP4Attachment(t *testing.T) {
 func TestGenerateCompletePublicSiteAndMemberShells(t *testing.T) {
 	cfg := testConfig(t)
 	source := demo.NewSource()
-	var privateID, organizationID int64
+	var privateID, organizationID, sharedColumnID int64
 	for _, column := range source.Columns {
 		switch column.Code {
 		case "member-reports":
 			privateID = column.ID
 		case "about-organization":
 			organizationID = column.ID
+		case "news-hot":
+			sharedColumnID = column.ID
 		}
 	}
-	if privateID == 0 || organizationID == 0 || len(source.Items[organizationID]) == 0 {
+	if privateID == 0 || organizationID == 0 || sharedColumnID == 0 || len(source.Items[organizationID]) == 0 {
 		t.Fatal("missing member or organization fixtures")
 	}
 	source.Items[privateID] = []model.Article{{ID: 999999, ColumnID: privateID, Type: model.ArticleTypeContent, Title: "不得静态化的会员报告", Content: "会员秘密正文", PublishTime: time.Now().Add(-time.Hour)}}
-	var sharedID int64
-	for columnID, items := range source.Items {
-		if columnID != privateID && len(items) > 0 {
-			shared := items[0]
-			sharedID = shared.ID
-			shared.ColumnID = privateID
-			source.Items[privateID] = append(source.Items[privateID], shared)
-			break
-		}
-	}
+	shared := model.Article{ID: 999998, ColumnID: sharedColumnID, Type: model.ArticleTypeContent, Title: "同时投放公开与会员栏目的文章", Content: "不得公开的共享正文", PublishTime: time.Now().Add(-time.Hour)}
+	sharedID := shared.ID
+	source.Items[sharedColumnID] = append(source.Items[sharedColumnID], shared)
+	shared.ColumnID = privateID
+	source.Items[privateID] = append(source.Items[privateID], shared)
 	result, err := New(cfg, source).GenerateSite(context.Background())
 	if err != nil {
 		t.Fatal(err)
@@ -301,6 +303,23 @@ func TestGenerateCompletePublicSiteAndMemberShells(t *testing.T) {
 		}
 	}
 	homePage := readGenerated(t, result.Output, "index.html")
+	buildID := result.GeneratedAt.Format("20060102T150405.000000000-0700")
+	generatedAt := result.GeneratedAt.Format(time.RFC3339Nano)
+	htmlBuildID := strings.ReplaceAll(buildID, "+", "&#43;")
+	htmlGeneratedAt := strings.ReplaceAll(generatedAt, "+", "&#43;")
+	jsBuildID := strings.ReplaceAll(buildID, "+", `\u002b`)
+	jsGeneratedAt := strings.ReplaceAll(generatedAt, "+", `\u002b`)
+	urlBuildID := strings.ReplaceAll(buildID, "+", "%2b")
+	for _, marker := range []string{
+		`data-static-build="` + htmlBuildID + `"`,
+		`data-generated-at="` + htmlGeneratedAt + `"`,
+		`console.info("[CAMIE 静态化] 构建版本：` + jsBuildID + ` | 生成时间：` + jsGeneratedAt + `")`,
+		`generated-content.js?v=` + urlBuildID,
+	} {
+		if !strings.Contains(homePage, marker) {
+			t.Fatalf("homepage missing static build marker %q", marker)
+		}
+	}
 	organization := source.Items[organizationID][0]
 	organizationHref := fmt.Sprintf("article/%s/%d.html?from=about-organization", organization.PublishTime.Format("2006/01"), organization.ID)
 	if !strings.Contains(homePage, `href="./`+organizationHref+`">组织架构</a>`) {
@@ -384,6 +403,7 @@ func TestGenerateCompletePublicSiteAndMemberShells(t *testing.T) {
 		"videos.html":              {`member.html?column=`, `mode=video`},
 		"pages/member.html":        {`data-member-list-shell`, `data-member-columns`, `data-member-login-path="/member-entry/login?site=camie"`, `js/member.js`},
 		"pages/member-detail.html": {`data-member-detail-shell`, `data-member-breadcrumb`, `data-member-login-path="/member-entry/login?site=camie"`, `js/member.js`},
+		"js/member.js":             {`memberSpaceItem`, `我的空间`, `/business_member/member/dashboard`},
 	} {
 		page := readGenerated(t, result.Output, name)
 		for _, marker := range markers {

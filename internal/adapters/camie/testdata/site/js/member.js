@@ -11,6 +11,7 @@
   const params = new URLSearchParams(location.search);
   const typeNames = { 1: '新闻', 2: '数据', 3: '视频', 4: '报刊' };
   const columnLabel = (name) => name === '数据中心' ? '数据看板' : name;
+  const memberDashboardPath = '/business_member/member/dashboard';
   let token = '';
 
   const node = (tag, className, value) => {
@@ -33,6 +34,21 @@
     const login = new URL(document.body.dataset.memberLoginPath, location.href);
     login.searchParams.set('returnUrl', location.href);
     return { label: '登录会员账号', href: login.href };
+  };
+  const memberSpaceItem = () => {
+    let storedToken = '';
+    try { storedToken = localStorage.getItem('member-token') || ''; } catch { storedToken = ''; }
+    let href = memberDashboardPath;
+    if (!storedToken) {
+      const login = new URL(document.body.dataset.memberLoginPath, location.href);
+      login.searchParams.set('returnUrl', new URL(memberDashboardPath, location.origin).href);
+      href = login.href;
+    }
+    const li = node('li', 'member-space-item');
+    const a = link('我的空间', href);
+    a.dataset.memberSpaceLink = '';
+    li.append(a);
+    return li;
   };
   const showLogin = (expired = false) => setStatus(expired ? '登录已失效，请重新登录。' : '请登录后查看会员内容。', loginAction());
 
@@ -139,6 +155,13 @@
   };
 
   const renderList = async () => {
+    const sidebar = shell.querySelector('[data-member-columns]');
+    const renderSidebar = (items = []) => {
+      sidebar.replaceChildren(...items, memberSpaceItem());
+      sidebar.parentElement.hidden = false;
+      shell.classList.add('member-has-columns');
+    };
+    renderSidebar();
     if (!(await begin())) return;
     let columns;
     try {
@@ -151,8 +174,7 @@
       || columns.find((item) => item.name === '行业报告') || columns[0];
     const column = columnLabel(selected.name);
     const mode = params.get('mode') === 'video' ? 'video' : '';
-    const sidebar = shell.querySelector('[data-member-columns]');
-    sidebar.replaceChildren(...columns.map((item) => {
+    renderSidebar(columns.filter((item) => item.name !== '我的空间').map((item) => {
       const li = node('li', item.id === selected.id ? 'is-active' : '');
       const label = columnLabel(item.name);
       const a = link(label, pageURL(label, 1, item.name === '会员专享' ? 'video' : ''));
@@ -160,8 +182,6 @@
       li.append(a);
       return li;
     }));
-    sidebar.parentElement.hidden = false;
-    shell.classList.add('member-has-columns');
     shell.querySelector('[data-member-heading]').textContent = column;
     setBreadcrumb(column);
     const requestedPage = Number.parseInt(params.get('page') || '1', 10);

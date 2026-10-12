@@ -65,6 +65,7 @@ type Partner struct {
 type Page struct {
 	ActiveNav                             string
 	Title, Kind, BodyClass, RootPrefix    string
+	StaticBuildID, StaticGeneratedAt      string
 	ColumnCode                            string
 	ColumnPaths                           template.JS
 	Items                                 []*Article
@@ -498,6 +499,11 @@ func (g *Generator) GenerateSite(ctx context.Context) (result Result, err error)
 	_, _ = fmt.Fprintf(lock, "pid=%d\nstarted=%s\n", os.Getpid(), time.Now().Format(time.RFC3339))
 	_ = lock.Close()
 	defer os.Remove(target + ".lock")
+	generatedAt := time.Now()
+	if location, loadErr := time.LoadLocation(g.cfg.Site.Timezone); loadErr == nil {
+		generatedAt = generatedAt.In(location)
+	}
+	buildID := generatedAt.Format("20060102T150405.000000000-0700")
 	c, err := g.load(ctx)
 	if err != nil {
 		return result, err
@@ -551,6 +557,8 @@ func (g *Generator) GenerateSite(ctx context.Context) (result Result, err error)
 			return err
 		}
 		p.ActiveNav = activeNav(c, p)
+		p.StaticBuildID = buildID
+		p.StaticGeneratedAt = generatedAt.Format(time.RFC3339Nano)
 		p.ColumnPaths = template.JS(columnPathJSON)
 		currentColumn := p.ColumnCode
 		if p.Article != nil {
@@ -666,7 +674,7 @@ func (g *Generator) GenerateSite(ctx context.Context) (result Result, err error)
 	if dataCenter.Feature != nil {
 		home.DataCenterURL = dataCenter.Feature.Href
 	}
-	home.Experts = group(c, "about-expert-insights", 3)
+	home.Experts = group(c, "about-experts", 3)
 	if err = render("index.html", "home", home); err != nil {
 		return result, err
 	}
@@ -878,7 +886,7 @@ func (g *Generator) GenerateSite(ctx context.Context) (result Result, err error)
 		return result, err
 	}
 	result.Output = target
-	result.GeneratedAt = time.Now()
+	result.GeneratedAt = generatedAt
 	return result, nil
 }
 
