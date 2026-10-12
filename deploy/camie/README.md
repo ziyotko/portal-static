@@ -125,6 +125,55 @@ README.md
 
 以上内容作为部署参考，具体使用方式由运维根据生产环境确定。
 
+### 4.1 静态资源和模板放置位置
+
+请优先解压完整发布包，不要只复制 `portal-static` 可执行文件，也不要等生成失败后再逐个补图片、CSS 或模板文件。发布包已经包含静态资源和模板，目录关系如下：
+
+```text
+<发布目录>/
+├── bin/
+│   └── portal-static
+└── share/
+    ├── camie-site/
+    │   ├── assets/
+    │   ├── css/
+    │   ├── js/
+    │   └── column-structure.json
+    └── camie-preview-templates/
+        ├── layout.html.tmpl
+        ├── home.html.tmpl
+        ├── list.html.tmpl
+        ├── article.html.tmpl
+        └── about.html.tmpl
+```
+
+生产配置使用 `/opt/camie/current` 作为当前版本目录时，`paths.source_root` 应为：
+
+```yaml
+paths:
+  source_root: /opt/camie/current/share/camie-site
+```
+
+这里的含义是：`camie-site` 目录下面应当**直接**看到 `assets`、`css`、`js` 和 `column-structure.json`。不要把整个 `site` 或 `camie-site` 目录再复制到里面，否则会形成错误的双层目录：
+
+```text
+# 正确
+/opt/camie/current/share/camie-site/assets/images/beian-emblem.png
+
+# 错误：多套了一层目录
+/opt/camie/current/share/camie-site/site/assets/images/beian-emblem.png
+/opt/camie/current/share/camie-site/camie-site/assets/images/beian-emblem.png
+```
+
+模板不放在 `camie-site` 里，应按 `portal-static.yaml` 的 `paths.templates` 配置放在同级的 `camie-preview-templates` 目录。启动服务前至少执行以下检查；任意一条失败，都说明发布包没有完整解压或目录层级放错：
+
+```bash
+test -f /opt/camie/current/share/camie-site/css/common.css
+test -f /opt/camie/current/share/camie-site/js/main.js
+test -f /opt/camie/current/share/camie-site/assets/images/beian-emblem.png
+test -f /opt/camie/current/share/camie-preview-templates/layout.html.tmpl
+```
+
 ---
 
 ## 5. 生产配置

@@ -24,6 +24,25 @@
 3. 规划只读资源目录、独立静态产物目录、预览目录和回滚版本目录。`paths.source_root` 指向随本版本发布的 CAMIE `site` 资源；`paths.dist_root` 是默认产物目录，`paths.allowed_output_root` 是 Dia 可选路径的安全边界，`paths.preview_root` 是预览目录。所有输出目录均不得与源码目录重叠。服务账号可读资源与配置，可写产物目录及其父目录中的临时发布目录。
 4. 先备份两库、上述上传目录、当前线上静态产物和数据库模板；校验备份可恢复。不要在生成目录中手工改 HTML、JS、CSS；重建会覆盖这些改动。
 
+发布包应完整解压，不能只更新可执行文件。以 `/opt/camie/current` 为当前版本目录时，静态资源和文件模板应为以下结构：
+
+```text
+/opt/camie/current/share/
+├── camie-site/
+│   ├── assets/
+│   ├── css/
+│   ├── js/
+│   └── column-structure.json
+└── camie-preview-templates/
+    ├── layout.html.tmpl
+    ├── home.html.tmpl
+    ├── list.html.tmpl
+    ├── article.html.tmpl
+    └── about.html.tmpl
+```
+
+`paths.source_root: /opt/camie/current/share/camie-site` 表示该目录下直接是 `assets`、`css`、`js` 等内容，不要再嵌套一层 `site` 或 `camie-site`。完整的正确、错误示例和上线前检查命令见 [CAMIE 生产部署研发交接说明](../deploy/camie/README.md#41-静态资源和模板放置位置)。
+
 发布流水线应在切换版本前自动调用发布包内 `ops/scripts/apply-release-db.sh <发布目录> <本次备份目录>`。脚本会完成备份、`preflight.sql` 检查和 `migrate.sql` 执行；任何 `BLOCKER` 或 SQL 错误都会让该步骤失败并阻止继续发布。不要让运维分别手动运行两份 SQL。生产流水线由运维维护，接入命令和所需的 MySQL login path 见 [发布说明](../deploy/camie/README.md)。
 
 ## 3. 静态化配置与启动
