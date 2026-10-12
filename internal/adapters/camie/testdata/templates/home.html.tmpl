@@ -28,19 +28,7 @@
         {{end}}
       </section>
 
-      <aside class="quick-rail" aria-label="快捷服务">
-        <a href="{{.MemberRegisterPath}}"><img class="quick-icon" src="{{root . "assets/images/icon-join.png"}}" alt="">申请入会</a>
-        <a href="{{root . "pages/member.html"}}"><img class="quick-icon" src="{{root . "assets/images/icon-member.png"}}" alt="">会员中心</a>
-        <div class="quick-mobile">
-          <button class="quick-mobile-trigger" type="button" aria-expanded="false" aria-controls="mobile-qr-card" aria-haspopup="dialog"><img class="quick-icon" src="{{root . "assets/images/icon-mobile.png"}}" alt="">移动媒体</button>
-          <div class="mobile-qr-card" id="mobile-qr-card" role="dialog" aria-label="协会移动媒体二维码" hidden>
-            <div class="mobile-qr-item"><img src="{{root . "assets/images/qr-wechat-service.jpg"}}" alt="CAMIE 微信服务号二维码"><span>CAMIE</span><strong>微信服务号</strong></div>
-            <div class="mobile-qr-item"><img src="{{root . "assets/images/qr-wechat-video.png"}}" alt="CAMIE 微信视频号二维码"><span>CAMIE</span><strong>微信视频号</strong></div>
-            <div class="mobile-qr-item"><img src="{{root . "assets/images/qr-wechat-subscription.jpg"}}" alt="CAMIE 微信订阅号二维码"><span>CAMIE</span><strong>微信订阅号</strong></div>
-          </div>
-        </div>
-        <a href="{{root . "videos.html"}}"><img class="quick-icon" src="{{root . "assets/images/icon-video.png"}}" alt="">视频专区</a>
-      </aside>
+      {{template "quick-rail" .}}
     </section>
 
     <section class="updates">
@@ -60,9 +48,9 @@
     <a class="conference-banner" href="{{columnURL . "training-meetings"}}"><img src="{{root . "assets/images/conference-banner.png"}}" alt="环保装备高质量发展大会"></a>
     <nav class="feature-links" aria-label="专题入口">
       <a href="{{columnURL . "standards-green-promotion"}}">绿色技术推广</a>
-      <a href="{{columnURL . "policy-major-equipment-catalogue"}}">国家鼓励发展的重大环保技术装备目录</a>
+      <a href="{{columnURL . "policy-major-equipment-catalogue"}}">国家鼓励发展的重大环保<br>技术装备目录</a>
       <a href="{{columnURL . "policy-qualified-enterprises"}}">环保装备制造业规范条件企业</a>
-      <a href="{{columnURL . "policy-innovation-tasks"}}">重大环保技术装备创新任务揭榜挂帅</a>
+      <a href="{{columnURL . "policy-innovation-tasks"}}">重大环保技术装备创新任务<br>揭榜挂帅</a>
     </nav>
 
     <div class="home-lower">
@@ -83,7 +71,7 @@
       </div>
 
       <section class="partners">
-        <h2 class="section-title"><img src="{{root . "assets/images/leaf-icon.png"}}" alt="">副会长单位 <small>（排名不分前后）</small></h2>
+        <h2 class="section-title"><img src="{{root . "assets/images/leaf-icon.png"}}" alt="">副会长单位</h2>
         <div class="partner-grid">
           {{range .PartnerRows}}
           <div class="partner-row"><div class="partner-track">

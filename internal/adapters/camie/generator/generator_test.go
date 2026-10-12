@@ -69,13 +69,15 @@ func TestRequestedOutputUsesAllowedRootInsteadOfDefaultDistRoot(t *testing.T) {
 func TestHomeReadsFormalSectionsAndIgnoresLegacyHomeColumns(t *testing.T) {
 	cfg := testConfig(t)
 	source := demo.NewSource()
-	var noticeColumn, topicColumn, heroColumn, expertColumn model.Column
+	var noticeColumn, topicColumn, policyColumn, heroColumn, expertColumn model.Column
 	for _, column := range source.Columns {
 		switch column.Code {
 		case "news-notice":
 			noticeColumn = column
 		case "training-meetings":
 			topicColumn = column
+		case "policy-research":
+			policyColumn = column
 		case "news-hot":
 			heroColumn = column
 		case "about-expert-insights":
@@ -87,6 +89,9 @@ func TestHomeReadsFormalSectionsAndIgnoresLegacyHomeColumns(t *testing.T) {
 	}
 	if topicColumn.ID == 0 || len(source.Items[topicColumn.ID]) == 0 {
 		t.Fatal("missing home topic fixture")
+	}
+	if policyColumn.ID == 0 {
+		t.Fatal("missing policy research fixture")
 	}
 	topicItems := source.Items[topicColumn.ID]
 	topicItems[0].Cover = "assets/images/hero-water-treatment.jpg"
@@ -161,6 +166,10 @@ func TestHomeReadsFormalSectionsAndIgnoresLegacyHomeColumns(t *testing.T) {
 	}
 	if !strings.Contains(homePage, fmt.Sprintf(`data-href="./list/%d/1.html"`, noticeColumn.ID)) || !strings.Contains(homePage, fmt.Sprintf(`data-href="./list/%d/1.html"`, topicColumn.ID)) {
 		t.Fatal("homepage section labels did not link to formal column lists")
+	}
+	policyButton := fmt.Sprintf(`data-href="./list/%d/1.html" type="button">政策研究</button>`, policyColumn.ID)
+	if !strings.Contains(homePage, policyButton) {
+		t.Fatalf("homepage policy research tab did not link to its parent column: %s", policyButton)
 	}
 	expertFeature := regexp.MustCompile(`<a class="expert-feature"[^>]*><img src="([^"]+)" alt="正式专家栏目文章">`).FindStringSubmatch(homePage)
 	if len(expertFeature) != 2 || expertFeature[1] != "./assets/images/video-thumb.png" {
@@ -259,12 +268,17 @@ func TestVideoDetailPlaysUploadedMP4Attachment(t *testing.T) {
 func TestGenerateCompletePublicSiteAndMemberShells(t *testing.T) {
 	cfg := testConfig(t)
 	source := demo.NewSource()
-	var privateID int64
+	var privateID, organizationID int64
 	for _, column := range source.Columns {
-		if column.Code == "member-reports" {
+		switch column.Code {
+		case "member-reports":
 			privateID = column.ID
-			break
+		case "about-organization":
+			organizationID = column.ID
 		}
+	}
+	if privateID == 0 || organizationID == 0 || len(source.Items[organizationID]) == 0 {
+		t.Fatal("missing member or organization fixtures")
 	}
 	source.Items[privateID] = []model.Article{{ID: 999999, ColumnID: privateID, Type: model.ArticleTypeContent, Title: "不得静态化的会员报告", Content: "会员秘密正文", PublishTime: time.Now().Add(-time.Hour)}}
 	var sharedID int64
@@ -287,6 +301,27 @@ func TestGenerateCompletePublicSiteAndMemberShells(t *testing.T) {
 		}
 	}
 	homePage := readGenerated(t, result.Output, "index.html")
+	organization := source.Items[organizationID][0]
+	organizationHref := fmt.Sprintf("article/%s/%d.html?from=about-organization", organization.PublishTime.Format("2006/01"), organization.ID)
+	if !strings.Contains(homePage, `href="./`+organizationHref+`">组织架构</a>`) {
+		t.Fatal("primary navigation organization link did not point directly to its first detail")
+	}
+	aboutPage := readGenerated(t, result.Output, "pages/about.html")
+	if !strings.Contains(aboutPage, `href="../`+organizationHref+`">组织架构</a>`) {
+		t.Fatal("about sidebar organization link did not point directly to its first detail")
+	}
+	for pageName, railClass := range map[string]string{
+		"index.html":        `class="quick-rail"`,
+		"news.html":         `class="quick-rail quick-rail-global"`,
+		"detail.html":       `class="quick-rail quick-rail-global"`,
+		"pages/about.html":  `class="quick-rail quick-rail-global"`,
+		"pages/member.html": `class="quick-rail quick-rail-global"`,
+	} {
+		page := readGenerated(t, result.Output, pageName)
+		if strings.Count(page, `aria-label="快捷服务"`) != 1 || !strings.Contains(page, railClass) {
+			t.Fatalf("%s did not render exactly one shared quick rail", pageName)
+		}
+	}
 	for _, text := range []string{"京公网安备11010202009494", "京ICP备09071629号", "技术支持：机械工业信息中心"} {
 		if !strings.Contains(homePage, text) {
 			t.Fatalf("home footer missing %q", text)
@@ -446,6 +481,9 @@ func TestGenerateCompletePublicSiteAndMemberShells(t *testing.T) {
 		`class="feature-links"`,
 		`class="branch-card"`,
 		`class="partners"`,
+		`>政策研究</button>`,
+		`国家鼓励发展的重大环保<br>技术装备目录`,
+		`重大环保技术装备创新任务<br>揭榜挂帅`,
 	} {
 		if !strings.Contains(home, marker) {
 			t.Fatalf("home page lost styled component markup %q", marker)

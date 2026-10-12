@@ -28,7 +28,7 @@
   });
 
   const quickRail = document.querySelector('.quick-rail');
-  if (quickRail) {
+  if (quickRail && !quickRail.classList.contains('quick-rail-global')) {
     const desktopRail = window.matchMedia('(min-width: 781px)');
     let railDocumentTop = 0;
     let railFrame = 0;

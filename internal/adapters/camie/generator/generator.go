@@ -326,11 +326,12 @@ func isPrivateColumnCode(code string) bool {
 }
 
 func groupByID(c *catalog, id int64, limit int) Group {
-	name := ""
+	name, code := "", ""
 	descendants := map[int64]bool{}
 	for _, column := range c.columns {
 		if column.ID == id {
 			name = column.Name
+			code = column.Code
 		}
 	}
 	if id > 0 {
@@ -368,6 +369,9 @@ func groupByID(c *catalog, id int64, limit int) Group {
 	if len(items) > 0 {
 		out.Feature = items[0]
 		out.Rest = items[1:]
+		if code == "about-organization" && !strings.HasPrefix(items[0].Href, "http") {
+			out.Href = items[0].Href + "?from=about-organization"
+		}
 	}
 	return out
 }
@@ -653,7 +657,7 @@ func (g *Generator) GenerateSite(ctx context.Context) (result Result, err error)
 		"standards-innovation",
 		"training-international",
 		"training-talent",
-		"policy-reports",
+		"policy-research",
 	} {
 		home.Topics = append(home.Topics, group(c, topic, 6))
 	}
