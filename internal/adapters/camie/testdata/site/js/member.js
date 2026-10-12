@@ -10,6 +10,7 @@
   const breadcrumb = shell.querySelector('[data-member-breadcrumb]');
   const params = new URLSearchParams(location.search);
   const typeNames = { 1: '新闻', 2: '数据', 3: '视频', 4: '报刊' };
+  const columnLabel = (name) => name === '数据中心' ? '数据看板' : name;
   let token = '';
 
   const node = (tag, className, value) => {
@@ -146,14 +147,15 @@
     } catch (error) { handleError(error, '会员栏目加载失败，请稍后重试。'); return; }
     if (!columns.length) { setStatus('暂无可用的会员栏目。'); return; }
     const requested = params.get('column');
-    const selected = columns.find((item) => item.name === requested || String(item.id) === requested)
+    const selected = columns.find((item) => item.name === requested || columnLabel(item.name) === requested || String(item.id) === requested)
       || columns.find((item) => item.name === '行业报告') || columns[0];
-    const column = selected.name;
+    const column = columnLabel(selected.name);
     const mode = params.get('mode') === 'video' ? 'video' : '';
     const sidebar = shell.querySelector('[data-member-columns]');
     sidebar.replaceChildren(...columns.map((item) => {
       const li = node('li', item.id === selected.id ? 'is-active' : '');
-      const a = link(item.name, pageURL(item.name, 1, item.name === '会员专享' ? 'video' : ''));
+      const label = columnLabel(item.name);
+      const a = link(label, pageURL(label, 1, item.name === '会员专享' ? 'video' : ''));
       if (item.id === selected.id) a.setAttribute('aria-current', 'page');
       li.append(a);
       return li;
@@ -380,7 +382,7 @@
       return;
     }
     if (!item || !item.title || !typeNames[item.type]) { setStatus('内容不存在或已下线。'); return; }
-    const column = item.memberColumnName || params.get('column') || '会员栏目';
+    const column = columnLabel(item.memberColumnName || params.get('column') || '会员栏目');
     setBreadcrumb(column, item.title);
     document.title = `${item.title} - 中国环保机械行业协会`;
     const slot = shell.querySelector('[data-member-content]');
