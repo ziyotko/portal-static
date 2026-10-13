@@ -50,7 +50,6 @@ func NewSource() *Source {
 	appendColumns(navigation, 0)
 	appendColumns([]columnSpec{{Name: "首页内容", Code: "home", Children: []columnSpec{
 		{Name: "轮播图", Code: "home-hero"},
-		{Name: "政策研究", Code: "home-policy-reports"},
 	}}}, 0)
 
 	base := time.Date(2026, 9, 29, 9, 0, 0, 0, time.FixedZone("CST", 8*60*60))

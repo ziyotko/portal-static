@@ -316,7 +316,7 @@ BLOCKER
 - 静态化相关基础数据变更
 
 数据库关联使用稳定业务 Code，不依赖开发环境中的数据库自增 ID。
-首页保留 `home`、`home-hero`、`home-policy-reports` 作为独立栏目；通知公告等重复区块直接读取其他页面的栏目。迁移会启用并绑定三个保留栏目，只归档已废弃的重复首页栏目。
+首页只保留 `home`、`home-hero` 作为独立栏目；“政策研究”与通知公告等资讯区块都直接读取正式栏目树，其中首页“政策研究”聚合 `policy-research` 的五个子栏目。迁移会启用并绑定两个保留栏目，把 `home-policy-reports` 与其他废弃的重复首页栏目一并归档。
 
 CAMIE 的 `adapter.site.template_source` 缺省为 `file`；即使现有环境配置没有该字段，新版静态化程序也从发布包 `share/camie-preview-templates/*.tmpl` 读取渲染模板。数据库仍用于栏目和文章数据以及模板归属。今后要改为 `database`，须显式配置该值，重启静态化服务并重建全站。现有 `migrate.sql` 仍会同步 `source_code`，将来交由运维直接维护数据库模板时，须先调整迁移脚本，避免后续发布覆盖后台修改。
 

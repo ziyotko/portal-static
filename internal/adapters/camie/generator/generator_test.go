@@ -66,10 +66,10 @@ func TestRequestedOutputUsesAllowedRootInsteadOfDefaultDistRoot(t *testing.T) {
 	}
 }
 
-func TestHomeReusesPublicSectionsAndKeepsIndependentPlacements(t *testing.T) {
+func TestHomeReusesPublicSectionsAndKeepsIndependentHeroPlacement(t *testing.T) {
 	cfg := testConfig(t)
 	source := demo.NewSource()
-	var homeColumn, noticeColumn, topicColumn, policyColumn, publicPolicyColumn, heroColumn, expertColumn, expertParentColumn model.Column
+	var homeColumn, noticeColumn, topicColumn, legacyPolicyColumn, publicPolicyColumn, heroColumn, expertColumn, expertParentColumn model.Column
 	for _, column := range source.Columns {
 		switch column.Code {
 		case "home":
@@ -79,7 +79,7 @@ func TestHomeReusesPublicSectionsAndKeepsIndependentPlacements(t *testing.T) {
 		case "training-meetings":
 			topicColumn = column
 		case "home-policy-reports":
-			policyColumn = column
+			legacyPolicyColumn = column
 		case "policy-research":
 			publicPolicyColumn = column
 		case "home-hero":
@@ -96,8 +96,12 @@ func TestHomeReusesPublicSectionsAndKeepsIndependentPlacements(t *testing.T) {
 	if topicColumn.ID == 0 || len(source.Items[topicColumn.ID]) == 0 {
 		t.Fatal("missing home topic fixture")
 	}
-	if homeColumn.ID == 0 || policyColumn.ID == 0 || publicPolicyColumn.ID == 0 {
+	if homeColumn.ID == 0 || publicPolicyColumn.ID == 0 {
 		t.Fatal("missing independent homepage fixtures")
+	}
+	if legacyPolicyColumn.ID == 0 {
+		legacyPolicyColumn = model.Column{ID: 9003, ParentID: homeColumn.ID, Name: "政策研究", Code: "home-policy-reports"}
+		source.Columns = append(source.Columns, legacyPolicyColumn)
 	}
 	topicItems := source.Items[topicColumn.ID]
 	topicItems[0].Cover = "assets/images/hero-water-treatment.jpg"
@@ -117,11 +121,11 @@ func TestHomeReusesPublicSectionsAndKeepsIndependentPlacements(t *testing.T) {
 	expert := model.Article{ID: 990002, Type: model.ArticleTypeContent, Title: "正式专家栏目文章", Content: "公开专家正文", Cover: "assets/images/video-thumb.png", PublishTime: onlyHome.PublishTime}
 	parentExpert := model.Article{ID: 990003, Type: model.ArticleTypeContent, Title: "直接发布在专家委员会的文章", Content: "专家委员会正文", PublishTime: time.Date(2026, 9, 27, 9, 0, 0, 0, time.FixedZone("CST", 8*60*60))}
 	heroOnly := model.Article{ID: 990004, Type: model.ArticleTypeContent, Title: "首页独立轮播", Content: "轮播正文", PublishTime: onlyHome.PublishTime}
-	policyOnly := model.Article{ID: 990005, Type: model.ArticleTypeContent, Title: "首页独立政策研究", Content: "政策正文", PublishTime: onlyHome.PublishTime}
+	legacyPolicyOnly := model.Article{ID: 990005, Type: model.ArticleTypeContent, Title: "旧首页独立政策研究", Content: "政策正文", PublishTime: onlyHome.PublishTime}
 	source.Items[notices.ID] = []model.Article{shared, onlyHome}
 	source.Items[experts.ID] = []model.Article{onlyHome}
 	source.Items[heroColumn.ID] = []model.Article{heroOnly}
-	source.Items[policyColumn.ID] = []model.Article{policyOnly}
+	source.Items[legacyPolicyColumn.ID] = []model.Article{legacyPolicyOnly}
 	source.Items[expertColumn.ID] = []model.Article{expert}
 	source.Items[expertParentColumn.ID] = []model.Article{parentExpert}
 
@@ -161,38 +165,47 @@ func TestHomeReusesPublicSectionsAndKeepsIndependentPlacements(t *testing.T) {
 	if strings.Contains(homePage, onlyHome.Title) {
 		t.Fatal("legacy home-only article leaked into homepage")
 	}
-	for _, check := range []struct {
-		article model.Article
-		code    string
-	}{{heroOnly, "home-hero"}, {policyOnly, "home-policy-reports"}} {
-		if !strings.Contains(homePage, fmt.Sprintf("%d.html?from=%s", check.article.ID, check.code)) {
-			t.Fatalf("independent homepage article %d was not rendered", check.article.ID)
-		}
-		detail := readGenerated(t, result.Output, fmt.Sprintf("article/2026/09/%d.html", check.article.ID))
-		if !strings.Contains(detail, `data-default-column-code="`+check.code+`"`) || strings.Contains(detail, `>首页内容</a>`) {
-			t.Fatalf("independent homepage article %d has wrong section path", check.article.ID)
-		}
+	if !strings.Contains(homePage, fmt.Sprintf("%d.html?from=home-hero", heroOnly.ID)) {
+		t.Fatalf("independent homepage hero article %d was not rendered", heroOnly.ID)
 	}
-	if _, err := os.Stat(filepath.Join(result.Output, "article/2026/09/990001.html")); !os.IsNotExist(err) {
-		t.Fatalf("legacy home-only article was generated: %v", err)
+	heroDetail := readGenerated(t, result.Output, fmt.Sprintf("article/2026/09/%d.html", heroOnly.ID))
+	if !strings.Contains(heroDetail, `data-default-column-code="home-hero"`) || strings.Contains(heroDetail, `>首页内容</a>`) {
+		t.Fatalf("independent homepage hero article %d has wrong section path", heroOnly.ID)
+	}
+	if strings.Contains(homePage, legacyPolicyOnly.Title) {
+		t.Fatal("legacy homepage policy placement leaked into homepage")
+	}
+	for _, id := range []int64{onlyHome.ID, legacyPolicyOnly.ID} {
+		if _, err := os.Stat(filepath.Join(result.Output, fmt.Sprintf("article/2026/09/%d.html", id))); !os.IsNotExist(err) {
+			t.Fatalf("legacy home-only article %d was generated: %v", id, err)
+		}
 	}
 	for _, legacy := range []string{
 		fmt.Sprintf("list/%d/1.html", homeColumn.ID),
 		fmt.Sprintf("list/%d/1.html", heroColumn.ID),
-		fmt.Sprintf("list/%d/1.html", policyColumn.ID),
+		fmt.Sprintf("list/%d/1.html", legacyPolicyColumn.ID),
 		"list/9001/1.html", "list/9002/1.html",
 	} {
 		if _, err := os.Stat(filepath.Join(result.Output, legacy)); !os.IsNotExist(err) {
 			t.Fatalf("homepage placement list was generated: %s: %v", legacy, err)
 		}
 	}
-	heroDetail := readGenerated(t, result.Output, "article/2026/09/990004.html")
+	heroDetail = readGenerated(t, result.Output, "article/2026/09/990004.html")
 	if !strings.Contains(heroDetail, "home-placement-detail") || strings.Contains(heroDetail, `<ul class="side-menu">`) {
 		t.Fatal("independent hero detail still shows homepage placements as a sidebar")
 	}
-	policyDetail := readGenerated(t, result.Output, "article/2026/09/990005.html")
-	if !strings.Contains(policyDetail, `>行业报告</a>`) || strings.Contains(policyDetail, `>轮播图</a>`) {
-		t.Fatal("independent policy detail did not use the public policy sidebar")
+	policyChildren := 0
+	for _, column := range source.Columns {
+		if column.ParentID != publicPolicyColumn.ID || len(source.Items[column.ID]) == 0 {
+			continue
+		}
+		policyChildren++
+		if title := source.Items[column.ID][0].Title; !strings.Contains(homePage, title) {
+			t.Fatalf("homepage policy aggregation lost %s article %q", column.Code, title)
+		}
+	}
+	if policyChildren != 5 {
+		t.Fatalf("policy child fixture count = %d, want 5", policyChildren)
 	}
 	if !strings.Contains(homePage, fmt.Sprintf(`data-href="./list/%d/1.html"`, noticeColumn.ID)) || !strings.Contains(homePage, fmt.Sprintf(`data-href="./list/%d/1.html"`, topicColumn.ID)) {
 		t.Fatal("homepage reused section labels did not link to public column lists")
@@ -517,6 +530,13 @@ func TestGenerateCompletePublicSiteAndMemberShells(t *testing.T) {
 		t.Fatal("member runtime shell was not generated")
 	}
 	home := readGenerated(t, result.Output, "index.html")
+	noticePanel := regexp.MustCompile(`(?s)<ul id="notice-1"[^>]*>(.*?)</ul>`).FindStringSubmatch(home)
+	if len(noticePanel) != 2 {
+		t.Fatal("home page lost the notice panel")
+	}
+	if count := strings.Count(noticePanel[1], `<li `); count != 8 {
+		t.Fatalf("home notice item count = %d, want 8", count)
+	}
 	for _, marker := range []string{
 		`class="home-tabs" data-group="notice"`,
 		`<button class="active" data-tab="notice-1"`,

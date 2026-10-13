@@ -35,21 +35,22 @@ SELECT 'BLOCKER', 'missing_required_navigation_roots', 6 - COUNT(DISTINCT code)
   FROM `column`
  WHERE code IN ('party','ministry','news','training','standards','about')
 UNION ALL
-SELECT 'BLOCKER', 'missing_home_placements', 3 - COUNT(DISTINCT code)
+SELECT 'BLOCKER', 'missing_home_placements', 2 - COUNT(DISTINCT code)
   FROM `column`
- WHERE code IN ('home','home-hero','home-policy-reports')
+ WHERE code IN ('home','home-hero')
 UNION ALL
 SELECT 'BLOCKER', 'legacy_home_articles_missing_formal_publication', COUNT(*)
   FROM article_column_publish p
   JOIN `column` legacy ON legacy.id=p.column_id
  WHERE legacy.code IN ('home-news-notice','home-news-association','home-news-member',
                        'home-training-meetings','home-standards-work','home-standards-innovation',
-                       'home-training-international','home-training-talent','home-experts')
+                       'home-training-international','home-training-talent','home-policy-reports','home-experts')
    AND NOT EXISTS (
      SELECT 1 FROM article_column_publish current_p
      JOIN `column` current_c ON current_c.id=current_p.column_id AND current_c.status=1
       WHERE current_p.article_id=p.article_id
         AND current_c.code=CASE legacy.code
+          WHEN 'home-policy-reports' THEN 'policy-reports'
           WHEN 'home-experts' THEN 'about-expert-insights'
           ELSE SUBSTRING(legacy.code, 6)
         END

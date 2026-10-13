@@ -22,6 +22,8 @@ import (
 	"portal-static/internal/contracts"
 )
 
+const homeNoticeLimit = 8
+
 type Source interface {
 	FetchPageColumns(context.Context, string, int64) ([]model.Column, error)
 	FetchColumnArticles(context.Context, int64) (model.Column, []model.Article, error)
@@ -244,7 +246,7 @@ func isDuplicateHomeColumnCode(code string) bool {
 	switch code {
 	case "home-news-notice", "home-news-association", "home-news-member",
 		"home-training-meetings", "home-standards-work", "home-standards-innovation",
-		"home-training-international", "home-training-talent", "home-experts":
+		"home-training-international", "home-training-talent", "home-policy-reports", "home-experts":
 		return true
 	default:
 		return false
@@ -381,12 +383,6 @@ func groupByID(c *catalog, id int64, limit int) Group {
 	switch code {
 	case "home", "home-hero":
 		href = "index.html"
-	case "home-policy-reports":
-		if publicID := c.byCode["policy-research"]; publicID > 0 {
-			href = fmt.Sprintf("list/%d/1.html", publicID)
-		} else {
-			href = "index.html"
-		}
 	default:
 		if id > 0 {
 			href = fmt.Sprintf("list/%d/1.html", id)
@@ -429,9 +425,6 @@ func side(c *catalog, currentCode string) []Link {
 		return nil
 	}
 	if top.Code == "home" {
-		if currentCode == "home-policy-reports" {
-			return side(c, "policy-research")
-		}
 		return nil
 	}
 	columns := make(map[int64]model.Column, len(c.columns))
@@ -693,7 +686,7 @@ func (g *Generator) GenerateSite(ctx context.Context) (result Result, err error)
 		},
 	}
 	for _, n := range []string{"news-notice", "news-association", "news-member"} {
-		home.Notices = append(home.Notices, group(c, n, 6))
+		home.Notices = append(home.Notices, group(c, n, homeNoticeLimit))
 	}
 	for _, topic := range []string{
 		"training-meetings",
@@ -701,7 +694,7 @@ func (g *Generator) GenerateSite(ctx context.Context) (result Result, err error)
 		"standards-innovation",
 		"training-international",
 		"training-talent",
-		"home-policy-reports",
+		"policy-research",
 	} {
 		home.Topics = append(home.Topics, group(c, topic, 6))
 	}
