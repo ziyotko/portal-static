@@ -58,7 +58,7 @@
 | `paths.dist_root` / `paths.allowed_output_root` / `paths.preview_root` | 默认正式目录、Dia 可选路径安全根、预览目录；生产若只允许一个目录，可让前两者相同 |
 | `paths.template_codes` | 与上述十条数据库模板的稳定 code 一致 |
 | `adapter.site.template_source` | 缺省为 `file`，现有配置无需加该行；从同版本发布包的 `share/camie-preview-templates/*.tmpl` 渲染。今后由运维维护数据库模板时显式改为 `database`，从 `template.source_code` 渲染，并重启静态化进程、生成全站 |
-| `adapter.site.page_name` / `hero_column` | `环保机械协会` / `news-hot`；后者也是只有首页轮播投放时详情侧栏的回退栏目 |
+| `adapter.site.page_name` / `hero_column` | `环保机械协会` / `home-hero`；轮播只读取“首页 → 轮播图”的独立投放栏目，旧值 `news-hot` 会导致启动校验失败。修改后需重新生成全站并核对首页轮播链接的 `from=home-hero` |
 | `adapter.site.member_login_path` / `member_register_path` | 同源根路径 `/business_member/login`、`/business_member/register`；修改后重建全站 |
 | `media` | 上传路径按实际反代或对象存储地址配置；生成后检查封面、附件、公开视频均可访问 |
 

@@ -392,9 +392,6 @@ func groupByID(c *catalog, id int64, limit int) Group {
 	if len(items) > 0 {
 		out.Feature = items[0]
 		out.Rest = items[1:]
-		if code == "about-organization" && !strings.HasPrefix(items[0].Href, "http") {
-			out.Href = items[0].Href + "?from=about-organization"
-		}
 	}
 	return out
 }
@@ -759,7 +756,7 @@ func (g *Generator) GenerateSite(ctx context.Context) (result Result, err error)
 		if isPrivateColumnCode(col.Code) || col.Code == "home" || strings.HasPrefix(col.Code, "home-") {
 			continue
 		}
-		if col.Name == "关于协会" || col.Name == "协会简介" {
+		if col.Code == "about" || col.Code == "about-introduction" || col.Code == "about-organization" || col.Code == "about-charter" {
 			p := Page{Title: col.Name, ColumnCode: col.Code, Kind: "about", BodyClass: "about-page", Side: side(c, col.Code)}
 			items := c.groups[col.ID]
 			if col.Code == "about" && len(c.groups[c.byCode["about-introduction"]]) > 0 {

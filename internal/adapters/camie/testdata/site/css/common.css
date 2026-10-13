@@ -490,6 +490,9 @@ img { display: block; max-width: 100%; }
 .article-meta span + span { margin-left: 18px; }
 .article-body { padding: 14px 18px 10px; font-size: 17px; line-height: 2.05; }
 .article-body p { margin: 0 0 16px; text-indent: 2em; }
+.about-page .article-body { overflow-wrap: anywhere; }
+.about-page .content-grid > section { min-width: 0; }
+.about-page .article-body img { max-width: 100%; height: auto; }
 .article-pager { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 36px; padding: 16px 0 0; border-top: 1px solid #e0e3e1; color: #596168; font-size: 14px; }
 .article-pager-prev { grid-column: 1; text-align: left; }
 .article-pager-next { grid-column: 2; text-align: right; }
@@ -717,7 +720,7 @@ img { display: block; max-width: 100%; }
   .search-result-item h2 { font-size: 17px; }
   .breadcrumb { min-height: 50px; font-size: 14px; overflow: visible; }
   .breadcrumb ol { max-width: 100%; overflow-x: auto; white-space: nowrap; scrollbar-width: none; }
-  .content-grid { grid-template-columns: 1fr; gap: 14px; }
+  .content-grid { grid-template-columns: minmax(0, 1fr); gap: 14px; }
   .member-list-card { min-height: 300px; padding: 16px 10px; }
   .member-list-card h1 { font-size: 21px; }
   .member-row { align-items: start; }

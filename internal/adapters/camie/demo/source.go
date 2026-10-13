@@ -35,6 +35,41 @@ var navigation = []columnSpec{
 	{Name: "政策研究", Code: "policy-research", Children: []columnSpec{{Name: "行业报告", Code: "policy-reports"}, {Name: "数据中心", Code: "policy-data"}, {Name: "国家鼓励发展的重大环保技术装备目录", Code: "policy-major-equipment-catalogue"}, {Name: "环保装备制造业规范条件企业", Code: "policy-qualified-enterprises"}, {Name: "重大环保技术装备创新任务揭榜挂帅", Code: "policy-innovation-tasks"}}},
 }
 
+// The homepage preview fills every notice tab with mixed title lengths so
+// single-line truncation and the eight-row layout can be checked visually.
+var previewNoticeTitles = map[string][]string{
+	"news-notice": {
+		"【预览】关于召开环保装备行业交流会的通知",
+		"【预览】人才培训班报名开启",
+		"【预览】关于征集《工业锅炉烟气多污染物协同治理技术规范》团体标准意见的通知",
+		"【预览】会员服务系统维护安排",
+		"【预览】绿色低碳技术成果推荐工作有关事项的通知",
+		"【预览】关于举办人工智能赋能环保行业高端人才培训班的通知",
+		"【预览】节能装备专题研讨会日程公布",
+		"【预览】关于开展环保装备企业需求调研及技术交流活动的通知",
+	},
+	"news-association": {
+		"【预览】协会组织行业专家开展技术交流",
+		"【预览】协会工作简讯",
+		"【预览】环保装备制造业高质量发展座谈会围绕产业协同与创新应用开展交流",
+		"【预览】协会走访会员单位了解发展需求",
+		"【预览】绿色技术推广专题会议在京举行",
+		"【预览】协会参与节能环保装备标准化工作研讨并征集企业建议",
+		"【预览】分支机构年度工作交流会召开",
+		"【预览】协会秘书处开展环保装备产业链供需对接调研",
+	},
+	"news-member": {
+		"【预览】会员单位发布新型节能设备",
+		"【预览】会员动态速览",
+		"【预览】会员企业围绕工业废水治理与资源化利用开展联合技术攻关",
+		"【预览】企业展示绿色制造实践成果",
+		"【预览】会员单位参与国际环保技术交流",
+		"【预览】多家会员企业分享智能化环保装备研发及应用经验",
+		"【预览】环保装备项目完成阶段性验收",
+		"【预览】会员单位举办大气污染治理技术应用和运维经验交流会",
+	},
+}
+
 func NewSource() *Source {
 	source := &Source{Items: make(map[int64][]model.Article)}
 	nextColumnID := int64(1)
@@ -60,6 +95,10 @@ func NewSource() *Source {
 		for index := 0; index < 12; index++ {
 			articleType := model.ArticleTypeContent
 			cover := "assets/images/hero-building.png"
+			title := fmt.Sprintf("%s：环保装备行业高质量发展动态 %d", column.Name, index+1)
+			if titles := previewNoticeTitles[column.Code]; index < len(titles) {
+				title = titles[index]
+			}
 			if column.Code == "videos-news" {
 				articleType = model.ArticleTypeVideo
 				cover = "assets/images/video-thumb.png"
@@ -67,7 +106,7 @@ func NewSource() *Source {
 			id := column.ID*1000 + int64(index+1)
 			source.Items[column.ID] = append(source.Items[column.ID], model.Article{
 				ID: id, ColumnID: column.ID, Type: articleType,
-				Title:   fmt.Sprintf("%s：环保装备行业高质量发展动态 %d", column.Name, index+1),
+				Title:   title,
 				Summary: "关注环保装备产业发展，推动行业交流、科技创新与成果转化。",
 				Content: "<p>本条为静态预览内容，正式发布时由门户内容库提供正文。</p><p>页面正文、栏目来源和面包屑均在生成阶段写入 HTML。</p>",
 				Cover:   cover, Source: "中国环保机械行业协会", PublishTime: base.AddDate(0, 0, -index), IsTop: index == 0,

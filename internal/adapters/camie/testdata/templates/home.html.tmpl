@@ -23,7 +23,7 @@
         </div>
         {{range $i, $g := .Notices}}
         <ul id="notice-{{add $i 1}}" class="notice-list" data-tab-group="notice" {{if $i}}hidden{{end}}>
-          {{range $g.Items}}<li class="searchable"><a href="{{root $ .Href}}?from={{.ColumnCode}}">{{.Title}}</a></li>{{end}}
+          {{range $g.Items}}<li class="searchable"><a href="{{root $ .Href}}?from={{.ColumnCode}}" title="{{.Title}}">{{.Title}}</a></li>{{end}}
         </ul>
         {{end}}
       </section>

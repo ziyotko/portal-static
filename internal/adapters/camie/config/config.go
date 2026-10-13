@@ -117,8 +117,11 @@ func (c Config) Validate() error {
 	if c.Site.PageSize < 1 || c.Site.PageSize > 100 {
 		return errors.New("camie page_size must be between 1 and 100")
 	}
-	if strings.TrimSpace(c.Site.PageName) == "" || strings.TrimSpace(c.Site.HeroColumn) == "" {
-		return errors.New("camie page_name and hero_column are required")
+	if strings.TrimSpace(c.Site.PageName) == "" {
+		return errors.New("camie page_name is required")
+	}
+	if c.Site.HeroColumn != "home-hero" {
+		return fmt.Errorf("camie hero_column must be home-hero (dedicated homepage carousel), got %q", c.Site.HeroColumn)
 	}
 	if _, err := time.LoadLocation(c.Site.Timezone); err != nil {
 		return fmt.Errorf("load camie timezone: %w", err)

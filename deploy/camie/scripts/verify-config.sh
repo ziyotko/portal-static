@@ -76,5 +76,7 @@ esac
 
 grep -Eq '^[[:space:]]*dist_root:[[:space:]]*/srv/camie/site[[:space:]]*$' /etc/camie/portal-static.yaml || \
   fail 'portal-static dist_root 必须是 /srv/camie/site'
+grep -Eq '^[[:space:]]*hero_column:[[:space:]]*home-hero[[:space:]]*(#.*)?$' /etc/camie/portal-static.yaml || \
+  fail 'portal-static hero_column 必须是 home-hero（首页轮播图独立栏目）'
 
 echo '配置、密钥关系、字体和 Linux 二进制校验通过。'

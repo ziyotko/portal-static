@@ -37,8 +37,8 @@ Dia 后台已于 2026-09-21 将页面层合并进模板，使用 `column.templat
 
 | 页面位置 | 对应栏目 / 数据 | 哪些活、哪些固定 | 维护位置 |
 | --- | --- | --- | --- |
-| 顶部重点新闻轮播 | `adapter.site.hero_column`，当前为 `news-hot`，最多 3 篇 | **静态活**：标题、封面、发布时间、来源、详情链接。**固定**：轮播位置与切换样式；无内容时没有自动补位 | 在“新闻中心 → 热点关注”维护文章和封面 |
-| 轮播右侧三组资讯标签 | 依次为 `news-notice`、`news-association`、`news-member`，每组最多 8 篇 | **静态活**：标签名、列表和目标链接均取正式栏目。**固定**：三组顺序和每组数量上限 | 在“新闻中心”对应栏目维护；增减标签需改生成器 |
+| 顶部重点新闻轮播 | `adapter.site.hero_column` 固定为 `home-hero`，最多 3 篇 | **静态活**：标题、封面、发布时间、来源、详情链接。**固定**：轮播位置与切换样式；无内容时没有自动补位 | 在“首页 → 轮播图”单独投放文章和封面；仅投放“热点关注”或“部委动态”不会进入轮播 |
+| 轮播右侧三组资讯标签 | 依次为 `news-notice`、`news-association`、`news-member`，每组最多 8 篇 | **静态活**：标签名、列表和目标链接均取正式栏目。**固定**：三组顺序、每组数量上限及标题单行省略样式；悬停可见完整标题 | 在“新闻中心”对应栏目维护；增减标签需改生成器 |
 | 快捷栏“申请入会” | `/business_member/register` | **固定入口**，注册流程属于会员系统 | 模板 `camie-home`；会员系统维护注册流程 |
 | 快捷栏“会员中心” | 未登录跳转 `/business_member/login`，已登录进入 `pages/member.html` | **固定入口 → 实时活页面**；无令牌或登录失效时直接进入登录页，不再停留在会员页显示二次登录按钮 | 模板 `camie-home`；会员栏目与内容见下文 |
 | 快捷栏“移动媒体” | 三张微信二维码图片 | **固定**图片及文字，不从后台二维码、广告或链接表取数 | `assets/images/qr-wechat-service.jpg`、`qr-wechat-video.png`、`qr-wechat-subscription.jpg` 与首页模板 |
@@ -74,7 +74,7 @@ Dia 后台已于 2026-09-21 将页面层合并进模板，使用 `column.templat
 | `pages/party.html`、`pages/ministry.html`、`pages/news.html`、`pages/training.html`、`pages/standards.html`、`pages/about.html` | 分别对应 `party`、`ministry`、`news`、`training`、`standards`、`about`；也是 `list/<栏目ID>/1.html` 的别名入口 | **静态活**。顶级栏目列表聚合其公开子孙栏目文章，左侧菜单按启用栏目树生成 |
 | `pages/policy.html`、`pages/experts.html`、`pages/videos.html` | 分别对应 `policy-research`、`about-experts`、`videos` | **静态活**栏目别名。`pages/videos.html` 与根目录 `videos.html` 均为公开视频入口 |
 | 其余栏目列表 `list/<栏目ID>/<页码>.html` | 对应每个启用公开栏目的 `column.code`；本机 ID 仅为示例 | **静态活**：10 条/页；文章置顶优先、发布时间倒序。栏目改名不要求改 code |
-| “关于协会/协会简介”内容区 | `about` 页优先取 `about-introduction` 的首篇公开图文；`about-introduction` 自身也有简介页 | **静态活**正文；没有文章时显示“暂无公开内容” |
+| “关于协会/协会简介/组织架构/协会章程”内容区 | `about` 页优先取 `about-introduction` 的首篇公开图文；三个子栏目各取本栏目首篇公开图文 | **静态活**正文；没有文章时显示“暂无公开内容”。三个子栏目入口均指向栏目正文页，原文章详情链接仍可访问 |
 | 公开文章详情 `article/YYYY/MM/<文章ID>.html` | 后台公开 `article` + 栏目发布关系 + 附件 | **静态活**：标题、日期、来源、正文、附件、上一篇/下一篇；公开富文本会在生成时净化。文章若设置有效的 HTTP(S) 外链 `url`，列表直接跳外链，不生成该文章的本地详情 |
 | `videos.html`、`pages/videos.html` 与视频详情 | 公开类型 `2` 的视频文章；`videos-news` 的栏目列表也使用视频卡片样式 | **静态活**：在“图文管理”新增视频并投放到“CAMIE栏目 / 视频资讯”（栏目展示方式须为“视频展示”）；详情优先播放文章的 MP4 附件，也兼容正文中的视频标签。没有视频源时显示提示，不显示假的播放按钮 |
 | 视频侧栏“会员专享” | `pages/member.html?column=会员专享&mode=video` | **固定入口 → 实时活内容**；不把私有视频生成成公开详情 |
@@ -148,7 +148,7 @@ Dia 后台已于 2026-09-21 将页面层合并进模板，使用 `column.templat
 2. **下线或删除公开文章**：后台操作后检查旧详情 URL 已失效，列表、首页、搜索均不再出现。自动静态化是尽力而为；若任务失败，恢复服务后手动重建全站并复查。
 3. **改栏目名称、层级、排序或启用状态**：在“栏目管理”维护，保留已有稳定 code。公开页面需要重新生成；首页固定的区块数量、顺序、卡片和配图不会因为新增栏目自动变化。
 4. **改会员栏目与会员内容**：在后台“会员专区”维护 `member_column`/`member_content`，不需要生成公开静态页；使用正式会员账号刷新动态页面核对，并用非正式会员账号核对前端拦截。服务端 `active` 校验尚未实现，需另外验证 API 直调并解决上述上线阻断项。
-5. **改固定区块**：生产模板 `camie-home` 负责首页，`camie-party` 等五条页面模板负责各自栏目树的列表外观，`camie-about` 负责协会简介及其栏目列表；`camie-list` 负责视频/政策等通用列表及搜索、会员动态壳，`camie-article` 负责公开详情，`camie-layout` 负责全站布局。其 `source_code` 在后台“模板管理”；固定分支卡片/合作单位映射在生成器；CSS、JS、图片在源码资源目录。修改前先备份模板或资源，再生成到预览/测试目录核对。不要直接编辑 `dist/camie-portal` 或 `dist/camie-preview`。
+5. **改固定区块**：生产模板 `camie-home` 负责首页，`camie-party` 等五条页面模板负责各自栏目树的列表外观，`camie-about` 负责“关于协会”及“协会简介、组织架构、协会章程”正文页；`camie-list` 负责视频/政策等通用列表及搜索、会员动态壳，`camie-article` 负责公开详情，`camie-layout` 负责全站布局。其 `source_code` 在后台“模板管理”；固定分支卡片/合作单位映射在生成器；CSS、JS、图片在源码资源目录。修改前先备份模板或资源，再生成到预览/测试目录核对。不要直接编辑 `dist/camie-portal` 或 `dist/camie-preview`。
 
 当前首页横幅、专题入口、副会长单位和页脚友情链接**没有消费**后台广告/友情链接表；原 `camie-portal/frontend-preview` 中的 `data-display-type="ad/link"` 标记不等于这套生成器已完成接入。
 

@@ -45,7 +45,10 @@ func testConfig(t *testing.T) config.Config {
 
 func TestRequestedOutputUsesAllowedRootInsteadOfDefaultDistRoot(t *testing.T) {
 	cfg := testConfig(t)
-	parent := t.TempDir()
+	parent, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
 	cfg.Site.DistRoot = filepath.Join(parent, "default-site")
 	cfg.Site.AllowedOutputRoot = filepath.Join(parent, "published")
 	requested := filepath.Join(cfg.Site.AllowedOutputRoot, "dia-site")
@@ -69,11 +72,15 @@ func TestRequestedOutputUsesAllowedRootInsteadOfDefaultDistRoot(t *testing.T) {
 func TestHomeReusesPublicSectionsAndKeepsIndependentHeroPlacement(t *testing.T) {
 	cfg := testConfig(t)
 	source := demo.NewSource()
-	var homeColumn, noticeColumn, topicColumn, legacyPolicyColumn, publicPolicyColumn, heroColumn, expertColumn, expertParentColumn model.Column
+	var homeColumn, hotColumn, ministryColumn, noticeColumn, topicColumn, legacyPolicyColumn, publicPolicyColumn, heroColumn, expertColumn, expertParentColumn model.Column
 	for _, column := range source.Columns {
 		switch column.Code {
 		case "home":
 			homeColumn = column
+		case "news-hot":
+			hotColumn = column
+		case "ministry-work":
+			ministryColumn = column
 		case "news-notice":
 			noticeColumn = column
 		case "training-meetings":
@@ -90,8 +97,8 @@ func TestHomeReusesPublicSectionsAndKeepsIndependentHeroPlacement(t *testing.T) 
 			expertParentColumn = column
 		}
 	}
-	if noticeColumn.ID == 0 {
-		t.Fatal("missing notice column fixture")
+	if noticeColumn.ID == 0 || hotColumn.ID == 0 || ministryColumn.ID == 0 {
+		t.Fatal("missing public news column fixture")
 	}
 	if topicColumn.ID == 0 || len(source.Items[topicColumn.ID]) == 0 {
 		t.Fatal("missing home topic fixture")
@@ -122,9 +129,12 @@ func TestHomeReusesPublicSectionsAndKeepsIndependentHeroPlacement(t *testing.T) 
 	parentExpert := model.Article{ID: 990003, Type: model.ArticleTypeContent, Title: "直接发布在专家委员会的文章", Content: "专家委员会正文", PublishTime: time.Date(2026, 9, 27, 9, 0, 0, 0, time.FixedZone("CST", 8*60*60))}
 	heroOnly := model.Article{ID: 990004, Type: model.ArticleTypeContent, Title: "首页独立轮播", Content: "轮播正文", PublishTime: onlyHome.PublishTime}
 	legacyPolicyOnly := model.Article{ID: 990005, Type: model.ArticleTypeContent, Title: "旧首页独立政策研究", Content: "政策正文", PublishTime: onlyHome.PublishTime}
+	publicOnly := model.Article{ID: 990006, Type: model.ArticleTypeContent, Title: "仅投放热点关注和部委动态", Content: "公开正文", Cover: "assets/images/hero-building.png", PublishTime: onlyHome.PublishTime}
 	source.Items[notices.ID] = []model.Article{shared, onlyHome}
 	source.Items[experts.ID] = []model.Article{onlyHome}
 	source.Items[heroColumn.ID] = []model.Article{heroOnly}
+	source.Items[hotColumn.ID] = append(source.Items[hotColumn.ID], publicOnly)
+	source.Items[ministryColumn.ID] = append(source.Items[ministryColumn.ID], publicOnly)
 	source.Items[legacyPolicyColumn.ID] = []model.Article{legacyPolicyOnly}
 	source.Items[expertColumn.ID] = []model.Article{expert}
 	source.Items[expertParentColumn.ID] = []model.Article{parentExpert}
@@ -134,6 +144,10 @@ func TestHomeReusesPublicSectionsAndKeepsIndependentHeroPlacement(t *testing.T) 
 		t.Fatal(err)
 	}
 	homePage := readGenerated(t, result.Output, "index.html")
+	heroMarkup := regexp.MustCompile(`(?s)<article class="hero-slider".*?</article>`).FindString(homePage)
+	if heroMarkup == "" || !strings.Contains(heroMarkup, heroOnly.Title) || strings.Contains(heroMarkup, publicOnly.Title) {
+		t.Fatalf("homepage carousel must contain only home-hero placements: %s", heroMarkup)
+	}
 	for _, check := range []struct {
 		id       int64
 		code     string
@@ -228,6 +242,42 @@ func TestHomeReusesPublicSectionsAndKeepsIndependentHeroPlacement(t *testing.T) 
 	}
 }
 
+func TestHomeNoticeTabsFillEightRowsWithFullTitleHints(t *testing.T) {
+	cfg := testConfig(t)
+	source := demo.NewSource()
+	result, err := New(cfg, source).GenerateSite(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	home := readGenerated(t, result.Output, "index.html")
+	for index, code := range []string{"news-notice", "news-association", "news-member"} {
+		var columnID int64
+		for _, column := range source.Columns {
+			if column.Code == code {
+				columnID = column.ID
+				break
+			}
+		}
+		items := source.Items[columnID]
+		if columnID == 0 || len(items) < 9 {
+			t.Fatalf("%s needs at least nine preview articles to verify the eight-item limit", code)
+		}
+		pattern := fmt.Sprintf(`(?s)<ul id="notice-%d" class="notice-list"[^>]*>(.*?)</ul>`, index+1)
+		matches := regexp.MustCompile(pattern).FindStringSubmatch(home)
+		if len(matches) != 2 || strings.Count(matches[1], `<li class="searchable">`) != 8 {
+			t.Fatalf("%s homepage tab did not render exactly eight items", code)
+		}
+		for _, item := range items[:8] {
+			if !strings.Contains(matches[1], `title="`+item.Title+`">`+item.Title+`</a>`) {
+				t.Fatalf("%s homepage tab lost the full title %q", code, item.Title)
+			}
+		}
+		if strings.Contains(matches[1], items[8].Title) {
+			t.Fatalf("%s homepage tab exceeded the eight-item limit", code)
+		}
+	}
+}
+
 func TestSectionPageUsesItsOwnTemplate(t *testing.T) {
 	cfg := testConfig(t)
 	sectionTemplates := t.TempDir()
@@ -312,19 +362,23 @@ func TestVideoDetailPlaysUploadedMP4Attachment(t *testing.T) {
 func TestGenerateCompletePublicSiteAndMemberShells(t *testing.T) {
 	cfg := testConfig(t)
 	source := demo.NewSource()
-	var privateID, organizationID, sharedColumnID int64
+	var privateID, introductionID, organizationID, charterID, sharedColumnID int64
 	for _, column := range source.Columns {
 		switch column.Code {
 		case "member-reports":
 			privateID = column.ID
+		case "about-introduction":
+			introductionID = column.ID
 		case "about-organization":
 			organizationID = column.ID
+		case "about-charter":
+			charterID = column.ID
 		case "news-hot":
 			sharedColumnID = column.ID
 		}
 	}
-	if privateID == 0 || organizationID == 0 || sharedColumnID == 0 || len(source.Items[organizationID]) == 0 {
-		t.Fatal("missing member or organization fixtures")
+	if privateID == 0 || introductionID == 0 || organizationID == 0 || charterID == 0 || sharedColumnID == 0 || len(source.Items[organizationID]) == 0 {
+		t.Fatal("missing member or about section fixtures")
 	}
 	source.Items[privateID] = []model.Article{{ID: 999999, ColumnID: privateID, Type: model.ArticleTypeContent, Title: "不得静态化的会员报告", Content: "会员秘密正文", PublishTime: time.Now().Add(-time.Hour)}}
 	shared := model.Article{ID: 999998, ColumnID: sharedColumnID, Type: model.ArticleTypeContent, Title: "同时投放公开与会员栏目的文章", Content: "不得公开的共享正文", PublishTime: time.Now().Add(-time.Hour)}
@@ -360,13 +414,38 @@ func TestGenerateCompletePublicSiteAndMemberShells(t *testing.T) {
 		}
 	}
 	organization := source.Items[organizationID][0]
-	organizationHref := fmt.Sprintf("article/%s/%d.html?from=about-organization", organization.PublishTime.Format("2006/01"), organization.ID)
+	organizationHref := fmt.Sprintf("list/%d/1.html", organizationID)
 	if !strings.Contains(homePage, `href="./`+organizationHref+`">组织架构</a>`) {
-		t.Fatal("primary navigation organization link did not point directly to its first detail")
+		t.Fatal("primary navigation organization link did not point to its content page")
 	}
 	aboutPage := readGenerated(t, result.Output, "pages/about.html")
 	if !strings.Contains(aboutPage, `href="../`+organizationHref+`">组织架构</a>`) {
-		t.Fatal("about sidebar organization link did not point directly to its first detail")
+		t.Fatal("about sidebar organization link did not point to its content page")
+	}
+	for _, section := range []struct {
+		name string
+		id   int64
+	}{
+		{"协会简介", introductionID},
+		{"组织架构", organizationID},
+		{"协会章程", charterID},
+	} {
+		page := readGenerated(t, result.Output, fmt.Sprintf("list/%d/1.html", section.id))
+		first := source.Items[section.id][0]
+		if !strings.Contains(page, `<section class="article-card"><h1>`+first.Title+`</h1><div class="article-body">`) ||
+			strings.Contains(page, `class="pagination-wrap"`) || strings.Contains(page, `class="article-header"`) {
+			t.Fatalf("%s did not use the about content layout", section.name)
+		}
+		if !strings.Contains(page, `<span aria-current="page">`+section.name+`</span>`) {
+			t.Fatalf("%s content page has wrong breadcrumb", section.name)
+		}
+		if strings.Contains(page, source.Items[section.id][1].Title) {
+			t.Fatalf("%s content page showed more than the first article", section.name)
+		}
+	}
+	organizationDetail := fmt.Sprintf("article/%s/%d.html", organization.PublishTime.Format("2006/01"), organization.ID)
+	if _, err := os.Stat(filepath.Join(result.Output, filepath.FromSlash(organizationDetail))); err != nil {
+		t.Fatalf("existing organization detail link was removed: %v", err)
 	}
 	for pageName, railClass := range map[string]string{
 		"index.html":        `class="quick-rail"`,
@@ -672,6 +751,32 @@ func readGenerated(t *testing.T, root, name string) string {
 		t.Fatal(err)
 	}
 	return string(data)
+}
+
+func TestEmptyAboutCharterUsesContentPage(t *testing.T) {
+	cfg := testConfig(t)
+	source := demo.NewSource()
+	var charterID int64
+	for _, column := range source.Columns {
+		if column.Code == "about-charter" {
+			charterID = column.ID
+			break
+		}
+	}
+	if charterID == 0 {
+		t.Fatal("missing charter column fixture")
+	}
+	source.Items[charterID] = nil
+	result, err := New(cfg, source).GenerateSite(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	page := readGenerated(t, result.Output, fmt.Sprintf("list/%d/1.html", charterID))
+	if !strings.Contains(page, `<section class="article-card"><h1>协会章程</h1><p>暂无公开内容</p></section>`) ||
+		strings.Contains(page, `class="pagination-wrap"`) ||
+		!strings.Contains(page, `href="../../list/`+fmt.Sprint(charterID)+`/1.html" aria-current="page">协会章程</a>`) {
+		t.Fatal("empty charter did not retain the shared about content layout and active sidebar")
+	}
 }
 
 func TestDuplicateNamesAllowedButCodesRemainUnique(t *testing.T) {

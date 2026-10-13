@@ -16,7 +16,7 @@ func TestMemberRoutesMustStayOnSiteOrigin(t *testing.T) {
 	cfg.Site.TemplateRoot = "templates"
 	cfg.Site.PageName = "环保机械协会"
 	cfg.Site.PageSize = 10
-	cfg.Site.HeroColumn = "news-hot"
+	cfg.Site.HeroColumn = "home-hero"
 	cfg.Site.Timezone = "Asia/Shanghai"
 	cfg.Site.LockStaleAfter = "30m"
 	cfg.Site.MemberRegisterPath = "/business_member/register"
@@ -47,7 +47,7 @@ func TestTemplateSourceMustBeExplicitlySupported(t *testing.T) {
 	cfg.Site.TemplateRoot = "templates"
 	cfg.Site.PageName = "环保机械协会"
 	cfg.Site.PageSize = 10
-	cfg.Site.HeroColumn = "news-hot"
+	cfg.Site.HeroColumn = "home-hero"
 	cfg.Site.Timezone = "Asia/Shanghai"
 	cfg.Site.LockStaleAfter = "30m"
 	for _, source := range []string{"file", "database"} {
@@ -86,5 +86,26 @@ func TestTemplateSourceDefaultsToFileForExistingCAMIEConfig(t *testing.T) {
 	}
 	if cfg.Site.TemplateSource != "file" {
 		t.Fatalf("default template source = %q, want file", cfg.Site.TemplateSource)
+	}
+}
+
+func TestHeroColumnMustBeDedicatedHomepagePlacement(t *testing.T) {
+	var cfg Config
+	cfg.Site.SourceRoot = "site"
+	cfg.Site.DistRoot = "dist"
+	cfg.Site.TemplateRoot = "templates"
+	cfg.Site.PageName = "环保机械协会"
+	cfg.Site.PageSize = 10
+	cfg.Site.Timezone = "Asia/Shanghai"
+	cfg.Site.LockStaleAfter = "30m"
+	for _, code := range []string{"", "news-hot", "ministry-work"} {
+		cfg.Site.HeroColumn = code
+		if err := cfg.Validate(); err == nil || !strings.Contains(err.Error(), "home-hero") {
+			t.Fatalf("hero_column %q: expected dedicated placement error, got %v", code, err)
+		}
+	}
+	cfg.Site.HeroColumn = "home-hero"
+	if err := cfg.Validate(); err != nil {
+		t.Fatalf("dedicated hero column was rejected: %v", err)
 	}
 }
