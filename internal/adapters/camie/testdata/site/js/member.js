@@ -30,11 +30,12 @@
     if (action) status.append(link(action.label, action.href, 'member-action'));
     status.hidden = false;
   };
-  const loginAction = () => {
+  const loginURL = () => {
     const login = new URL(document.body.dataset.memberLoginPath, location.href);
     login.searchParams.set('returnUrl', location.href);
-    return { label: '登录会员账号', href: login.href };
+    return login.href;
   };
+  const redirectToLogin = () => location.replace(loginURL());
   const memberSpaceItem = () => {
     let storedToken = '';
     try { storedToken = localStorage.getItem('member-token') || ''; } catch { storedToken = ''; }
@@ -50,8 +51,6 @@
     li.append(a);
     return li;
   };
-  const showLogin = (expired = false) => setStatus(expired ? '登录已失效，请重新登录。' : '请登录后查看会员内容。', loginAction());
-
   const api = async (path) => {
     let response;
     try {
@@ -84,7 +83,7 @@
   };
   const begin = async () => {
     try { token = localStorage.getItem('member-token') || ''; } catch { token = ''; }
-    if (!token) { showLogin(); return false; }
+    if (!token) { redirectToLogin(); return false; }
     try {
       if (!(await verifiedProfile())) {
         setStatus('当前账号不是正式会员，暂时无法查看会员内容。', {
@@ -93,14 +92,14 @@
         return false;
       }
     } catch (error) {
-      if (error.code === 401) showLogin(true);
+      if (error.code === 401) redirectToLogin();
       else setStatus(error.message || '会员身份核验失败，请稍后重试。');
       return false;
     }
     return true;
   };
   const handleError = (error, fallback) => {
-    if (error.code === 401) showLogin(true);
+    if (error.code === 401) redirectToLogin();
     else setStatus(error.message || fallback);
   };
   const setBreadcrumb = (column, title) => {
@@ -365,7 +364,7 @@
           video.load();
           expiry = 0;
           shell.querySelector('[data-member-content]').hidden = true;
-          if (error.code === 401) showLogin(true);
+          if (error.code === 401) redirectToLogin();
           else setStatus(error.message, { label: '进入会员中心', href: '/business_member/member/dashboard' });
           return;
         }

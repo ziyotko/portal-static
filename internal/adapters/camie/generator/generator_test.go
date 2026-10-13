@@ -385,7 +385,7 @@ func TestGenerateCompletePublicSiteAndMemberShells(t *testing.T) {
 			t.Fatalf("home footer missing %q", text)
 		}
 	}
-	if !strings.Contains(homePage, `<img src="./assets/images/beian-emblem.png" alt="" width="20" height="20">京公网安备11010202009494`) {
+	if !strings.Contains(homePage, `<img src="/D/beian-emblem.png" alt="" width="20" height="20">京公网安备11010202009494`) {
 		t.Fatal("home footer missing the public security emblem before its filing number")
 	}
 	if _, err := os.Stat(filepath.Join(result.Output, "assets/images/beian-emblem.png")); err != nil {
@@ -438,11 +438,12 @@ func TestGenerateCompletePublicSiteAndMemberShells(t *testing.T) {
 		t.Fatal("member column structure leaked into public page metadata")
 	}
 	for name, markers := range map[string][]string{
-		"index.html":               {`href="/member-entry/register"`, `href="./pages/member.html"`, `href="./videos.html"`},
+		"index.html":               {`href="/member-entry/register"`, `href="./pages/member.html" data-member-entry`, `href="./videos.html"`},
 		"videos.html":              {`member.html?column=`, `mode=video`},
-		"pages/member.html":        {`data-member-list-shell`, `data-member-columns`, `data-member-login-path="/member-entry/login?site=camie"`, `js/member.js`},
-		"pages/member-detail.html": {`data-member-detail-shell`, `data-member-breadcrumb`, `data-member-login-path="/member-entry/login?site=camie"`, `js/member.js`},
-		"js/member.js":             {`memberSpaceItem`, `我的空间`, `/business_member/member/dashboard`},
+		"pages/member.html":        {`data-member-list-shell`, `data-member-columns`, `data-member-login-path="/member-entry/login?site=camie"`, `data-member-auth-gate`, `js/member.js`},
+		"pages/member-detail.html": {`data-member-detail-shell`, `data-member-breadcrumb`, `data-member-login-path="/member-entry/login?site=camie"`, `data-member-auth-gate`, `js/member.js`},
+		"js/main.js":               {`[data-member-entry]`, `memberLoginURL(link.href)`},
+		"js/member.js":             {`memberSpaceItem`, `我的空间`, `/business_member/member/dashboard`, `location.replace(loginURL())`},
 	} {
 		page := readGenerated(t, result.Output, name)
 		for _, marker := range markers {

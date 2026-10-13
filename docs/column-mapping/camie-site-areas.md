@@ -40,7 +40,7 @@ Dia 后台已于 2026-09-21 将页面层合并进模板，使用 `column.templat
 | 顶部重点新闻轮播 | `adapter.site.hero_column`，当前为 `news-hot`，最多 3 篇 | **静态活**：标题、封面、发布时间、来源、详情链接。**固定**：轮播位置与切换样式；无内容时没有自动补位 | 在“新闻中心 → 热点关注”维护文章和封面 |
 | 轮播右侧三组资讯标签 | 依次为 `news-notice`、`news-association`、`news-member`，每组最多 8 篇 | **静态活**：标签名、列表和目标链接均取正式栏目。**固定**：三组顺序和每组数量上限 | 在“新闻中心”对应栏目维护；增减标签需改生成器 |
 | 快捷栏“申请入会” | `/business_member/register` | **固定入口**，注册流程属于会员系统 | 模板 `camie-home`；会员系统维护注册流程 |
-| 快捷栏“会员中心” | `pages/member.html` | **固定入口 → 实时活页面** | 模板 `camie-home`；会员栏目与内容见下文 |
+| 快捷栏“会员中心” | 未登录跳转 `/business_member/login`，已登录进入 `pages/member.html` | **固定入口 → 实时活页面**；无令牌或登录失效时直接进入登录页，不再停留在会员页显示二次登录按钮 | 模板 `camie-home`；会员栏目与内容见下文 |
 | 快捷栏“移动媒体” | 三张微信二维码图片 | **固定**图片及文字，不从后台二维码、广告或链接表取数 | `assets/images/qr-wechat-service.jpg`、`qr-wechat-video.png`、`qr-wechat-subscription.jpg` 与首页模板 |
 | 快捷栏“视频专区” | `videos.html`，聚合公开视频 | **固定入口**，目标列表是**静态活** | 首页模板固定入口；公开视频文章维护见下文 |
 | 中部六组资讯标签 | 依次为 `training-meetings`、`standards-work`、`standards-innovation`、`training-international`、`training-talent`、`policy-research`，每组最多 6 篇；`policy-research` 自动聚合其五个启用子栏目 | **静态活**：标签名、标题、日期、详情及栏目链接；右侧图片取该组第一篇新闻封面，未上传封面时使用全站默认占位图。**固定**：六组顺序 | 在“交流培训”“科技标准”“政策研究”的正式栏目维护，无须重复投放首页栏目 |
@@ -86,7 +86,7 @@ Dia 后台已于 2026-09-21 将页面层合并进模板，使用 `column.templat
 
 | 页面/区块 | 实际数据源 | 状态与维护方式 |
 | --- | --- | --- |
-| `pages/member.html` 会员列表 | `member_column` + `member_content`；默认“行业报告”，也可用 `?column=栏目名称` 或栏目 ID | **实时活**。先读 `localStorage["member-token"]`，再查 `/business_member/api/member/profile`；仅 `status=active` 才请求列表。栏目侧栏由启用的会员栏目实时生成，分页与标题也来自接口 |
+| `pages/member.html` 会员列表 | `member_column` + `member_content`；默认“行业报告”，也可用 `?column=栏目名称` 或栏目 ID | **实时活**。先读 `localStorage["member-token"]`；无令牌直接跳会员登录页，有令牌再查 `/business_member/api/member/profile`，登录失效同样直接跳转。仅 `status=active` 才请求列表。栏目侧栏由启用的会员栏目实时生成，分页与标题也来自接口 |
 | `pages/member-detail.html?id=...` | `/business_portal/api/member-zone/member-contents/detail/:id` | **实时活**。新闻显示正文/附件；数据显示年份、单位、省份、地区等；视频显示封面和完整视频；报刊显示摘要/封面/文件。面包屑最终是详情标题 |
 | 私有图片、附件、视频 | 干净文件名 + `/member-zone/member-files/sign?name=...` | **实时活**。浏览器在使用前取五分钟临时地址；视频播放中会续签并尝试恢复进度。静态 HTML 和公开搜索索引不存会员正文、私有文件地址或签名 URL |
 | 未登录、失效、非正式会员 | 会员资料接口 | **实时活**。未登录可跳登录并带 `returnUrl` 返回原 CAMIE 页；前端只在 `active` 时请求会员内容。当前 Dia 服务端仅校验会员 Token 和登出状态，未校验 `active`；持有效 Token 的非正式会员仍可能直接调用列表、详情和文件签名接口 |
