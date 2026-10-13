@@ -205,8 +205,9 @@ func TestHomeReusesPublicSectionsAndKeepsIndependentPlacements(t *testing.T) {
 	if len(expertFeature) != 2 || expertFeature[1] != "./assets/images/video-thumb.png" {
 		t.Fatalf("expert feature did not use the first article cover: %v", expertFeature)
 	}
-	updatesImage := regexp.MustCompile(`<a class="updates-image"[^>]*><img src="([^"]+)" alt="` + regexp.QuoteMeta(topicTitle) + `">`).FindStringSubmatch(homePage)
-	if len(updatesImage) != 2 || updatesImage[1] != "./assets/images/hero-water-treatment.jpg" {
+	updatesImage := regexp.MustCompile(`<a class="updates-image" href="([^"]+)"><img src="([^"]+)" alt="` + regexp.QuoteMeta(topicTitle) + `">`).FindStringSubmatch(homePage)
+	expectedUpdatesHref := fmt.Sprintf("./article/%s/%d.html?from=%s", topicItems[0].PublishTime.Format("2006/01"), topicItems[0].ID, topicColumn.Code)
+	if len(updatesImage) != 3 || updatesImage[1] != expectedUpdatesHref || updatesImage[2] != "./assets/images/hero-water-treatment.jpg" {
 		t.Fatalf("updates image did not use the first article cover: %v", updatesImage)
 	}
 	if !regexp.MustCompile(`<a class="hero-slide active"[^>]*>\s*<div class="hero-media"><img src="\./assets/images/default-news-cover\.png"`).MatchString(homePage) {

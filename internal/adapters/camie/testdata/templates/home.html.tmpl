@@ -40,7 +40,7 @@
         <ul class="updates-list">
           {{range $g.Items}}<li class="searchable"><a href="{{root $ .Href}}?from={{.ColumnCode}}">{{.Title}}</a><time>{{.Date}}</time></li>{{end}}
         </ul>
-        {{with $g.Feature}}<a class="updates-image" href="{{root $ $g.Href}}"><img src="{{root $ .Cover}}" alt="{{.Title}}"></a>{{end}}
+        {{with $g.Feature}}<a class="updates-image" href="{{root $ .Href}}?from={{.ColumnCode}}"><img src="{{root $ .Cover}}" alt="{{.Title}}"></a>{{end}}
       </div>
       {{end}}
     </section>
