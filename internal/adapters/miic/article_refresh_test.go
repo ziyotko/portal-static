@@ -47,7 +47,7 @@ func TestGenerateArticleRelatedRefreshesCurrentAndPreviousColumns(t *testing.T) 
 	if !slices.Equal(result.RefreshedPages, []string{"news"}) {
 		t.Fatalf("refreshed pages = %v", result.RefreshedPages)
 	}
-	if result.GeneratedDetails != 1 || result.GeneratedLists != 4 || result.GeneratedFiles != 7 {
+	if result.GeneratedDetails != 4 || result.GeneratedLists != 4 || result.GeneratedFiles != 10 {
 		t.Fatalf("unexpected metrics: %#v", result)
 	}
 	for _, name := range []string{"article/2026/08/1001.html", "list/11/1.html", "list/22/1.html", "news.html", "generated-content.js"} {

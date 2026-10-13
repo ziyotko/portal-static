@@ -11,12 +11,24 @@
 <body data-page="article" data-active-root="{{.ActiveRoot}}" data-root-prefix="{{.RootPrefix}}" data-generated-at="{{.GeneratedAt}}">
   <header class="site-header" id="site-header"></header>
   <main>
-    <section class="page-hero"><img class="page-hero__backdrop" src="{{if .Article.Cover}}{{.Article.Cover}}{{else}}{{.RootPrefix}}assets/unsplash-data-dashboard.jpg{{end}}" alt="{{.Article.Title}}"><div class="shell page-hero__inner"><div><h1>{{.Article.Title}}</h1>{{if .Article.Summary}}<p class="page-hero__lead">{{.Article.Summary}}</p>{{end}}</div></div></section>
-    <section class="page-content"><div class="shell detail-layout">
-      <aside class="detail-aside"><span class="detail-label">{{.Column.Name}}</span><h2>{{if .Article.Source}}{{.Article.Source}}{{else}}机械工业信息中心{{end}}</h2><p>{{.Article.DateCN}}</p><a class="detail-back" href="{{.BackHref}}">{{.BackLabel}}</a></aside>
+    <section class="page-hero important-carousel" data-important-carousel aria-label="中心重要动态"></section>
+    <section class="page-content article-page-content"><div class="shell detail-layout article-detail-layout{{if .Related}} has-related{{end}}">
       <article class="detail-article static-article" data-static-article>
+        <header class="article-header">
+          <nav class="article-breadcrumb" aria-label="当前位置"><a href="{{.BackHref}}">{{.BackLabel}}</a><span aria-hidden="true">/</span><span>{{.Column.Name}}</span></nav>
+          <h1>{{.Article.Title}}</h1>
+          {{if .Article.Summary}}<p class="article-deck">{{.Article.Summary}}</p>{{end}}
+          <div class="article-meta"><span>来源：{{if .Article.Source}}{{.Article.Source}}{{else}}机械工业信息中心{{end}}</span><time>{{.Article.DateCN}}</time></div>
+        </header>
+        {{if .Article.Cover}}<figure class="article-cover"><img src="{{.Article.Cover}}" alt="{{.Article.Title}}"></figure>{{end}}
         <div class="static-article__content">{{.Article.Content}}</div>
       </article>
+      {{if .Related}}<aside class="article-related" aria-labelledby="article-related-title">
+        <h2 id="article-related-title">相关推荐</h2>
+        <ul>
+          {{range .Related}}<li><a href="{{.Href}}"{{if .External}} target="_blank" rel="noopener noreferrer"{{end}}><span>{{.Title}}</span><time datetime="{{.DateISO}}">{{.DateDot}}</time></a></li>{{end}}
+        </ul>
+      </aside>{{end}}
     </div></section>
   </main>
   <footer class="site-footer" id="site-footer"></footer>

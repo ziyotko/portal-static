@@ -68,6 +68,7 @@ type ArticlePageData struct {
 	ActiveRoot  string
 	Column      model.Column
 	Article     ArticleView
+	Related     []ArticleView
 	BackHref    string
 	BackLabel   string
 }

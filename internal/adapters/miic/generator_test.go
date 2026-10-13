@@ -119,15 +119,75 @@ func TestPreviewGeneratesCompleteSite(t *testing.T) {
 		t.Fatal("important news did not retain its editorial category")
 	}
 	articleText := string(article)
-	if !strings.Contains(articleText, `class="detail-label">中心动态`) {
+	if !strings.Contains(articleText, `<span>中心动态</span>`) {
 		t.Fatal("article did not use preferred editorial category")
 	}
 	if strings.Contains(articleText, `class="detail-cover"`) {
 		t.Fatal("article repeated its cover inside the body")
 	}
-	if !strings.Contains(articleText, `class="page-hero__backdrop"`) {
-		t.Fatal("article hero cover missing")
+	if !strings.Contains(articleText, `class="page-hero important-carousel"`) {
+		t.Fatal("article did not reuse the important news carousel")
 	}
+	if !strings.Contains(articleText, `<h1>聚焦行业数智化转型，构建机械工业高质量发展新动能</h1>`) {
+		t.Fatal("article title missing from detail content")
+	}
+	if !strings.Contains(articleText, `class="article-cover"`) {
+		t.Fatal("article cover missing from detail content")
+	}
+}
+
+func TestRelatedArticleViewsExcludeCurrentAndUseDetailRelativeLinks(t *testing.T) {
+	cfg, err := LoadLegacyConfig(filepath.Join("testdata", "config.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	g, err := New(cfg, demo.NewSource(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	column, items, err := g.source.FetchColumnArticles(context.Background(), 20)
+	if err != nil {
+		t.Fatal(err)
+	}
+	views := g.relatedArticleViews(column, 1001, items)
+	if len(views) != 3 {
+		t.Fatalf("related views = %d, want 3", len(views))
+	}
+	if views[0].ID == 1001 || views[0].Href != "../../../article/2026/08/1002.html" {
+		t.Fatalf("unexpected first related view: %#v", views[0])
+	}
+}
+
+type relatedArticleFixtureSource struct{ Source }
+
+func (s relatedArticleFixtureSource) FetchColumnArticles(ctx context.Context, id int64) (model.Column, []model.Article, error) {
+	column, items, err := s.Source.FetchColumnArticles(ctx, id)
+	if err != nil || id != 21 {
+		return column, items, err
+	}
+	_, otherItems, err := s.Source.FetchColumnArticles(ctx, 22)
+	if err != nil {
+		return model.Column{}, nil, err
+	}
+	return column, append(items, otherItems...), nil
+}
+
+func TestGenerateArticleRendersStaticRelatedArticleList(t *testing.T) {
+	base := demo.NewSource()
+	g, cfg := relatedTestGenerator(t, relatedArticleFixtureSource{Source: base})
+	result, err := g.GenerateArticle(context.Background(), 1001)
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(result.Output)
+	if err != nil {
+		t.Fatal(err)
+	}
+	page := string(data)
+	if !strings.Contains(page, `class="article-related"`) || !strings.Contains(page, `../../../article/2026/08/1002.html`) {
+		t.Fatalf("generated article is missing its static related list: %s", page)
+	}
+	_ = cfg
 }
 
 func TestGenerateAllListsPreservesPublishedRootFiles(t *testing.T) {

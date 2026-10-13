@@ -411,7 +411,11 @@ func (g *Generator) GenerateArticle(ctx context.Context, id int64) (ArticleResul
 	} else if selected, exists := preferred[id]; exists {
 		column = selected
 	}
-	path, err := g.renderArticle(root, column, article)
+	related, err := g.loadRelatedArticleViews(ctx, column, article.ID)
+	if err != nil {
+		return ArticleResult{}, err
+	}
+	path, err := g.renderArticle(root, column, article, related)
 	if err != nil {
 		return ArticleResult{}, err
 	}
@@ -541,6 +545,7 @@ func (g *Generator) generateAllArticlesAt(ctx context.Context, root string) (int
 	if err != nil {
 		return 0, err
 	}
+	relatedItems := make(map[int64][]model.Article)
 	for index, item := range items {
 		if err := ctx.Err(); err != nil {
 			return 0, err
@@ -562,7 +567,16 @@ func (g *Generator) generateAllArticlesAt(ctx context.Context, root string) (int
 		if preferred, exists := preferredColumns[item.ID]; exists {
 			column = preferred
 		}
-		if _, err := g.renderArticle(staging, column, article); err != nil {
+		scopeKey := g.relatedArticleScopeKey(column)
+		columnItems, exists := relatedItems[scopeKey]
+		if !exists {
+			columnItems, err = g.loadRelatedArticleItems(ctx, column)
+			if err != nil {
+				return 0, err
+			}
+			relatedItems[scopeKey] = columnItems
+		}
+		if _, err := g.renderArticle(staging, column, article, g.relatedArticleViews(column, article.ID, columnItems)); err != nil {
 			return 0, err
 		}
 		count++
@@ -578,7 +592,7 @@ func (g *Generator) generateAllArticlesAt(ctx context.Context, root string) (int
 	return count, nil
 }
 
-func (g *Generator) renderArticle(root string, column model.Column, article model.Article) (string, error) {
+func (g *Generator) renderArticle(root string, column model.Column, article model.Article, related []ArticleView) (string, error) {
 	view := makeViewWithResolver(g.cfg, g.media, column.Name, article)
 	if view.Cover != "" && !strings.HasPrefix(view.Cover, "/") && !strings.HasPrefix(view.Cover, "http://") && !strings.HasPrefix(view.Cover, "https://") {
 		view.Cover = "../../../" + strings.TrimPrefix(view.Cover, "./")
@@ -600,7 +614,7 @@ func (g *Generator) renderArticle(root string, column model.Column, article mode
 		backHref, backLabel = "../../../business.html", "返回核心业务"
 		activeRoot = "business"
 	}
-	if err := tpl.Execute(&out, ArticlePageData{GeneratedAt: time.Now().In(g.location).Format(time.RFC3339), RootPrefix: "../../../", ActiveRoot: activeRoot, Column: column, Article: view, BackHref: backHref, BackLabel: backLabel}); err != nil {
+	if err := tpl.Execute(&out, ArticlePageData{GeneratedAt: time.Now().In(g.location).Format(time.RFC3339), RootPrefix: "../../../", ActiveRoot: activeRoot, Column: column, Article: view, Related: related, BackHref: backHref, BackLabel: backLabel}); err != nil {
 		return "", err
 	}
 	target := filepath.Join(root, filepath.FromSlash(articleRelativePath(article)))

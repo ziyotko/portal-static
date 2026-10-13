@@ -39,7 +39,7 @@ func NewSource() *Source {
 	a3 := makeArticle(1003, 23, 8, "制造业数字化转型加速向全链条协同纵深推进", "从单点技术应用走向流程重构与数据协同，数智化正在形成产业发展新优势。", "assets/unsplash-appliance-line.jpg")
 	a4 := makeArticle(1004, 24, 3, "机械工业数字化转型路径与实践研究成果发布", "总结典型实践，提炼转型方法，为行业企业数字化建设提供可复用的经验参考。", "assets/unsplash-precision-lab.jpg")
 	service := makeArticle(2001, 32, 20, "软件产品及定制开发服务", "面向机关单位与行业协会提供标准化软件产品、定制开发及实施服务。", "assets/unsplash-software-development.jpg")
-	service.Content = "<h2>服务内容</h2><p>后台可维护的服务详情演示内容。</p><h2>服务流程</h2><ol><li>需求沟通</li><li>方案设计</li><li>开发实施</li></ol>"
+	service.Content = ""
 	recruitment := makeArticle(3001, 41, 19, "前端工程师", "招聘状态以后台发布信息为准。", "")
 	recruitment.Content = "<h2>岗位职责</h2><p>负责门户及业务系统前端开发。</p>"
 	disclosure := makeArticle(3002, 42, 18, "2026年机械工业信息中心部门预算", "部门预算公开文件。", "")

@@ -51,12 +51,16 @@ func (g *Generator) GenerateArticleRelated(ctx context.Context, articleID int64)
 	} else if selected, exists := preferred[articleID]; exists {
 		column = selected
 	}
-	path, err := g.renderArticle(root, column, article)
+	related, err := g.loadRelatedArticleViews(ctx, column, article.ID)
+	if err != nil {
+		return ArticleResult{}, fmt.Errorf("load related articles: %w", err)
+	}
+	path, err := g.renderArticle(root, column, article, related)
 	if err != nil {
 		return ArticleResult{}, fmt.Errorf("generate related article detail: %w", err)
 	}
 
-	refresh, err := g.refreshRelatedReferences(ctx, root, columns)
+	refresh, err := g.refreshRelatedReferences(ctx, root, columns, articleID)
 	if err != nil {
 		return ArticleResult{}, err
 	}
@@ -106,7 +110,7 @@ func (g *Generator) DeleteArticleRelated(ctx context.Context, articleID int64) (
 	if err := copyRelatedScaffold(g.cfg.Site.SourceRoot, root); err != nil {
 		return DeleteArticleResult{}, fmt.Errorf("prepare related article output: %w", err)
 	}
-	refresh, err := g.refreshRelatedReferences(ctx, root, columns)
+	refresh, err := g.refreshRelatedReferences(ctx, root, columns, articleID)
 	if err != nil {
 		return DeleteArticleResult{}, err
 	}
@@ -163,9 +167,15 @@ type relatedRefreshResult struct {
 	pages            []string
 }
 
-func (g *Generator) refreshRelatedReferences(ctx context.Context, root string, columns []model.Column) (relatedRefreshResult, error) {
+func (g *Generator) refreshRelatedReferences(ctx context.Context, root string, columns []model.Column, skipArticleID int64) (relatedRefreshResult, error) {
 	columns = mergeColumns(columns)
 	result := relatedRefreshResult{columnIDs: make([]int64, 0, len(columns))}
+	details, err := g.refreshRelatedArticleDetails(ctx, root, columns, skipArticleID)
+	if err != nil {
+		return relatedRefreshResult{}, err
+	}
+	result.generatedFiles += details
+	result.generatedDetails += details
 	for _, column := range columns {
 		list, err := g.generateListAt(ctx, root, column.ID)
 		if err != nil {
@@ -188,6 +198,64 @@ func (g *Generator) refreshRelatedReferences(ctx context.Context, root string, c
 	}
 	result.generatedFiles++
 	return result, nil
+}
+
+func (g *Generator) refreshRelatedArticleDetails(ctx context.Context, root string, columns []model.Column, skipArticleID int64) (int, error) {
+	preferred, _, err := g.categoryContext(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("resolve related article categories: %w", err)
+	}
+	detailColumns := columns
+	for _, column := range columns {
+		if column.TemplateName != g.cfg.Site.PageName {
+			continue
+		}
+		newsColumns, err := g.source.FetchPageColumns(ctx, g.cfg.Site.PageName, 0)
+		if err != nil {
+			return 0, fmt.Errorf("load news columns for related articles: %w", err)
+		}
+		detailColumns = mergeColumns(detailColumns, newsColumns)
+		break
+	}
+	columnItems := make(map[int64][]model.Article)
+	seen := make(map[int64]bool)
+	generated := 0
+	for _, affectedColumn := range detailColumns {
+		if !g.articleSidebarColumn(affectedColumn) {
+			continue
+		}
+		_, candidates, err := g.source.FetchColumnArticles(ctx, affectedColumn.ID)
+		if err != nil {
+			return 0, fmt.Errorf("load related article column %d: %w", affectedColumn.ID, err)
+		}
+		for _, article := range candidates {
+			if article.ID == skipArticleID || seen[article.ID] || !model.HasStaticDetail(article.Type) {
+				continue
+			}
+			if _, external := safeExternal(article.URL); external {
+				continue
+			}
+			seen[article.ID] = true
+			column := affectedColumn
+			if selected, exists := preferred[article.ID]; exists {
+				column = selected
+			}
+			scopeKey := g.relatedArticleScopeKey(column)
+			items, exists := columnItems[scopeKey]
+			if !exists {
+				items, err = g.loadRelatedArticleItems(ctx, column)
+				if err != nil {
+					return 0, fmt.Errorf("load sidebar articles for column %d: %w", column.ID, err)
+				}
+				columnItems[scopeKey] = items
+			}
+			if _, err := g.renderArticle(root, column, article, g.relatedArticleViews(column, article.ID, items)); err != nil {
+				return 0, fmt.Errorf("refresh related article %d: %w", article.ID, err)
+			}
+			generated++
+		}
+	}
+	return generated, nil
 }
 
 func (g *Generator) renderMainPageAt(ctx context.Context, root, normalized string) error {

@@ -385,7 +385,8 @@ func TestGenerateCompletePublicSiteAndMemberShells(t *testing.T) {
 			t.Fatalf("home footer missing %q", text)
 		}
 	}
-	if !strings.Contains(homePage, `<img src="/D/beian-emblem.png" alt="" width="20" height="20">京公网安备11010202009494`) {
+	const beianEmblem = `<img src="/assets/images/beian-emblem.png" alt="" width="20" height="20">京公网安备11010202009494`
+	if !strings.Contains(homePage, beianEmblem) {
 		t.Fatal("home footer missing the public security emblem before its filing number")
 	}
 	if _, err := os.Stat(filepath.Join(result.Output, "assets/images/beian-emblem.png")); err != nil {
@@ -393,6 +394,9 @@ func TestGenerateCompletePublicSiteAndMemberShells(t *testing.T) {
 	}
 	for _, name := range []string{"pages/about.html", "list/36/1.html"} {
 		page := readGenerated(t, result.Output, name)
+		if !strings.Contains(page, beianEmblem) {
+			t.Fatalf("%s footer does not use the root-relative public security emblem path", name)
+		}
 		breadcrumb := regexp.MustCompile(`<nav class="breadcrumb"[^>]*>.*?</nav>`).FindString(page)
 		if got := strings.Count(breadcrumb, "协会简介"); got != 1 {
 			t.Fatalf("%s breadcrumb repeats 协会简介 %d times: %s", name, got, breadcrumb)
