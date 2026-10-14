@@ -359,6 +359,70 @@ func TestVideoDetailPlaysUploadedMP4Attachment(t *testing.T) {
 	}
 }
 
+func TestVideoHubOnlyUsesVideoNewsColumn(t *testing.T) {
+	cfg := testConfig(t)
+	source := demo.NewSource()
+	var videoColumnID, otherColumnID int64
+	var expectedTitle string
+	for _, column := range source.Columns {
+		switch column.Code {
+		case "videos-news":
+			videoColumnID = column.ID
+			if len(source.Items[column.ID]) > 0 {
+				expectedTitle = source.Items[column.ID][0].Title
+			}
+		case "training-talent":
+			otherColumnID = column.ID
+		}
+	}
+	if videoColumnID == 0 || otherColumnID == 0 || expectedTitle == "" {
+		t.Fatal("missing video or training fixture")
+	}
+	roamingVideo := model.Article{
+		ID:          990007,
+		ColumnID:    otherColumnID,
+		Type:        model.ArticleTypeVideo,
+		Title:       "不属于视频资讯栏目的培训视频",
+		Content:     "培训视频正文",
+		PublishTime: time.Now().Add(-time.Hour),
+	}
+	source.Items[otherColumnID] = append(source.Items[otherColumnID], roamingVideo)
+	sharedVideo := model.Article{
+		ID:          990008,
+		ColumnID:    otherColumnID,
+		Type:        model.ArticleTypeVideo,
+		Title:       "同时发布到培训和视频资讯的视频",
+		Content:     "共享视频正文",
+		PublishTime: time.Now().Add(-2 * time.Hour),
+	}
+	source.Items[otherColumnID] = append(source.Items[otherColumnID], sharedVideo)
+	sharedVideo.ColumnID = videoColumnID
+	source.Items[videoColumnID] = append(source.Items[videoColumnID], sharedVideo)
+
+	result, err := New(cfg, source).GenerateSite(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	videoHub := readGenerated(t, result.Output, "videos.html")
+	if !strings.Contains(videoHub, expectedTitle) {
+		t.Fatal("video hub lost content published in videos-news")
+	}
+	if strings.Contains(videoHub, roamingVideo.Title) {
+		t.Fatal("video hub included a video published outside videos-news")
+	}
+	if !strings.Contains(videoHub, fmt.Sprintf(`%d.html?from=videos-news`, sharedVideo.ID)) {
+		t.Fatal("video hub did not use the videos-news publication context")
+	}
+	defaultVideo := readGenerated(t, result.Output, "video-detail.html")
+	if strings.Contains(defaultVideo, roamingVideo.Title) || !strings.Contains(defaultVideo, expectedTitle) {
+		t.Fatal("default video detail did not follow the videos-news collection")
+	}
+	searchPage := readGenerated(t, result.Output, "search.html")
+	if !strings.Contains(searchPage, roamingVideo.Title) {
+		t.Fatal("video outside videos-news should remain available to global search")
+	}
+}
+
 func TestGenerateCompletePublicSiteAndMemberShells(t *testing.T) {
 	cfg := testConfig(t)
 	source := demo.NewSource()

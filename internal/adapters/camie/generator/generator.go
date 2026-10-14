@@ -793,9 +793,15 @@ func (g *Generator) GenerateSite(ctx context.Context) (result Result, err error)
 		}
 	}
 	var videos []*Article
-	for _, a := range c.all {
+	videoPublications := make(map[int64]*Article)
+	for _, a := range c.groups[c.byCode["videos-news"]] {
 		if a.Video {
-			videos = append(videos, a)
+			videoPublications[a.ID] = a
+		}
+	}
+	for _, a := range c.all {
+		if publication := videoPublications[a.ID]; publication != nil {
+			videos = append(videos, publication)
 		}
 	}
 	if err = makeLists("新闻中心", "news", "list/news", "news.html", news); err != nil {
@@ -806,6 +812,9 @@ func (g *Generator) GenerateSite(ctx context.Context) (result Result, err error)
 	}
 	firstNews := (*Article)(nil)
 	firstVideo := (*Article)(nil)
+	if len(videos) > 0 {
+		firstVideo = videos[0]
+	}
 	for _, a := range c.all {
 		if strings.HasPrefix(a.Href, "http") {
 			continue
@@ -817,9 +826,6 @@ func (g *Generator) GenerateSite(ctx context.Context) (result Result, err error)
 		if a.Video {
 			p.Kind = "video"
 			p.BodyClass = "video-page"
-			if firstVideo == nil {
-				firstVideo = a
-			}
 		} else if firstNews == nil {
 			firstNews = a
 		}

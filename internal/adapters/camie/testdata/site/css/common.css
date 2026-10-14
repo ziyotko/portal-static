@@ -472,8 +472,28 @@ img { display: block; max-width: 100%; }
 .search-result-list { margin: 0; padding: 0; list-style: none; }
 .search-result-item { border-bottom: 1px solid #edf0ee; }
 .search-result-item > a { display: block; padding: 20px 8px 18px; }
-.search-result-item h2 { margin: 0 0 8px; color: #303636; font-size: 19px; font-weight: 500; line-height: 1.5; }
-.search-result-item p { margin: 0 0 10px; color: #777e7b; line-height: 1.7; }
+.search-result-item h2 {
+  display: -webkit-box;
+  margin: 0 0 8px;
+  overflow: hidden;
+  color: #303636;
+  font-size: 19px;
+  font-weight: 500;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.search-result-item p {
+  display: -webkit-box;
+  margin: 0 0 10px;
+  overflow: hidden;
+  color: #777e7b;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
 .search-result-item > a:hover h2, .search-result-item > a:focus-visible h2 { color: var(--green-600); }
 .search-result-item > a:focus-visible { outline: 2px solid var(--green-600); outline-offset: -2px; }
 .search-result-meta { display: flex; gap: 24px; color: #9aa19e; font-size: 14px; }
@@ -497,6 +517,14 @@ img { display: block; max-width: 100%; }
 .article-pager-prev { grid-column: 1; text-align: left; }
 .article-pager-next { grid-column: 2; text-align: right; }
 .article-pager strong { display: block; color: #a1a5a5; font-weight: 400; }
+.article-pager span {
+  display: -webkit-box;
+  overflow: hidden;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
 
 .video-grid-card { padding: 17px; }
 .video-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px 18px; }
@@ -522,8 +550,30 @@ img { display: block; max-width: 100%; }
   border-top: 11px solid transparent;
   border-bottom: 11px solid transparent;
 }
-.video-card h2 { margin: 7px 0 2px; font-size: 16px; line-height: 1.45; font-weight: 500; }
-.video-card p { height: 38px; margin: 0; overflow: hidden; color: #a1a6ad; font-size: 12px; line-height: 1.6; }
+.video-card h2 {
+  display: -webkit-box;
+  min-height: 46px;
+  margin: 7px 0 2px;
+  overflow: hidden;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.video-card p {
+  display: -webkit-box;
+  height: 38px;
+  margin: 0;
+  overflow: hidden;
+  color: #a1a6ad;
+  font-size: 12px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
 .video-card footer { display: flex; justify-content: space-between; margin-top: 8px; padding-top: 7px; border-top: 1px solid #e9ecea; color: #8ba2be; font-size: 12px; }
 .video-card footer a { color: #424b55; }
 
