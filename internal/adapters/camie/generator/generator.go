@@ -185,6 +185,13 @@ func (g *Generator) load(ctx context.Context) (*catalog, error) {
 				if existing, ok := c.byID[a.ID]; ok {
 					copy := *existing
 					copy.Category, copy.ColumnCode = col.Name, col.Code
+					if col.Code == "home-hero" {
+						// A shared article may have reached c.byID through an old
+						// publication snapshot. The carousel displays current article
+						// fields from its own query, including the current source.
+						copy.Title, copy.Summary, copy.Source = a.Title, a.Summary, a.Source
+						copy.Date, copy.Href, copy.Cover, copy.Video = a.PublishTime.Format("2006-01-02"), href, cover, a.Type == 2
+					}
 					v = &copy
 				} else {
 					attachments, err := g.source.FetchAttachments(ctx, a.ID)
@@ -371,9 +378,15 @@ func groupByID(c *catalog, id int64, limit int) Group {
 		}
 	}
 	items := make([]*Article, 0, len(articleIDs))
-	for _, article := range c.all {
-		if articleIDs[article.ID] {
-			items = append(items, article)
+	if code == "home-hero" {
+		// The carousel query has its own top/date order. Reusing c.all would
+		// sort shared articles by their first ordinary-column publication.
+		items = append(items, c.groups[id]...)
+	} else {
+		for _, article := range c.all {
+			if articleIDs[article.ID] {
+				items = append(items, article)
+			}
 		}
 	}
 	if limit > 0 && len(items) > limit {
@@ -700,7 +713,7 @@ func (g *Generator) GenerateSite(ctx context.Context) (result Result, err error)
 	if dataCenter.Feature != nil {
 		home.DataCenterURL = dataCenter.Feature.Href
 	}
-	home.Experts = group(c, "about-experts", 3)
+	home.Experts = group(c, "about-expert-insights", 3)
 	if err = render("index.html", "home", home); err != nil {
 		return result, err
 	}

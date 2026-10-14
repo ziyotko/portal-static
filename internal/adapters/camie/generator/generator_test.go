@@ -169,9 +169,15 @@ func TestHomeReusesPublicSectionsAndKeepsIndependentHeroPlacement(t *testing.T) 
 		if strings.Contains(detail, `>首页内容</`) || strings.Contains(detail, `>重点新闻轮播</`) {
 			t.Fatalf("article %d still shows home placement as navigation", check.id)
 		}
+		if check.code == "about-experts" {
+			continue
+		}
 		if !strings.Contains(homePage, fmt.Sprintf("%d.html?from=%s", check.id, check.code)) {
 			t.Fatalf("home link for article %d did not point to public section %s", check.id, check.code)
 		}
+	}
+	if strings.Contains(homePage, parentExpert.Title) {
+		t.Fatal("article published directly in the expert parent column leaked into homepage expert section")
 	}
 	if !strings.Contains(readGenerated(t, result.Output, "article/2026/09/990002.html"), `>专家委员会`) {
 		t.Fatal("formal expert detail lost the public expert sidebar")
@@ -239,6 +245,44 @@ func TestHomeReusesPublicSectionsAndKeepsIndependentHeroPlacement(t *testing.T) 
 	}
 	if !regexp.MustCompile(`<a class="hero-slide active"[^>]*>\s*<div class="hero-media"><img src="\./assets/images/default-news-cover\.png"`).MatchString(homePage) {
 		t.Fatal("hero without an article cover did not use the configured default news cover")
+	}
+}
+
+func TestHomeHeroKeepsCarouselOrderForSharedArticles(t *testing.T) {
+	cfg := testConfig(t)
+	source := demo.NewSource()
+	var heroID, hotID int64
+	for _, column := range source.Columns {
+		switch column.Code {
+		case "home-hero":
+			heroID = column.ID
+		case "news-hot":
+			hotID = column.ID
+		}
+	}
+	if heroID == 0 || hotID == 0 || len(source.Items[hotID]) < 2 {
+		t.Fatal("missing carousel or ordinary-column fixture")
+	}
+	first, second := source.Items[hotID][0], source.Items[hotID][1]
+	first.IsTop, second.IsTop = false, true
+	first.Source = "旧栏目发布来源"
+	source.Items[hotID][0], source.Items[hotID][1] = first, second
+	first.IsTop, second.IsTop = true, false
+	first.Source = "文章当前来源"
+	source.Items[heroID] = []model.Article{first, second}
+
+	result, err := New(cfg, source).GenerateSite(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	homePage := readGenerated(t, result.Output, "index.html")
+	hero := regexp.MustCompile(`(?s)<article class="hero-slider".*?</article>`).FindString(homePage)
+	firstAt, secondAt := strings.Index(hero, first.Title), strings.Index(hero, second.Title)
+	if firstAt < 0 || secondAt < 0 || firstAt >= secondAt {
+		t.Fatalf("carousel order changed by ordinary-column placement: %s", hero)
+	}
+	if !strings.Contains(hero, "文章当前来源") || strings.Contains(hero, "旧栏目发布来源") {
+		t.Fatalf("carousel source came from an old publication snapshot: %s", hero)
 	}
 }
 

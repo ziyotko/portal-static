@@ -95,8 +95,34 @@ func (r *Repository) FetchColumnArticles(ctx context.Context, id int64) (model.C
 	if err != nil {
 		return model.Column{}, nil, err
 	}
+	if column.Code == "home-hero" {
+		items, err := r.fetchHomeHeroArticles(ctx, id)
+		return column, items, err
+	}
 	items, err := r.fetchColumnArticles(ctx, id, 0)
 	return column, items, err
+}
+
+// The manager allows an already published article to be added to the homepage
+// carousel immediately. Use the current assignment and article fields as the
+// source of truth; old publication snapshots can be absent or out of date.
+func (r *Repository) fetchHomeHeroArticles(ctx context.Context, id int64) ([]model.Article, error) {
+	query := `SELECT a.id,a.type,a.title,COALESCE(a.summary,''),COALESCE(a.content,''),COALESCE(a.cover,''),
+COALESCE(a.author,''),COALESCE(a.source,''),
+COALESCE(a.is_bold,0),COALESCE(a.is_top,0),COALESCE(a.default_color,''),
+COALESCE(a.url,''),a.publish_time
+FROM {{schema}}.article a
+INNER JOIN {{schema}}.` + "`column`" + ` c ON c.id=? AND c.code='home-hero' AND c.status=1
+INNER JOIN {{schema}}.template t ON t.id=c.template_id AND t.status=1
+WHERE a.status=1 AND a.audit_status=2 AND a.publish_time<=NOW() AND a.type IN (1,2)
+AND EXISTS (
+  SELECT 1 FROM {{schema}}.article_column ac WHERE ac.article_id=a.id AND ac.column_id=c.id
+) ORDER BY a.is_top DESC,a.publish_time DESC,a.id DESC`
+	items, err := r.queryArticles(ctx, query, id)
+	for i := range items {
+		items[i].ColumnID = id
+	}
+	return items, err
 }
 
 func (r *Repository) fetchColumnArticles(ctx context.Context, id int64, limit int) ([]model.Article, error) {
@@ -124,14 +150,19 @@ AND a.type IN (1,2) ORDER BY acp.is_top DESC,a.publish_time DESC,a.id DESC`
 func (r *Repository) FetchArticle(ctx context.Context, id int64) (model.Column, model.Article, error) {
 	query := `SELECT c.id,c.name,c.code,c.template_id,c.parent_id,COALESCE(c.description,''),c.sort,
 a.id,a.type,a.title,COALESCE(a.summary,''),COALESCE(a.content,''),COALESCE(a.cover,''),
-COALESCE(NULLIF(acp.author,''),a.author,''),COALESCE(NULLIF(acp.source,''),a.source,''),
-COALESCE(acp.is_bold,0),COALESCE(acp.is_top,0),COALESCE(NULLIF(acp.color,''),a.default_color,''),
+COALESCE(CASE WHEN c.code='home-hero' THEN a.author ELSE NULLIF(acp.author,'') END,a.author,''),
+COALESCE(CASE WHEN c.code='home-hero' THEN a.source ELSE NULLIF(acp.source,'') END,a.source,''),
+CASE WHEN c.code='home-hero' THEN COALESCE(a.is_bold,0) ELSE COALESCE(acp.is_bold,0) END,
+CASE WHEN c.code='home-hero' THEN COALESCE(a.is_top,0) ELSE COALESCE(acp.is_top,0) END,
+COALESCE(CASE WHEN c.code='home-hero' THEN a.default_color ELSE NULLIF(acp.color,'') END,a.default_color,''),
 COALESCE(a.url,''),a.publish_time
-FROM {{schema}}.article a INNER JOIN {{schema}}.article_column_publish acp ON acp.article_id=a.id
-INNER JOIN {{schema}}.` + "`column`" + ` c ON c.id=acp.column_id AND c.status=1 AND c.template_id=acp.template_id
+FROM {{schema}}.article a INNER JOIN {{schema}}.` + "`column`" + ` c ON c.status=1
 INNER JOIN {{schema}}.template t ON t.id=c.template_id AND t.status=1
+LEFT JOIN {{schema}}.article_column_publish acp ON acp.article_id=a.id AND acp.column_id=c.id AND acp.template_id=c.template_id
 WHERE a.id=? AND a.status=1 AND a.audit_status=2 AND a.publish_time<=NOW() AND a.type IN (1,2)
-ORDER BY acp.is_top DESC,c.sort,c.id LIMIT 1`
+AND ((c.code<>'home-hero' AND acp.id IS NOT NULL) OR (c.code='home-hero' AND EXISTS (
+  SELECT 1 FROM {{schema}}.article_column ac WHERE ac.article_id=a.id AND ac.column_id=c.id
+))) ORDER BY CASE WHEN c.code='home-hero' THEN COALESCE(a.is_top,0) ELSE COALESCE(acp.is_top,0) END DESC,c.sort,c.id LIMIT 1`
 	var c model.Column
 	var a model.Article
 	err := r.db.QueryRowContext(ctx, query, id).Scan(&c.ID, &c.Name, &c.Code, &c.TemplateID, &c.ParentID, &c.Description, &c.Sort,
@@ -151,10 +182,15 @@ ORDER BY acp.is_top DESC,c.sort,c.id LIMIT 1`
 // article's current list and main-page references.
 func (r *Repository) FetchArticleColumns(ctx context.Context, articleID int64) ([]model.Column, error) {
 	rows, err := r.db.QueryContext(ctx, `SELECT DISTINCT c.id,c.name,c.code,c.template_id,t.name,c.parent_id,COALESCE(c.description,''),c.sort
-FROM {{schema}}.article a INNER JOIN {{schema}}.article_column_publish acp ON acp.article_id=a.id
-INNER JOIN {{schema}}.`+"`column`"+` c ON c.id=acp.column_id AND c.status=1 AND c.template_id=acp.template_id
+FROM {{schema}}.article a INNER JOIN {{schema}}.`+"`column`"+` c ON c.status=1
 INNER JOIN {{schema}}.template t ON t.id=c.template_id AND t.status=1
 WHERE a.id=? AND a.status=1 AND a.audit_status=2 AND a.publish_time<=NOW() AND a.type IN (1,2)
+AND ((c.code<>'home-hero' AND EXISTS (
+  SELECT 1 FROM {{schema}}.article_column_publish acp
+  WHERE acp.article_id=a.id AND acp.column_id=c.id AND acp.template_id=c.template_id
+)) OR (c.code='home-hero' AND EXISTS (
+  SELECT 1 FROM {{schema}}.article_column ac WHERE ac.article_id=a.id AND ac.column_id=c.id
+)))
 ORDER BY c.id`, articleID)
 	if err != nil {
 		return nil, fmt.Errorf("query article %d columns: %w", articleID, err)
@@ -177,15 +213,18 @@ ORDER BY c.id`, articleID)
 	return columns, nil
 }
 
-// FetchArticleRelatedColumns includes surviving publication relationships even
-// when the article is offline or has been removed. Physical deletion means
-// removed relationships cannot be reconstructed after the fact.
+// FetchArticleRelatedColumns includes surviving publication relationships and
+// the current carousel assignment even when the article is offline.
 func (r *Repository) FetchArticleRelatedColumns(ctx context.Context, articleID int64) ([]model.Column, error) {
 	rows, err := r.db.QueryContext(ctx, `SELECT DISTINCT c.id,c.name,c.code,c.template_id,t.name,c.parent_id,COALESCE(c.description,''),c.sort
-FROM {{schema}}.article_column_publish acp
-INNER JOIN {{schema}}.`+"`column`"+` c ON c.id=acp.column_id AND c.status=1 AND c.template_id=acp.template_id
+FROM {{schema}}.`+"`column`"+` c
 INNER JOIN {{schema}}.template t ON t.id=c.template_id AND t.status=1
-WHERE acp.article_id=? ORDER BY c.id`, articleID)
+WHERE c.status=1 AND ((c.code<>'home-hero' AND EXISTS (
+  SELECT 1 FROM {{schema}}.article_column_publish acp
+  WHERE acp.article_id=? AND acp.column_id=c.id AND acp.template_id=c.template_id
+)) OR (c.code='home-hero' AND EXISTS (
+  SELECT 1 FROM {{schema}}.article_column ac WHERE ac.article_id=? AND ac.column_id=c.id
+))) ORDER BY c.id`, articleID, articleID)
 	if err != nil {
 		return nil, fmt.Errorf("query article %d related columns: %w", articleID, err)
 	}
@@ -206,7 +245,8 @@ func (r *Repository) FetchAllArticles(ctx context.Context) ([]model.Article, err
 COALESCE(a.author,''),COALESCE(a.source,''),COALESCE(a.is_bold,0),COALESCE(a.is_top,0),
 COALESCE(a.default_color,''),COALESCE(a.url,''),a.publish_time
 FROM {{schema}}.article a WHERE a.status=1 AND a.audit_status=2 AND a.publish_time<=NOW() AND a.type IN (1,2)
-AND EXISTS(SELECT 1 FROM {{schema}}.article_column_publish acp INNER JOIN {{schema}}.` + "`column`" + ` c ON c.id=acp.column_id AND c.status=1 AND c.template_id=acp.template_id INNER JOIN {{schema}}.template t ON t.id=c.template_id AND t.status=1 WHERE acp.article_id=a.id)
+AND (EXISTS(SELECT 1 FROM {{schema}}.article_column_publish acp INNER JOIN {{schema}}.` + "`column`" + ` c ON c.id=acp.column_id AND c.code<>'home-hero' AND c.status=1 AND c.template_id=acp.template_id INNER JOIN {{schema}}.template t ON t.id=c.template_id AND t.status=1 WHERE acp.article_id=a.id)
+OR EXISTS(SELECT 1 FROM {{schema}}.article_column ac INNER JOIN {{schema}}.` + "`column`" + ` c ON c.id=ac.column_id AND c.code='home-hero' AND c.status=1 INNER JOIN {{schema}}.template t ON t.id=c.template_id AND t.status=1 WHERE ac.article_id=a.id))
 ORDER BY a.id`
 	return r.queryArticles(ctx, query)
 }
