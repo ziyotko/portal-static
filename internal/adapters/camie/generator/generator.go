@@ -70,6 +70,7 @@ type Page struct {
 	StaticBuildID, StaticGeneratedAt      string
 	ColumnCode                            string
 	ColumnPaths                           template.JS
+	ColumnPathHrefs                       template.JS
 	Items                                 []*Article
 	Article, PreviousArticle, NextArticle *Article
 	Parent                                *Link
@@ -371,21 +372,31 @@ func groupByID(c *catalog, id int64, limit int) Group {
 			}
 		}
 	}
-	articleIDs := map[int64]bool{}
-	for columnID := range descendants {
+	// Keep each group's publication context even when an article is also
+	// published in another column and c.all holds that other copy.
+	articlesByID := map[int64]*Article{}
+	addColumn := func(columnID int64) {
 		for _, article := range c.groups[columnID] {
-			articleIDs[article.ID] = true
+			if articlesByID[article.ID] == nil {
+				articlesByID[article.ID] = article
+			}
 		}
 	}
-	items := make([]*Article, 0, len(articleIDs))
+	addColumn(id)
+	for _, column := range c.columns {
+		if column.ID != id && descendants[column.ID] {
+			addColumn(column.ID)
+		}
+	}
+	items := make([]*Article, 0, len(articlesByID))
 	if code == "home-hero" {
 		// The carousel query has its own top/date order. Reusing c.all would
 		// sort shared articles by their first ordinary-column publication.
 		items = append(items, c.groups[id]...)
 	} else {
 		for _, article := range c.all {
-			if articleIDs[article.ID] {
-				items = append(items, article)
+			if publication := articlesByID[article.ID]; publication != nil {
+				items = append(items, publication)
 			}
 		}
 	}
@@ -544,6 +555,7 @@ func (g *Generator) GenerateSite(ctx context.Context) (result Result, err error)
 		return result, err
 	}
 	columnPaths := make(map[string][]string, len(c.columns))
+	columnPathHrefs := make(map[string][]string, len(c.columns))
 	columnsByID := make(map[int64]model.Column, len(c.columns))
 	for _, column := range c.columns {
 		columnsByID[column.ID] = column
@@ -553,17 +565,29 @@ func (g *Generator) GenerateSite(ctx context.Context) (result Result, err error)
 			continue
 		}
 		var path []string
+		var hrefs []string
 		for current := column; current.ID != 0; current = columnsByID[current.ParentID] {
 			if current.Code != "home" {
 				path = append(path, current.Name)
+				href := fmt.Sprintf("list/%d/1.html", current.ID)
+				if current.Code == "home-hero" {
+					href = "index.html"
+				}
+				hrefs = append(hrefs, href)
 			}
 		}
 		for left, right := 0, len(path)-1; left < right; left, right = left+1, right-1 {
 			path[left], path[right] = path[right], path[left]
+			hrefs[left], hrefs[right] = hrefs[right], hrefs[left]
 		}
 		columnPaths[column.Code] = path
+		columnPathHrefs[column.Code] = hrefs
 	}
 	columnPathJSON, err := json.Marshal(columnPaths)
+	if err != nil {
+		return result, err
+	}
+	columnPathHrefJSON, err := json.Marshal(columnPathHrefs)
 	if err != nil {
 		return result, err
 	}
@@ -597,6 +621,7 @@ func (g *Generator) GenerateSite(ctx context.Context) (result Result, err error)
 		p.StaticBuildID = buildID
 		p.StaticGeneratedAt = generatedAt.Format(time.RFC3339Nano)
 		p.ColumnPaths = template.JS(columnPathJSON)
+		p.ColumnPathHrefs = template.JS(columnPathHrefJSON)
 		currentColumn := p.ColumnCode
 		if p.Article != nil {
 			currentColumn = p.Article.ColumnCode

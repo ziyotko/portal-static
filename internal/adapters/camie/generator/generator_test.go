@@ -2,6 +2,7 @@ package generator
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -72,7 +73,7 @@ func TestRequestedOutputUsesAllowedRootInsteadOfDefaultDistRoot(t *testing.T) {
 func TestHomeReusesPublicSectionsAndKeepsIndependentHeroPlacement(t *testing.T) {
 	cfg := testConfig(t)
 	source := demo.NewSource()
-	var homeColumn, hotColumn, ministryColumn, noticeColumn, topicColumn, legacyPolicyColumn, publicPolicyColumn, heroColumn, expertColumn, expertParentColumn model.Column
+	var homeColumn, hotColumn, ministryColumn, noticeColumn, topicColumn, legacyPolicyColumn, publicPolicyColumn, heroColumn, aboutColumn, expertColumn, expertParentColumn model.Column
 	for _, column := range source.Columns {
 		switch column.Code {
 		case "home":
@@ -91,6 +92,8 @@ func TestHomeReusesPublicSectionsAndKeepsIndependentHeroPlacement(t *testing.T) 
 			publicPolicyColumn = column
 		case "home-hero":
 			heroColumn = column
+		case "about":
+			aboutColumn = column
 		case "about-expert-insights":
 			expertColumn = column
 		case "about-experts":
@@ -117,7 +120,7 @@ func TestHomeReusesPublicSectionsAndKeepsIndependentHeroPlacement(t *testing.T) 
 	if heroColumn.ID == 0 || len(source.Items[heroColumn.ID]) == 0 {
 		t.Fatal("missing hero fixture")
 	}
-	if expertColumn.ID == 0 || expertParentColumn.ID == 0 {
+	if aboutColumn.ID == 0 || expertColumn.ID == 0 || expertParentColumn.ID == 0 {
 		t.Fatal("missing expert fixture")
 	}
 	notices := model.Column{ID: 9001, ParentID: homeColumn.ID, Name: "通知公告", Code: "home-news-notice"}
@@ -127,17 +130,19 @@ func TestHomeReusesPublicSectionsAndKeepsIndependentHeroPlacement(t *testing.T) 
 	onlyHome := model.Article{ID: 990001, Type: model.ArticleTypeContent, Title: "仅投放首页的通知", Content: "公开测试正文", PublishTime: time.Date(2026, 9, 28, 9, 0, 0, 0, time.FixedZone("CST", 8*60*60))}
 	expert := model.Article{ID: 990002, Type: model.ArticleTypeContent, Title: "正式专家栏目文章", Content: "公开专家正文", Cover: "assets/images/video-thumb.png", PublishTime: onlyHome.PublishTime}
 	parentExpert := model.Article{ID: 990003, Type: model.ArticleTypeContent, Title: "直接发布在专家委员会的文章", Content: "专家委员会正文", PublishTime: time.Date(2026, 9, 27, 9, 0, 0, 0, time.FixedZone("CST", 8*60*60))}
+	crossPostedExpert := model.Article{ID: 990007, Type: model.ArticleTypeContent, Title: "新闻与专家视野同时发布的文章", Content: "多栏目正文", PublishTime: time.Date(2026, 9, 26, 9, 0, 0, 0, time.FixedZone("CST", 8*60*60))}
+	crossPostedParent := model.Article{ID: 990008, Type: model.ArticleTypeContent, Title: "新闻与专家委员会同时发布的文章", Content: "多栏目正文", PublishTime: time.Date(2026, 9, 25, 9, 0, 0, 0, time.FixedZone("CST", 8*60*60))}
 	heroOnly := model.Article{ID: 990004, Type: model.ArticleTypeContent, Title: "首页独立轮播", Content: "轮播正文", PublishTime: onlyHome.PublishTime}
 	legacyPolicyOnly := model.Article{ID: 990005, Type: model.ArticleTypeContent, Title: "旧首页独立政策研究", Content: "政策正文", PublishTime: onlyHome.PublishTime}
 	publicOnly := model.Article{ID: 990006, Type: model.ArticleTypeContent, Title: "仅投放热点关注和部委动态", Content: "公开正文", Cover: "assets/images/hero-building.png", PublishTime: onlyHome.PublishTime}
 	source.Items[notices.ID] = []model.Article{shared, onlyHome}
 	source.Items[experts.ID] = []model.Article{onlyHome}
 	source.Items[heroColumn.ID] = []model.Article{heroOnly}
-	source.Items[hotColumn.ID] = append(source.Items[hotColumn.ID], publicOnly)
+	source.Items[hotColumn.ID] = append(source.Items[hotColumn.ID], publicOnly, crossPostedExpert, crossPostedParent)
 	source.Items[ministryColumn.ID] = append(source.Items[ministryColumn.ID], publicOnly)
 	source.Items[legacyPolicyColumn.ID] = []model.Article{legacyPolicyOnly}
-	source.Items[expertColumn.ID] = []model.Article{expert}
-	source.Items[expertParentColumn.ID] = []model.Article{parentExpert}
+	source.Items[expertColumn.ID] = []model.Article{expert, crossPostedExpert}
+	source.Items[expertParentColumn.ID] = []model.Article{parentExpert, crossPostedParent}
 
 	result, err := New(cfg, source).GenerateSite(context.Background())
 	if err != nil {
@@ -179,8 +184,32 @@ func TestHomeReusesPublicSectionsAndKeepsIndependentHeroPlacement(t *testing.T) 
 	if strings.Contains(homePage, parentExpert.Title) {
 		t.Fatal("article published directly in the expert parent column leaked into homepage expert section")
 	}
+	expertLinks := regexp.MustCompile(`(?s)<ul class="expert-links">.*?</ul>`).FindString(homePage)
+	if !strings.Contains(expertLinks, fmt.Sprintf("%d.html?from=about-expert-insights", crossPostedExpert.ID)) || strings.Contains(expertLinks, fmt.Sprintf("%d.html?from=news-hot", crossPostedExpert.ID)) {
+		t.Fatal("cross-posted expert article lost its expert context on homepage")
+	}
+	if strings.Contains(expertLinks, crossPostedParent.Title) {
+		t.Fatal("cross-posted expert parent article leaked into homepage expert section")
+	}
+	expertParentList := readGenerated(t, result.Output, fmt.Sprintf("list/%d/1.html", expertParentColumn.ID))
+	if !strings.Contains(expertParentList, fmt.Sprintf("%d.html?from=about-experts", crossPostedParent.ID)) {
+		t.Fatal("cross-posted parent article lost its expert context in the expert committee list")
+	}
 	if !strings.Contains(readGenerated(t, result.Output, "article/2026/09/990002.html"), `>专家委员会`) {
 		t.Fatal("formal expert detail lost the public expert sidebar")
+	}
+	expertDetail := readGenerated(t, result.Output, "article/2026/09/990002.html")
+	hrefJSON := regexp.MustCompile(`<script id="column-path-hrefs" type="application/json">(.*?)</script>`).FindStringSubmatch(expertDetail)
+	if len(hrefJSON) != 2 {
+		t.Fatal("expert detail is missing breadcrumb column links")
+	}
+	var columnHrefs map[string][]string
+	if err := json.Unmarshal([]byte(hrefJSON[1]), &columnHrefs); err != nil {
+		t.Fatalf("parse breadcrumb column links: %v", err)
+	}
+	wantExpertHrefs := fmt.Sprintf("list/%d/1.html,list/%d/1.html,list/%d/1.html", aboutColumn.ID, expertParentColumn.ID, expertColumn.ID)
+	if got := strings.Join(columnHrefs["about-expert-insights"], ","); got != wantExpertHrefs {
+		t.Fatalf("expert breadcrumb links = %q, want %q", got, wantExpertHrefs)
 	}
 	if strings.Contains(homePage, onlyHome.Title) {
 		t.Fatal("legacy home-only article leaked into homepage")

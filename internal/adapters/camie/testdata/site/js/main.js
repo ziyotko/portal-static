@@ -21,6 +21,22 @@
   } catch {
     columnPaths = {};
   }
+  let columnPathHrefs = {};
+  try {
+    columnPathHrefs = JSON.parse(document.querySelector('#column-path-hrefs')?.textContent || '{}');
+  } catch {
+    columnPathHrefs = {};
+  }
+
+  const breadcrumbItem = (label, href, current = false) => {
+    const item = document.createElement('li');
+    const content = document.createElement(current || !href ? 'span' : 'a');
+    if (current) content.setAttribute('aria-current', 'page');
+    if (!current && href) content.href = `${rootPrefix}${href}`;
+    content.textContent = label;
+    item.append(content);
+    return item;
+  };
 
   const elementLabel = (element) => {
     if (!element) return '';
@@ -58,24 +74,14 @@
 
     const sectionLabel = elementLabel(sectionItem);
     const rootLabel = sectionBreadcrumb.querySelectorAll('li')[1]?.textContent.trim();
-    const matchedPath = Object.values(columnPaths).find((path) => path[0] === rootLabel && path.at(-1) === sectionLabel);
+    const matchedEntry = Object.entries(columnPaths).find(([, path]) => path[0] === rootLabel && path.at(-1) === sectionLabel);
+    const matchedPath = matchedEntry?.[1];
     if (sectionBreadcrumbNav.dataset.syncSection === 'path' && matchedPath) {
       sectionBreadcrumb.replaceChildren();
       const labels = ['首页', ...matchedPath];
+      const hrefs = columnPathHrefs[matchedEntry[0]] || [];
       labels.forEach((label, index) => {
-        const item = document.createElement('li');
-        if (index === labels.length - 1) {
-          const current = document.createElement('span');
-          current.setAttribute('aria-current', 'page');
-          current.textContent = label;
-          item.append(current);
-        } else {
-          const link = document.createElement('a');
-          link.href = index === 0 ? '../index.html' : '#';
-          link.textContent = label;
-          item.append(link);
-        }
-        sectionBreadcrumb.append(item);
+        sectionBreadcrumb.append(breadcrumbItem(label, index === 0 ? 'index.html' : hrefs[index - 1], index === labels.length - 1));
       });
       return;
     }
@@ -111,29 +117,13 @@
     const isHomeSlot = requestedCode === 'home' || requestedCode?.startsWith('home-');
     const columnCode = !isHomeSlot && columnPaths[requestedCode] ? requestedCode : detailPage.dataset.defaultColumnCode;
     const path = columnPaths[columnCode];
+    const hrefs = columnPathHrefs[columnCode] || [];
     const breadcrumbList = detailPage.querySelector('[data-detail-breadcrumb] ol');
     if (path?.length && breadcrumbList) {
       breadcrumbList.replaceChildren();
-      const homeItem = document.createElement('li');
-      const homeLink = document.createElement('a');
-      homeLink.href = `${rootPrefix}index.html`;
-      homeLink.textContent = '首页';
-      homeItem.append(homeLink);
-      breadcrumbList.append(homeItem);
+      breadcrumbList.append(breadcrumbItem('首页', 'index.html'));
       path.forEach((label, index) => {
-        const item = document.createElement('li');
-        if (index === path.length - 1) {
-          const current = document.createElement('span');
-          current.setAttribute('aria-current', 'page');
-          current.textContent = label;
-          item.append(current);
-        } else {
-          const link = document.createElement('a');
-          link.href = '#';
-          link.textContent = label;
-          item.append(link);
-        }
-        breadcrumbList.append(item);
+        breadcrumbList.append(breadcrumbItem(label, hrefs[index], index === path.length - 1));
       });
 
       const menuItems = [...detailPage.querySelectorAll('.side-menu a, .side-menu button')];
