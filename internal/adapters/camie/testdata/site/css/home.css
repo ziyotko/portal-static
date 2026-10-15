@@ -185,7 +185,7 @@
 .columns-two { display: grid; grid-template-columns: 756px 418px; gap: 26px; }
 .section-title { display: flex; align-items: center; gap: 8px; margin: 0 0 13px; font-size: 20px; color: #314054; }
 .section-title img { width: 42px; height: 42px; }
-.section-title-logo { width: 30px; height: 30px; flex: 0 0 30px; background: url("../assets/images/section-heading-logo.png") center / 30px 30px no-repeat; }
+.section-title-logo { width: 1em; height: 1em; flex: 0 0 1em; background: url("../assets/images/section-heading-logo.png") center / contain no-repeat; }
 .section-title > a { display: inline-flex; align-items: center; gap: 8px; color: inherit; transition: color .18s ease; }
 .section-title > a:hover, .section-title > a:focus-visible { color: var(--green-700); text-decoration: underline; text-underline-offset: 4px; }
 .branch-grid { display: grid; grid-template-columns: repeat(3, 241px); gap: 15px 16px; }
