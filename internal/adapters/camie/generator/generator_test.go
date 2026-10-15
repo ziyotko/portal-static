@@ -848,10 +848,10 @@ func TestGenerateCompletePublicSiteAndMemberShells(t *testing.T) {
 			t.Fatalf("fixed friend links lost %q", name)
 		}
 	}
-	if count := strings.Count(home, `class="partner-logo"`); count != 24 {
-		t.Fatalf("rendered partner logo count = %d, want 24 including the accessible duplicate tracks", count)
+	if count := strings.Count(home, `class="partner-logo"`); count != 26 {
+		t.Fatalf("rendered partner logo count = %d, want 26 including the accessible duplicate tracks", count)
 	}
-	for _, viewBox := range []string{"40 14 526 521", "35 35 280 282", "0 78 438 125", "85 385 809 162", "0 40 1178 716", "0 0 167 63", "0 8 192 176", "0 175 536 190", "10 45 1045 376", "0 0 418 55", "25 105 441 303", "20 112 560 208"} {
+	for _, viewBox := range []string{"12 8 219 50", "0 0 183 48", "41 7 158 51", "58 18 136 30", "9 13 224 40", "61 7 122 52", "58 11 129 44", "48 10 148 46", "5 10 166 60", "17 18 209 29", "0 0 418 55", "55 11 136 44", "0 0 169 55"} {
 		if count := strings.Count(home, `viewBox="`+viewBox+`"`); count != 2 {
 			t.Fatalf("partner logo crop %q rendered %d times, want 2", viewBox, count)
 		}

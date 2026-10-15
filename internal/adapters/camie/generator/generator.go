@@ -63,7 +63,7 @@ type Branch struct {
 }
 type Partner struct {
 	Name, Href, Image, ViewBox string
-	Width, Height              int
+	Width, Height, DisplayWidth int
 }
 type Page struct {
 	ActiveNav                             string
@@ -704,20 +704,21 @@ func (g *Generator) GenerateSite(ctx context.Context) (result Result, err error)
 		},
 		PartnerRows: [][]Partner{
 			{
-				{Name: "南京大学环境学院", Href: "https://www.nju.edu.cn/", Image: "assets/images/partner-logos/nanjing-university.png", ViewBox: "40 14 526 521", Width: 600, Height: 535},
-				{Name: "紫金龙净环保新能源股份有限公司", Href: "https://www.longking.com.cn/", Image: "assets/images/partner-logos/longking.png", ViewBox: "35 35 280 282", Width: 356, Height: 349},
-				{Name: "北京城市排水集团有限责任公司", Href: "https://www.bdc.cn/", Image: "assets/images/partner-logos/beijing-drainage.png", ViewBox: "0 78 438 125", Width: 438, Height: 258},
-				{Name: "苏州帝瀚环保科技股份有限公司", Href: "https://www.dihillgreen.com/", Image: "assets/images/partner-logos/dihill.png", ViewBox: "85 385 809 162", Width: 945, Height: 944},
-				{Name: "江苏一环集团有限公司", Href: "http://www.yihuan.com/", Image: "assets/images/partner-logos/jiangsu-yihuan.png", ViewBox: "0 40 1178 716", Width: 1178, Height: 784},
-				{Name: "河南康宁特环保科技股份有限公司", Href: "https://www.knthb.com/", Image: "assets/images/partner-logos/kangningte.png", ViewBox: "0 0 167 63", Width: 167, Height: 63},
+				{Name: "南京大学环境学院", Href: "https://www.nju.edu.cn/", Image: "assets/images/partner-logos/nanjing-university.png", ViewBox: "12 8 219 50", Width: 244, Height: 66, DisplayWidth: 219},
+				{Name: "紫金龙净环保新能源股份有限公司", Href: "https://www.longking.com.cn/", Image: "assets/images/partner-logos/zijin-longking.png", ViewBox: "0 0 183 48", Width: 183, Height: 48, DisplayWidth: 183},
+				{Name: "北京城市排水集团有限责任公司", Href: "https://www.bdc.cn/", Image: "assets/images/partner-logos/beijing-drainage.png", ViewBox: "41 7 158 51", Width: 244, Height: 66, DisplayWidth: 158},
+				{Name: "苏州帝瀚环保科技股份有限公司", Href: "https://www.dihillgreen.com/", Image: "assets/images/partner-logos/dihill.png", ViewBox: "58 18 136 30", Width: 244, Height: 66, DisplayWidth: 136},
+				{Name: "江苏一环集团有限公司", Href: "http://www.yihuan.com/", Image: "assets/images/partner-logos/jiangsu-yihuan.png", ViewBox: "9 13 224 40", Width: 244, Height: 66, DisplayWidth: 224},
+				{Name: "河南康宁特环保科技股份有限公司", Href: "https://www.knthb.com/", Image: "assets/images/partner-logos/kangningte.png", ViewBox: "61 7 122 52", Width: 244, Height: 66, DisplayWidth: 122},
+				{Name: "龙净环保股份有限公司", Href: "https://www.longking.com.cn/", Image: "assets/images/partner-logos/longking.png", ViewBox: "58 11 129 44", Width: 244, Height: 66, DisplayWidth: 129},
 			},
 			{
-				{Name: "中国天楹股份有限公司", Href: "https://www.cnty.cn/", Image: "assets/images/partner-logos/cnty.png", ViewBox: "0 8 192 176", Width: 192, Height: 192},
-				{Name: "杰瑞新能源再生循环科技有限公司", Href: "https://www.jereh.com/cn/", Image: "assets/images/partner-logos/jereh-recycling.png", ViewBox: "0 175 536 190", Width: 536, Height: 536},
-				{Name: "合肥通用机械研究院有限公司", Href: "http://www.hgmri.com/", Image: "assets/images/partner-logos/hefei-general-machinery.png", ViewBox: "10 45 1045 376", Width: 1068, Height: 446},
-				{Name: "长江生态环保集团有限公司", Href: "https://www.yeec.com.cn/", Image: "assets/images/partner-logos/yangtze-ecology.png", ViewBox: "0 0 418 55", Width: 418, Height: 55},
-				{Name: "科林环保技术有限责任公司", Href: "https://www.kelin-china.com/", Image: "assets/images/partner-logos/kelin.png", ViewBox: "25 105 441 303", Width: 500, Height: 500},
-				{Name: "中车产业投资有限公司", Href: "https://www.crrcgc.cc/cytz/277_19585/index.html", Image: "assets/images/partner-logos/crrc-investment.png", ViewBox: "20 112 560 208", Width: 600, Height: 434},
+				{Name: "中国天楹股份有限公司", Href: "https://www.cnty.cn/", Image: "assets/images/partner-logos/cnty.png", ViewBox: "48 10 148 46", Width: 244, Height: 66, DisplayWidth: 148},
+				{Name: "杰瑞新能源再生循环科技有限公司", Href: "https://www.jereh.com/cn/", Image: "assets/images/partner-logos/jereh-recycling.png", ViewBox: "5 10 166 60", Width: 178, Height: 80, DisplayWidth: 166},
+				{Name: "合肥通用机械研究院有限公司", Href: "http://www.hgmri.com/", Image: "assets/images/partner-logos/hefei-general-machinery.png", ViewBox: "17 18 209 29", Width: 244, Height: 66, DisplayWidth: 209},
+				{Name: "长江生态环保集团有限公司", Href: "https://www.yeec.com.cn/", Image: "assets/images/partner-logos/yangtze-ecology.png", ViewBox: "0 0 418 55", Width: 418, Height: 55, DisplayWidth: 350},
+				{Name: "科林环保技术有限责任公司", Href: "https://www.kelin-china.com/", Image: "assets/images/partner-logos/kelin.png", ViewBox: "55 11 136 44", Width: 244, Height: 66, DisplayWidth: 136},
+				{Name: "中车产业投资有限公司", Href: "https://www.crrcgc.cc/cytz/277_19585/index.html", Image: "assets/images/partner-logos/crrc-investment.png", ViewBox: "0 0 169 55", Width: 169, Height: 55, DisplayWidth: 169},
 			},
 		},
 	}
