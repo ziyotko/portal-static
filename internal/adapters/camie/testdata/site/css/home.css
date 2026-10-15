@@ -117,6 +117,15 @@
 .notice-list li { min-width: 0; min-height: 0; display: flex; align-items: center; font-size: 18px; line-height: 1.55; }
 .notice-list a { display: block; width: 100%; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .notice-list a:hover { color: var(--green-600); }
+.notice-list a::before,
+.updates-list a::before {
+  content: "";
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 13px;
+  background: var(--green-600);
+}
 .tab-panel[hidden] { display: none; }
 
 .updates { margin-top: 67px; }
@@ -129,7 +138,6 @@
 .updates-list { margin: 0; padding: 0; list-style: none; }
 .updates-list li { min-height: 41px; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 15px; padding: 4px 8px; font-size: 18px; }
 .updates-list a { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.updates-list a::before { content: "\00B7"; margin-right: 10px; }
 .updates-list time { color: #555; }
 .updates-image img { width: 418px; height: 251px; object-fit: cover; }
 
@@ -269,6 +277,7 @@
 }
 
 @media (max-width: 780px) {
+  .notice-list a::before, .updates-list a::before { width: 7px; height: 7px; margin-right: 8px; }
   .home-main { padding-top: 14px; }
   .home-lead { --hero-media-height: clamp(260px, 68vw, 360px); grid-template-columns: minmax(0, 1fr); }
   .notice-panel { height: auto; display: block; }
