@@ -48,6 +48,7 @@ type Article struct {
 type Link struct {
 	Name, Href string
 	Active     bool
+	Current    bool
 	Number     int
 	Children   []Link
 }
@@ -472,16 +473,16 @@ func side(c *catalog, currentCode string) []Link {
 			continue
 		}
 		active := column.ID == activeID
-		link := Link{Name: column.Name, Href: groupByID(c, column.ID, 0).Href, Active: active}
+		link := Link{Name: column.Name, Href: groupByID(c, column.ID, 0).Href, Active: active, Current: column.Code == currentCode}
 		for _, child := range c.columns {
 			if child.ParentID == column.ID && !isPrivateColumnCode(child.Code) {
-				link.Children = append(link.Children, Link{Name: child.Name, Href: groupByID(c, child.ID, 0).Href, Active: child.Code == currentCode})
+				link.Children = append(link.Children, Link{Name: child.Name, Href: groupByID(c, child.ID, 0).Href, Active: child.Code == currentCode, Current: child.Code == currentCode})
 			}
 		}
 		links = append(links, link)
 	}
 	if len(links) == 0 {
-		links = append(links, Link{Name: top.Name, Href: groupByID(c, top.ID, 0).Href, Active: true})
+		links = append(links, Link{Name: top.Name, Href: groupByID(c, top.ID, 0).Href, Active: true, Current: top.Code == currentCode})
 	}
 	if top.Code == "videos" {
 		links = append(links, Link{Name: "会员专享", Href: "pages/member.html?column=会员专享&mode=video"})
@@ -689,7 +690,7 @@ func (g *Generator) GenerateSite(ctx context.Context) (result Result, err error)
 		Title:     "首页",
 		Kind:      "home",
 		BodyClass: "home",
-		Hero:      group(c, g.cfg.Site.HeroColumn, 3).Items,
+		Hero:      group(c, g.cfg.Site.HeroColumn, 0).Items,
 		Branches: []Branch{
 			{Name: "水分会", Code: "branch-water", Image: "assets/images/branch-water.png"},
 			{Name: "大气分会", Code: "branch-atmosphere", Image: "assets/images/branch-atmosphere.png"},

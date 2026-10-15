@@ -47,16 +47,17 @@ func TestFetchOtherColumnsKeepsPublicationRows(t *testing.T) {
 		WithArgs(int64(37)).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "name", "code", "template_id", "parent_id", "description", "sort"}).
 			AddRow(37, "国际交流与合作", "training-international", 9, 11, "", 2))
-	mock.ExpectQuery("(?s)FROM article_column_publish acp INNER JOIN article a.*WHERE acp.column_id=\\?").
+	mock.ExpectQuery("(?s)WITH RECURSIVE descendants AS.*FROM article_column_publish acp INNER JOIN article a.*WHERE acp.column_id IN \\(SELECT id FROM descendants\\)").
 		WithArgs(int64(37)).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "type", "title", "summary", "content", "cover", "author", "source", "is_bold", "is_top", "color", "url", "publish_time"}).
+			AddRow(20038, 1, "国际交流栏目示例", "", "", "", "", "", 0, 0, "", "", time.Date(2026, 3, 24, 9, 55, 32, 0, time.Local)).
 			AddRow(20038, 1, "国际交流栏目示例", "", "", "", "", "", 0, 0, "", "", time.Date(2026, 3, 24, 9, 55, 32, 0, time.Local)))
 
 	column, articles, err := New(db, 9).FetchColumnArticles(context.Background(), 37)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if column.Code != "training-international" || len(articles) != 1 || articles[0].ID != 20038 {
+	if column.Code != "training-international" || len(articles) != 1 || articles[0].ID != 20038 || articles[0].ColumnID != 37 {
 		t.Fatalf("column = %+v, articles = %+v", column, articles)
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {

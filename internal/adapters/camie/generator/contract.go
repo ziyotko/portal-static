@@ -87,7 +87,7 @@ func (g *Generator) Column(ctx context.Context, selector string, id int64) (mode
 	if len(matches) > 1 {
 		return model.Column{}, 0, contracts.ErrColumnNotUnique
 	}
-	return matches[0], len(c.groups[matches[0].ID]), nil
+	return matches[0], len(groupByID(c, matches[0].ID, 0).Items), nil
 }
 
 func (g *Generator) Article(ctx context.Context, id int64) (*Article, error) {

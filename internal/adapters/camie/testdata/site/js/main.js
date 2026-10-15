@@ -59,7 +59,10 @@
 
   document.querySelectorAll('.side-menu button[aria-expanded]').forEach((button) => {
     button.addEventListener('click', () => {
-      button.setAttribute('aria-expanded', String(button.getAttribute('aria-expanded') !== 'true'));
+      const expanded = button.getAttribute('aria-expanded') !== 'true';
+      button.setAttribute('aria-expanded', String(expanded));
+      const submenu = document.getElementById(button.getAttribute('aria-controls'));
+      if (submenu) submenu.hidden = !expanded;
     });
   });
 
@@ -133,7 +136,9 @@
         detailPage.querySelectorAll('.side-menu li.current').forEach((item) => item.classList.remove('current'));
         target.closest('li')?.classList.add('current');
         target.closest('.side-menu > li')?.classList.add('is-active');
-        target.closest('.side-submenu')?.previousElementSibling?.setAttribute('aria-expanded', 'true');
+        const submenu = target.closest('.side-submenu');
+        submenu?.previousElementSibling?.querySelector('button[aria-expanded]')?.setAttribute('aria-expanded', 'true');
+        if (submenu) submenu.hidden = false;
       }
     }
   }

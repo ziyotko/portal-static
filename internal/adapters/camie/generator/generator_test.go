@@ -44,6 +44,17 @@ func testConfig(t *testing.T) config.Config {
 	return cfg
 }
 
+func TestParentColumnCountMatchesGeneratedDescendantList(t *testing.T) {
+	g := New(testConfig(t), demo.NewSource())
+	column, total, err := g.Column(context.Background(), "about-branches", 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if column.Code != "about-branches" || total != 9*12 {
+		t.Fatalf("parent column = %q, total = %d, want 108 descendant articles", column.Code, total)
+	}
+}
+
 func TestRequestedOutputUsesAllowedRootInsteadOfDefaultDistRoot(t *testing.T) {
 	cfg := testConfig(t)
 	parent, err := filepath.EvalSymlinks(t.TempDir())
@@ -312,6 +323,45 @@ func TestHomeHeroKeepsCarouselOrderForSharedArticles(t *testing.T) {
 	}
 	if !strings.Contains(hero, "文章当前来源") || strings.Contains(hero, "旧栏目发布来源") {
 		t.Fatalf("carousel source came from an old publication snapshot: %s", hero)
+	}
+}
+
+func TestHomeHeroShowsEveryPublishedPlacement(t *testing.T) {
+	source := demo.NewSource()
+	var heroID int64
+	for _, column := range source.Columns {
+		if column.Code == "home-hero" {
+			heroID = column.ID
+			break
+		}
+	}
+	if heroID == 0 {
+		t.Fatal("missing carousel column fixture")
+	}
+	items := make([]model.Article, 5)
+	for i := range items {
+		items[i] = model.Article{
+			ID:          int64(991000 + i),
+			Type:        model.ArticleTypeContent,
+			Title:       fmt.Sprintf("轮播内容 %d", i+1),
+			Content:     "测试正文",
+			PublishTime: time.Date(2026, 10, 1+i, 9, 0, 0, 0, time.Local),
+		}
+	}
+	source.Items[heroID] = items
+	result, err := New(testConfig(t), source).GenerateSite(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	homePage := readGenerated(t, result.Output, "index.html")
+	hero := regexp.MustCompile(`(?s)<article class="hero-slider".*?</article>`).FindString(homePage)
+	if got := strings.Count(hero, `class="hero-slide `); got != 5 {
+		t.Fatalf("carousel has %d slides, want 5", got)
+	}
+	for _, item := range items {
+		if !strings.Contains(hero, item.Title) {
+			t.Fatalf("carousel missing %q", item.Title)
+		}
 	}
 }
 
@@ -722,10 +772,15 @@ func TestGenerateCompletePublicSiteAndMemberShells(t *testing.T) {
 		}
 	}
 	branchDetail := readGenerated(t, result.Output, fmt.Sprintf("article/2026/09/%d.html", branchColumn.ID*1000+1))
-	expectedActiveBranch := fmt.Sprintf(`class="is-active"><button type="button" aria-expanded="true">%s `, branchParent.Name)
+	expectedActiveBranch := fmt.Sprintf(`class="is-active"><div class="side-menu-parent"><a href="../../../list/%d/1.html">%s</a><button type="button" aria-expanded="true"`, branchParent.ID, branchParent.Name)
 	expectedCurrentBranch := fmt.Sprintf(`class="current"><a href="../../../list/%d/1.html" aria-current="page">%s</a>`, branchColumn.ID, branchColumn.Name)
 	if !strings.Contains(branchDetail, expectedActiveBranch) || !strings.Contains(branchDetail, expectedCurrentBranch) {
 		t.Fatal("nested article did not activate its ancestor item in the side menu")
+	}
+	branchList := readGenerated(t, result.Output, fmt.Sprintf("list/%d/1.html", branchParent.ID))
+	expectedBranchLink := fmt.Sprintf(`<div class="side-menu-parent"><a href="../../list/%d/1.html" aria-current="page">%s</a><button type="button" aria-expanded="true" aria-controls="side-submenu-`, branchParent.ID, branchParent.Name)
+	if !strings.Contains(branchList, expectedBranchLink) || !strings.Contains(branchList, `aria-label="展开或收起`+branchParent.Name+`子栏目"`) {
+		t.Fatal("parent column sidebar must link to its aggregated list and keep a separate submenu toggle")
 	}
 	listPage := readGenerated(t, result.Output, fmt.Sprintf("list/%d/1.html", noticeColumn.ID))
 	for _, marker := range []string{`<nav class="pagination" aria-label="分页">`, `class="plain disabled"`, `class="page-number active"`, `class="page-jump"`, `data-page-prefix="../../list/`} {
