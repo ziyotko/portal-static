@@ -55,6 +55,39 @@ func TestParentColumnCountMatchesGeneratedDescendantList(t *testing.T) {
 	}
 }
 
+func TestListRendersCurrentTitleStyles(t *testing.T) {
+	source := demo.NewSource()
+	var columnID int64
+	for _, column := range source.Columns {
+		if column.Code == "training-meetings" {
+			columnID = column.ID
+			break
+		}
+	}
+	if columnID == 0 || len(source.Items[columnID]) < 2 {
+		t.Fatal("missing meeting articles")
+	}
+	styled := source.Items[columnID][0]
+	styled.IsBold, styled.IsTop, styled.DefaultColor = true, true, "#ff0000"
+	source.Items[columnID][0] = styled
+	unsafe := source.Items[columnID][1]
+	unsafe.DefaultColor = "red;position:absolute"
+	source.Items[columnID][1] = unsafe
+
+	result, err := New(testConfig(t), source).GenerateSite(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	page := readGenerated(t, result.Output, fmt.Sprintf("list/%d/1.html", columnID))
+	styledLink := regexp.MustCompile(`<a[^>]*class="is-bold"[^>]*style="color:#ff0000"[^>]*>` + regexp.QuoteMeta(styled.Title) + `</a>`)
+	if !styledLink.MatchString(page) {
+		t.Fatalf("styled title missing from list: %s", styled.Title)
+	}
+	if strings.Contains(page, "position:absolute") {
+		t.Fatal("unsafe title color reached list HTML")
+	}
+}
+
 func TestRequestedOutputUsesAllowedRootInsteadOfDefaultDistRoot(t *testing.T) {
 	cfg := testConfig(t)
 	parent, err := filepath.EvalSymlinks(t.TempDir())

@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -24,6 +25,8 @@ import (
 
 const homeNoticeLimit = 8
 
+var titleColorPattern = regexp.MustCompile(`^#[0-9a-fA-F]{3}(?:[0-9a-fA-F]{3})?$`)
+
 type Source interface {
 	FetchPageColumns(context.Context, string, int64) ([]model.Column, error)
 	FetchColumnArticles(context.Context, int64) (model.Column, []model.Article, error)
@@ -32,6 +35,8 @@ type Source interface {
 type Article struct {
 	ID          int64              `json:"id"`
 	Title       string             `json:"title"`
+	Bold        bool               `json:"-"`
+	Color       template.CSS       `json:"-"`
 	Summary     string             `json:"summary"`
 	Date        string             `json:"date"`
 	Href        string             `json:"href"`
@@ -183,10 +188,15 @@ func (g *Generator) load(ctx context.Context) (*catalog, error) {
 				if cover == "" {
 					cover = g.cfg.Site.FallbackCover
 				}
-				v := &Article{ID: a.ID, Title: a.Title, Summary: a.Summary, Category: col.Name, ColumnCode: col.Code, Source: a.Source, Date: a.PublishTime.Format("2006-01-02"), Href: href, Cover: cover, Video: a.Type == 2}
+				color := strings.TrimSpace(a.DefaultColor)
+				if !titleColorPattern.MatchString(color) {
+					color = ""
+				}
+				v := &Article{ID: a.ID, Title: a.Title, Bold: a.IsBold, Color: template.CSS(color), Summary: a.Summary, Category: col.Name, ColumnCode: col.Code, Source: a.Source, Date: a.PublishTime.Format("2006-01-02"), Href: href, Cover: cover, Video: a.Type == 2}
 				if existing, ok := c.byID[a.ID]; ok {
 					copy := *existing
 					copy.Category, copy.ColumnCode = col.Name, col.Code
+					copy.Bold, copy.Color = a.IsBold, template.CSS(color)
 					if col.Code == "home-hero" {
 						// A shared article may have reached c.byID through an old
 						// publication snapshot. The carousel displays current article
@@ -305,9 +315,10 @@ func (g *Generator) media(raw string) string {
 }
 func (g *Generator) content(raw, prefix string) template.HTML {
 	policy := bluemonday.UGCPolicy()
-	policy.AllowElements("video", "source")
+	policy.AllowElements("video", "source", "section")
 	policy.AllowAttrs("src", "poster", "controls", "preload", "width", "height").OnElements("video")
 	policy.AllowAttrs("src", "type").OnElements("source")
+	policy.AllowAttrs("data-text-align").Matching(regexp.MustCompile(`^(?:left|center|right|justify)$`)).OnElements("p", "div", "section", "h1", "h2", "h3", "h4", "h5", "h6", "td", "th", "img")
 	policy.AllowRelativeURLs(true)
 	policy.AllowURLSchemes("http", "https")
 	doc, err := html.Parse(strings.NewReader(raw))
@@ -316,6 +327,25 @@ func (g *Generator) content(raw, prefix string) template.HTML {
 	}
 	var visit func(*html.Node)
 	visit = func(n *html.Node) {
+		if n.Type == html.ElementNode {
+			for _, a := range n.Attr {
+				var alignment string
+				switch a.Key {
+				case "align":
+					alignment = strings.ToLower(strings.TrimSpace(a.Val))
+				case "style":
+					for _, declaration := range strings.Split(a.Val, ";") {
+						property, value, ok := strings.Cut(declaration, ":")
+						if ok && strings.EqualFold(strings.TrimSpace(property), "text-align") {
+							alignment = strings.ToLower(strings.TrimSpace(value))
+						}
+					}
+				}
+				if alignment == "left" || alignment == "center" || alignment == "right" || alignment == "justify" {
+					n.Attr = append(n.Attr, html.Attribute{Key: "data-text-align", Val: alignment})
+				}
+			}
+		}
 		for i, a := range n.Attr {
 			if a.Key == "src" || a.Key == "poster" || a.Key == "href" {
 				if strings.HasPrefix(a.Val, "#") {
