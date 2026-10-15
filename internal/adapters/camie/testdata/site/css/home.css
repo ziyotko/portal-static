@@ -156,6 +156,7 @@
   background: #fff;
   box-shadow: 0 2px 8px rgba(24, 78, 18, 0);
   font-size: 18px;
+  font-weight: 600;
   line-height: 1.55;
   transform: translateY(0);
   transition: color .18s ease, background-color .18s ease, box-shadow .18s ease, transform .18s ease;
