@@ -8,7 +8,7 @@
           {{range $i, $a := .Hero}}
           <a class="hero-slide {{if not $i}}active{{end}}" href="{{root $ $a.Href}}?from={{$a.ColumnCode}}" data-slide="{{$i}}" {{if $i}}aria-hidden="true" tabindex="-1"{{end}}>
             <div class="hero-media"><img src="{{root $ $a.Cover}}" alt="{{$a.Title}}"></div>
-            <div class="hero-caption"><h1>{{$a.Title}}</h1><p>发布时间：{{$a.Date}}　　来源：{{$a.Source}}</p></div>
+            <div class="hero-caption"><h1{{if $a.Bold}} class="is-bold"{{end}}{{if $a.Color}} style="color:{{$a.Color}}"{{end}}>{{$a.Title}}</h1><p>发布时间：{{$a.Date}}　　来源：{{$a.Source}}</p></div>
           </a>
           {{end}}
         </div>
@@ -23,7 +23,7 @@
         </div>
         {{range $i, $g := .Notices}}
         <ul id="notice-{{add $i 1}}" class="notice-list" data-tab-group="notice" {{if $i}}hidden{{end}}>
-          {{range $g.Items}}<li class="searchable"><a href="{{root $ .Href}}?from={{.ColumnCode}}" title="{{.Title}}">{{.Title}}</a></li>{{end}}
+          {{range $g.Items}}<li class="searchable"><a href="{{root $ .Href}}?from={{.ColumnCode}}" title="{{.Title}}"{{if .Bold}} class="is-bold"{{end}}{{if .Color}} style="color:{{.Color}}"{{end}}>{{.Title}}</a></li>{{end}}
         </ul>
         {{end}}
       </section>
@@ -38,7 +38,7 @@
       {{range $i, $g := .Topics}}
       <div id="updates-{{add $i 1}}" class="updates-panel" data-tab-group="updates" {{if $i}}hidden{{end}}>
         <ul class="updates-list">
-          {{range $g.Items}}<li class="searchable"><a href="{{root $ .Href}}?from={{.ColumnCode}}">{{.Title}}</a><time>{{.Date}}</time></li>{{end}}
+          {{range $g.Items}}<li class="searchable"><a href="{{root $ .Href}}?from={{.ColumnCode}}"{{if .Bold}} class="is-bold"{{end}}{{if .Color}} style="color:{{.Color}}"{{end}}>{{.Title}}</a><time>{{.Date}}</time></li>{{end}}
         </ul>
         {{with $g.Feature}}<a class="updates-image" href="{{root $ .Href}}?from={{.ColumnCode}}"><img src="{{root $ .Cover}}" alt="{{.Title}}"></a>{{end}}
       </div>
@@ -64,9 +64,9 @@
         <section>
           <h2 class="section-title"><a href="{{columnURL . "about-experts"}}"><span class="section-title-logo" aria-hidden="true"></span>专家委员会</a></h2>
           {{with .Experts.Feature}}
-          <a class="expert-feature" href="{{root $ .Href}}?from={{.ColumnCode}}"><img src="{{root $ .Cover}}" alt="{{.Title}}"><p><span class="expert-feature-title">{{.Title}}</span><small>中国环保机械行业协会 · 专家委员会</small></p></a>
+          <a class="expert-feature" href="{{root $ .Href}}?from={{.ColumnCode}}"><img src="{{root $ .Cover}}" alt="{{.Title}}"><p><span class="expert-feature-title{{if .Bold}} is-bold{{end}}"{{if .Color}} style="color:{{.Color}}"{{end}}>{{.Title}}</span><small>中国环保机械行业协会 · 专家委员会</small></p></a>
           {{end}}
-          <ul class="expert-links">{{range .Experts.Rest}}<li><a href="{{root $ .Href}}?from={{.ColumnCode}}">{{.Title}}</a></li>{{end}}</ul>
+          <ul class="expert-links">{{range .Experts.Rest}}<li><a href="{{root $ .Href}}?from={{.ColumnCode}}"{{if .Bold}} class="is-bold"{{end}}{{if .Color}} style="color:{{.Color}}"{{end}}>{{.Title}}</a></li>{{end}}</ul>
         </section>
       </div>
 

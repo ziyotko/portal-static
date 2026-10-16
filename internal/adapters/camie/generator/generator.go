@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
+	"math"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -27,6 +28,50 @@ const homeNoticeLimit = 11
 
 var titleColorPattern = regexp.MustCompile(`^#[0-9a-fA-F]{3}(?:[0-9a-fA-F]{3})?$`)
 
+var updatesFallbackCover = map[string]string{
+	"standards-work":         "assets/images/updates-standards-work.jpg",
+	"training-international": "assets/images/updates-international.jpg",
+	"training-talent":        "assets/images/updates-talent.jpg",
+	"policy-research":        "assets/images/updates-policy.jpg",
+}
+
+// safeTitleColor 只输出可验证的颜色值，避免后台颜色字段进入内联 CSS 时注入其他声明。
+// Element Plus 颜色选择器的旧数据可能是 rgb()/rgba()，不能只识别十六进制。
+func safeTitleColor(raw string) template.CSS {
+	color := strings.TrimSpace(raw)
+	if titleColorPattern.MatchString(color) {
+		return template.CSS(color)
+	}
+	name, values, ok := strings.Cut(color, "(")
+	if !ok || !strings.HasSuffix(values, ")") || (name != "rgb" && name != "rgba") {
+		return ""
+	}
+	parts := strings.Split(strings.TrimSuffix(values, ")"), ",")
+	want := 3
+	if name == "rgba" {
+		want = 4
+	}
+	if len(parts) != want {
+		return ""
+	}
+	var channels [3]int
+	for i := range channels {
+		value, err := strconv.Atoi(strings.TrimSpace(parts[i]))
+		if err != nil || value < 0 || value > 255 {
+			return ""
+		}
+		channels[i] = value
+	}
+	if name == "rgb" {
+		return template.CSS(fmt.Sprintf("#%02x%02x%02x", channels[0], channels[1], channels[2]))
+	}
+	alpha, err := strconv.ParseFloat(strings.TrimSpace(parts[3]), 64)
+	if err != nil || math.IsNaN(alpha) || alpha < 0 || alpha > 1 {
+		return ""
+	}
+	return template.CSS(fmt.Sprintf("rgba(%d,%d,%d,%s)", channels[0], channels[1], channels[2], strconv.FormatFloat(alpha, 'f', -1, 64)))
+}
+
 type Source interface {
 	FetchPageColumns(context.Context, string, int64) ([]model.Column, error)
 	FetchColumnArticles(context.Context, int64) (model.Column, []model.Article, error)
@@ -43,6 +88,7 @@ type Article struct {
 	Category    string             `json:"category"`
 	ColumnCode  string             `json:"columnCode"`
 	Cover       string             `json:"cover"`
+	HasCover    bool               `json:"-"`
 	Source      string             `json:"source"`
 	Video       bool               `json:"video"`
 	HasVideo    bool               `json:"-"`
@@ -67,7 +113,7 @@ type Branch struct {
 	Name, Code, Image string
 }
 type Partner struct {
-	Name, Href, Image, ViewBox string
+	Name, Href, Image, ViewBox  string
 	Width, Height, DisplayWidth int
 }
 type Page struct {
@@ -185,18 +231,18 @@ func (g *Generator) load(ctx context.Context) (*catalog, error) {
 					}
 				}
 				cover := g.media(a.Cover)
+				// 老数据可能已把通用占位图写进 cover；首页 updates 仍应视为无专属封面。
+				hasCover := cover != "" && cover != g.cfg.Site.FallbackCover && cover != "assets/images/hero-building.png"
 				if cover == "" {
 					cover = g.cfg.Site.FallbackCover
 				}
-				color := strings.TrimSpace(a.DefaultColor)
-				if !titleColorPattern.MatchString(color) {
-					color = ""
-				}
-				v := &Article{ID: a.ID, Title: a.Title, Bold: a.IsBold, Color: template.CSS(color), Summary: a.Summary, Category: col.Name, ColumnCode: col.Code, Source: a.Source, Date: a.PublishTime.Format("2006-01-02"), Href: href, Cover: cover, Video: a.Type == 2}
+				color := safeTitleColor(a.DefaultColor)
+				v := &Article{ID: a.ID, Title: a.Title, Bold: a.IsBold, Color: color, Summary: a.Summary, Category: col.Name, ColumnCode: col.Code, Source: a.Source, Date: a.PublishTime.Format("2006-01-02"), Href: href, Cover: cover, HasCover: hasCover, Video: a.Type == 2}
 				if existing, ok := c.byID[a.ID]; ok {
 					copy := *existing
 					copy.Category, copy.ColumnCode = col.Name, col.Code
-					copy.Bold, copy.Color = a.IsBold, template.CSS(color)
+					copy.Bold, copy.Color = a.IsBold, color
+					copy.HasCover = hasCover
 					if col.Code == "home-hero" {
 						// A shared article may have reached c.byID through an old
 						// publication snapshot. The carousel displays current article
@@ -763,7 +809,15 @@ func (g *Generator) GenerateSite(ctx context.Context) (result Result, err error)
 		"training-talent",
 		"policy-research",
 	} {
-		home.Topics = append(home.Topics, group(c, topic, 6))
+		topicGroup := group(c, topic, 6)
+		if topicGroup.Feature != nil && !topicGroup.Feature.HasCover {
+			if fallback := updatesFallbackCover[topic]; fallback != "" {
+				feature := *topicGroup.Feature
+				feature.Cover = fallback
+				topicGroup.Feature = &feature
+			}
+		}
+		home.Topics = append(home.Topics, topicGroup)
 	}
 	dataCenter := group(c, "policy-data", 1)
 	home.DataCenterURL = dataCenter.Href

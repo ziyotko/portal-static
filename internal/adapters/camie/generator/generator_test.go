@@ -68,7 +68,7 @@ func TestListRendersCurrentTitleStyles(t *testing.T) {
 		t.Fatal("missing meeting articles")
 	}
 	styled := source.Items[columnID][0]
-	styled.IsBold, styled.IsTop, styled.DefaultColor = true, true, "#ff0000"
+	styled.IsBold, styled.IsTop, styled.DefaultColor = true, true, "rgb(255, 34, 0)"
 	source.Items[columnID][0] = styled
 	unsafe := source.Items[columnID][1]
 	unsafe.DefaultColor = "red;position:absolute"
@@ -79,12 +79,70 @@ func TestListRendersCurrentTitleStyles(t *testing.T) {
 		t.Fatal(err)
 	}
 	page := readGenerated(t, result.Output, fmt.Sprintf("list/%d/1.html", columnID))
-	styledLink := regexp.MustCompile(`<a[^>]*class="is-bold"[^>]*style="color:#ff0000"[^>]*>` + regexp.QuoteMeta(styled.Title) + `</a>`)
+	styledLink := regexp.MustCompile(`<a[^>]*class="is-bold"[^>]*style="color:#ff2200"[^>]*>` + regexp.QuoteMeta(styled.Title) + `</a>`)
 	if !styledLink.MatchString(page) {
 		t.Fatalf("styled title missing from list: %s", styled.Title)
 	}
 	if strings.Contains(page, "position:absolute") {
 		t.Fatal("unsafe title color reached list HTML")
+	}
+	home := readGenerated(t, result.Output, "index.html")
+	if !styledLink.MatchString(home) {
+		t.Fatalf("styled title missing from homepage: %s", styled.Title)
+	}
+}
+
+func TestSafeTitleColor(t *testing.T) {
+	cases := map[string]string{
+		"#f00": "#f00", "rgb(255, 34, 0)": "#ff2200",
+		"rgba(255, 34, 0, 0.5)": "rgba(255,34,0,0.5)",
+		"rgb(300, 34, 0)":       "", "red;position:absolute": "",
+		"rgba(255, 34, 0, NaN)": "",
+	}
+	for input, want := range cases {
+		if got := string(safeTitleColor(input)); got != want {
+			t.Errorf("safeTitleColor(%q) = %q, want %q", input, got, want)
+		}
+	}
+}
+
+func TestHomeUpdatesUseSectionFallbackOnlyForMissingCover(t *testing.T) {
+	source := demo.NewSource()
+	chosen := map[string]string{
+		"standards-work":         "assets/images/hero-water-treatment.jpg",
+		"training-international": updatesFallbackCover["training-international"],
+		"training-talent":        updatesFallbackCover["training-talent"],
+		"policy-research":        updatesFallbackCover["policy-research"],
+	}
+	for _, column := range source.Columns {
+		want, ok := chosen[column.Code]
+		if !ok || len(source.Items[column.ID]) == 0 {
+			continue
+		}
+		items := source.Items[column.ID]
+		items[0].Cover = ""
+		if column.Code == "standards-work" {
+			items[0].Cover = want
+		} else if column.Code == "training-international" {
+			items[0].Cover = "assets/images/hero-building.png"
+		}
+		source.Items[column.ID] = items
+	}
+	result, err := New(testConfig(t), source).GenerateSite(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	home := readGenerated(t, result.Output, "index.html")
+	for _, column := range source.Columns {
+		want, ok := chosen[column.Code]
+		if !ok || len(source.Items[column.ID]) == 0 {
+			continue
+		}
+		title := regexp.QuoteMeta(source.Items[column.ID][0].Title)
+		pattern := regexp.MustCompile(`<a class="updates-image"[^>]*><img src="\./` + regexp.QuoteMeta(want) + `" alt="` + title + `">`)
+		if !pattern.MatchString(home) {
+			t.Errorf("%s first article did not use expected cover %s", column.Code, want)
+		}
 	}
 }
 

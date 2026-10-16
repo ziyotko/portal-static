@@ -116,6 +116,7 @@
 .notice-list[hidden] { display: none; }
 .notice-list li { min-width: 0; min-height: 0; display: flex; align-items: center; font-size: 18px; line-height: 1.55; }
 .notice-list a { display: block; width: 100%; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hero-caption h1.is-bold, .notice-list a.is-bold, .updates-list a.is-bold, .expert-feature-title.is-bold, .expert-links a.is-bold { font-weight: 700; }
 .notice-list a:hover { color: var(--green-600); }
 .notice-list a::before,
 .updates-list a::before {
