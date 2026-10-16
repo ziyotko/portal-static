@@ -24,7 +24,7 @@ import (
 	"portal-static/internal/contracts"
 )
 
-const homeNoticeLimit = 11
+const homeNoticeLimit = 8
 
 var titleColorPattern = regexp.MustCompile(`^#[0-9a-fA-F]{3}(?:[0-9a-fA-F]{3})?$`)
 
@@ -189,6 +189,11 @@ func (g *Generator) load(ctx context.Context) (*catalog, error) {
 			}
 			if _, exists := c.byCode[col.Code]; exists {
 				return nil, fmt.Errorf("duplicate column code %q", col.Code)
+			}
+			// These two homepage destinations are standalone public sections even
+			// when an older CMS hierarchy still returns them beneath About.
+			if col.Code == "about-branches" || col.Code == "about-experts" {
+				col.ParentID = 0
 			}
 			seen[col.ID] = true
 			if _, exists := c.byName[col.Name]; !exists {
@@ -430,46 +435,38 @@ func isPrivateColumnCode(code string) bool {
 
 func groupByID(c *catalog, id int64, limit int) Group {
 	name, code := "", ""
-	descendants := map[int64]bool{}
+	displayID := id
+	var selected model.Column
 	for _, column := range c.columns {
 		if column.ID == id {
 			name = column.Name
 			code = column.Code
+			selected = column
+			break
 		}
 	}
-	if id > 0 {
-		descendants[id] = true
-		for changed := true; changed; {
-			changed = false
-			for _, column := range c.columns {
-				if !descendants[column.ID] && descendants[column.ParentID] && !isPrivateColumnCode(column.Code) {
-					descendants[column.ID] = true
-					changed = true
-				}
+	// 一级栏目是导航容器：它不读取自身文章，默认落到第一个公开二级栏目。
+	if selected.ID != 0 && selected.ParentID == 0 && selected.Code != "home" {
+		for _, column := range c.columns {
+			if column.ParentID == selected.ID && !isPrivateColumnCode(column.Code) {
+				displayID = column.ID
+				break
 			}
 		}
 	}
-	// Keep each group's publication context even when an article is also
-	// published in another column and c.all holds that other copy.
+	// 二级、三级栏目只展示直接发布在当前栏目的文章，不汇总后代栏目。
+	// Keep each publication's current-column context when an article is cross-posted.
 	articlesByID := map[int64]*Article{}
-	addColumn := func(columnID int64) {
-		for _, article := range c.groups[columnID] {
-			if articlesByID[article.ID] == nil {
-				articlesByID[article.ID] = article
-			}
-		}
-	}
-	addColumn(id)
-	for _, column := range c.columns {
-		if column.ID != id && descendants[column.ID] {
-			addColumn(column.ID)
+	for _, article := range c.groups[displayID] {
+		if articlesByID[article.ID] == nil {
+			articlesByID[article.ID] = article
 		}
 	}
 	items := make([]*Article, 0, len(articlesByID))
 	if code == "home-hero" {
 		// The carousel query has its own top/date order. Reusing c.all would
 		// sort shared articles by their first ordinary-column publication.
-		items = append(items, c.groups[id]...)
+		items = append(items, c.groups[displayID]...)
 	} else {
 		for _, article := range c.all {
 			if publication := articlesByID[article.ID]; publication != nil {
@@ -485,8 +482,8 @@ func groupByID(c *catalog, id int64, limit int) Group {
 	case "home", "home-hero":
 		href = "index.html"
 	default:
-		if id > 0 {
-			href = fmt.Sprintf("list/%d/1.html", id)
+		if displayID > 0 {
+			href = fmt.Sprintf("list/%d/1.html", displayID)
 		}
 	}
 	out := Group{Name: name, Href: href, Items: items}
@@ -502,6 +499,25 @@ func group(c *catalog, selector string, limit int) Group {
 		id = c.byName[selector]
 	}
 	return groupByID(c, id, limit)
+}
+
+func defaultListColumn(c *catalog, id int64) model.Column {
+	var selected model.Column
+	for _, column := range c.columns {
+		if column.ID == id {
+			selected = column
+			break
+		}
+	}
+	if selected.ID == 0 || selected.ParentID != 0 || selected.Code == "home" {
+		return selected
+	}
+	for _, column := range c.columns {
+		if column.ParentID == selected.ID && !isPrivateColumnCode(column.Code) {
+			return column
+		}
+	}
+	return selected
 }
 
 func topColumn(c *catalog, code string) model.Column {
@@ -567,6 +583,9 @@ func side(c *catalog, currentCode string) []Link {
 }
 
 func activeNav(c *catalog, p Page) string {
+	if p.ColumnCode == "about-english" {
+		return ""
+	}
 	if p.Kind == "home" {
 		return "首页"
 	}
@@ -590,6 +609,8 @@ func activeNav(c *catalog, p Page) string {
 		return "科技标准"
 	case "about":
 		return "关于协会"
+	case "about-branches", "about-experts":
+		return ""
 	default:
 		return "首页"
 	}
@@ -880,12 +901,14 @@ func (g *Generator) GenerateSite(ctx context.Context) (result Result, err error)
 		if isPrivateColumnCode(col.Code) || col.Code == "home" || strings.HasPrefix(col.Code, "home-") {
 			continue
 		}
-		if col.Code == "about" || col.Code == "about-introduction" || col.Code == "about-organization" || col.Code == "about-charter" {
-			p := Page{Title: col.Name, ColumnCode: col.Code, Kind: "about", BodyClass: "about-page", Side: side(c, col.Code)}
-			items := c.groups[col.ID]
-			if col.Code == "about" && len(c.groups[c.byCode["about-introduction"]]) > 0 {
-				items = c.groups[c.byCode["about-introduction"]]
+		if col.Code == "about" || col.Code == "about-introduction" || col.Code == "about-organization" || col.Code == "about-charter" || col.Code == "about-english" {
+			displayColumn := defaultListColumn(c, col.ID)
+			bodyClass := "about-page"
+			if col.Code == "about-english" {
+				bodyClass += " english-about-page"
 			}
+			p := Page{Title: displayColumn.Name, ColumnCode: displayColumn.Code, Kind: "about", BodyClass: bodyClass, Side: side(c, displayColumn.Code)}
+			items := c.groups[displayColumn.ID]
 			for _, a := range items {
 				if !a.Video && !strings.HasPrefix(a.Href, "http") {
 					p.Article = a
@@ -903,8 +926,9 @@ func (g *Generator) GenerateSite(ctx context.Context) (result Result, err error)
 			result.Lists++
 			continue
 		}
+		displayColumn := defaultListColumn(c, col.ID)
 		alias := columnAlias(col.Code)
-		if err = makeLists(col.Name, col.Code, fmt.Sprintf("list/%d", col.ID), alias, groupByID(c, col.ID, 0).Items); err != nil {
+		if err = makeLists(displayColumn.Name, displayColumn.Code, fmt.Sprintf("list/%d", col.ID), alias, groupByID(c, col.ID, 0).Items); err != nil {
 			return result, err
 		}
 	}
@@ -1054,6 +1078,7 @@ func columnAlias(code string) string {
 		"party": "pages/party.html", "ministry": "pages/ministry.html", "news": "pages/news.html",
 		"training": "pages/training.html", "standards": "pages/standards.html", "about": "pages/about.html",
 		"policy-research": "pages/policy.html", "about-experts": "pages/experts.html", "videos": "pages/videos.html",
+		"about-english": "en/about.html",
 	}
 	return aliases[code]
 }

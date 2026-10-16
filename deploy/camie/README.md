@@ -318,6 +318,8 @@ BLOCKER
 数据库关联使用稳定业务 Code，不依赖开发环境中的数据库自增 ID。
 首页只保留 `home`、`home-hero` 作为独立栏目；“政策研究”与通知公告等资讯区块都直接读取正式栏目树，其中首页“政策研究”聚合 `policy-research` 的五个子栏目。迁移会启用并绑定两个保留栏目，把 `home-policy-reports` 与其他废弃的重复首页栏目一并归档。
 
+英文简介不依赖本包的 `migrate.sql` 自动建数据，需在 Dia Portal 后台手工维护：在启用的“关于协会”（`camie-about`）模板下新增顶级栏目，名称 `About CAMIE`、编码 `about-english`、上级栏目留空、展示方式“列表展示”、状态“启用”，访问路径可填 `/en/about.html`。随后在“图文管理”发布一篇公开图文并投放到该栏目，标题建议 `About CAMIE`，正文和图片可参考仓库的 `internal/adapters/camie/demo/english-about.html`，图片地址使用随包发布的 `assets/images/about-english.png`。按现有审核流程通过后执行“生成全站”。静态生成程序按栏目编码固定输出 `/en/about.html`；首页 `中 | EN` 应指向该页，正文和图片正常、左侧无栏目。未发布图文时页面会显示 `Content coming soon.`。
+
 CAMIE 的 `adapter.site.template_source` 缺省为 `file`；即使现有环境配置没有该字段，新版静态化程序也从发布包 `share/camie-preview-templates/*.tmpl` 读取渲染模板。数据库仍用于栏目和文章数据以及模板归属。今后要改为 `database`，须显式配置该值，重启静态化服务并重建全站。现有 `migrate.sql` 仍会同步 `source_code`，将来交由运维直接维护数据库模板时，须先调整迁移脚本，避免后续发布覆盖后台修改。
 
 **推荐接入发布流水线：**发布包解压并校验后、切换 `/opt/camie/current` 前，由部署流水线自动调用包内 `ops/scripts/apply-release-db.sh`。它先备份两库和持久化文件，再运行 `preflight.sql`；只有全部 `BLOCKER` 为 0 才执行 `migrate.sql`，最后核对十条启用模板并记录本版本的迁移哈希。任何步骤失败都返回非零状态，流水线必须停止，不得继续切换版本。运维不再分别手工执行两份 SQL。

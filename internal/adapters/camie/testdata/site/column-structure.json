@@ -91,29 +91,29 @@
       "children": [
         { "name": "协会简介", "code": "about-introduction" },
         { "name": "组织架构", "code": "about-organization" },
-        { "name": "协会章程", "code": "about-charter" },
-        {
-          "name": "分支机构",
-          "code": "about-branches",
-          "children": [
-            { "name": "水分会", "code": "branch-water" },
-            { "name": "大气分会", "code": "branch-atmosphere" },
-            { "name": "固废分会", "code": "branch-solid-waste" },
-            { "name": "环境监测分会", "code": "branch-monitoring" },
-            { "name": "噪声分会", "code": "branch-noise" },
-            { "name": "紫外线分会", "code": "branch-uv" },
-            { "name": "臭氧分会", "code": "branch-ozone" },
-            { "name": "人工智能分会", "code": "branch-ai" },
-            { "name": "环境工程分会", "code": "branch-engineering" }
-          ]
-        },
-        {
-          "name": "专家委员会",
-          "code": "about-experts",
-          "children": [
-            { "name": "专家视野", "code": "about-expert-insights" }
-          ]
-        }
+        { "name": "协会章程", "code": "about-charter" }
+      ]
+    },
+    {
+      "name": "分支机构",
+      "code": "about-branches",
+      "children": [
+        { "name": "水分会", "code": "branch-water" },
+        { "name": "大气分会", "code": "branch-atmosphere" },
+        { "name": "固废分会", "code": "branch-solid-waste" },
+        { "name": "环境监测分会", "code": "branch-monitoring" },
+        { "name": "噪声分会", "code": "branch-noise" },
+        { "name": "紫外线分会", "code": "branch-uv" },
+        { "name": "臭氧分会", "code": "branch-ozone" },
+        { "name": "人工智能分会", "code": "branch-ai" },
+        { "name": "环境工程分会", "code": "branch-engineering" }
+      ]
+    },
+    {
+      "name": "专家委员会",
+      "code": "about-experts",
+      "children": [
+        { "name": "专家视野", "code": "about-expert-insights" }
       ]
     },
     {

@@ -372,10 +372,6 @@
     });
   });
 
-  document.querySelectorAll('.language-switch').forEach((button) => {
-    button.addEventListener('click', () => showToast('英文版内容将在后续阶段接入'));
-  });
-
   document.querySelectorAll('[data-inline-video-play]').forEach((button) => {
     const video = button.closest('.video-stage')?.querySelector('video');
     if (!video) return;

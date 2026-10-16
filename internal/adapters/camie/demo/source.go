@@ -2,12 +2,16 @@ package demo
 
 import (
 	"context"
+	_ "embed"
 	"fmt"
 	"strings"
 	"time"
 
 	"portal-static/internal/adapters/camie/model"
 )
+
+//go:embed english-about.html
+var englishAboutContent string
 
 // Source is a self-contained preview fixture matching the accepted 2026-09
 // CAMIE column hierarchy. Member-only branches deliberately contain no body
@@ -29,7 +33,9 @@ var navigation = []columnSpec{
 	{Name: "新闻中心", Code: "news", Children: []columnSpec{{Name: "热点关注", Code: "news-hot"}, {Name: "通知公告", Code: "news-notice"}, {Name: "协会动态", Code: "news-association"}, {Name: "会员动态", Code: "news-member"}}},
 	{Name: "交流培训", Code: "training", Children: []columnSpec{{Name: "会议活动", Code: "training-meetings"}, {Name: "人才培训", Code: "training-talent", Children: []columnSpec{{Name: "通知及动态", Code: "training-talent-notices"}, {Name: "人才交流平台", Code: "training-talent-exchange"}}}, {Name: "国际交流与合作", Code: "training-international", Children: []columnSpec{{Name: "出海培训", Code: "training-overseas-training"}, {Name: "海外考察", Code: "training-overseas-visits"}, {Name: "交流对接", Code: "training-business-matching"}}}}},
 	{Name: "科技标准", Code: "standards", Children: []columnSpec{{Name: "科技创新及成果转化", Code: "standards-innovation", Children: []columnSpec{{Name: "科技成果评价", Code: "standards-achievement-evaluation"}, {Name: "科技成果转化平台", Code: "standards-transfer-platform"}}}, {Name: "标准工作", Code: "standards-work", Children: []columnSpec{{Name: "通知及动态", Code: "standards-work-notices"}, {Name: "协会标准发布", Code: "standards-publications"}}}, {Name: "绿色技术推广", Code: "standards-green-promotion"}}},
-	{Name: "关于协会", Code: "about", Children: []columnSpec{{Name: "协会简介", Code: "about-introduction"}, {Name: "组织架构", Code: "about-organization"}, {Name: "协会章程", Code: "about-charter"}, {Name: "分支机构", Code: "about-branches", Children: []columnSpec{{Name: "水分会", Code: "branch-water"}, {Name: "大气分会", Code: "branch-atmosphere"}, {Name: "固废分会", Code: "branch-solid-waste"}, {Name: "环境监测分会", Code: "branch-monitoring"}, {Name: "噪声分会", Code: "branch-noise"}, {Name: "紫外线分会", Code: "branch-uv"}, {Name: "臭氧分会", Code: "branch-ozone"}, {Name: "人工智能分会", Code: "branch-ai"}, {Name: "环境工程分会", Code: "branch-engineering"}}}, {Name: "专家委员会", Code: "about-experts", Children: []columnSpec{{Name: "专家视野", Code: "about-expert-insights"}}}}},
+	{Name: "关于协会", Code: "about", Children: []columnSpec{{Name: "协会简介", Code: "about-introduction"}, {Name: "组织架构", Code: "about-organization"}, {Name: "协会章程", Code: "about-charter"}}},
+	{Name: "分支机构", Code: "about-branches", Children: []columnSpec{{Name: "水分会", Code: "branch-water"}, {Name: "大气分会", Code: "branch-atmosphere"}, {Name: "固废分会", Code: "branch-solid-waste"}, {Name: "环境监测分会", Code: "branch-monitoring"}, {Name: "噪声分会", Code: "branch-noise"}, {Name: "紫外线分会", Code: "branch-uv"}, {Name: "臭氧分会", Code: "branch-ozone"}, {Name: "人工智能分会", Code: "branch-ai"}, {Name: "环境工程分会", Code: "branch-engineering"}}},
+	{Name: "专家委员会", Code: "about-experts", Children: []columnSpec{{Name: "专家视野", Code: "about-expert-insights"}}},
 	{Name: "会员中心", Code: "member", Children: []columnSpec{{Name: "行业报告", Code: "member-reports"}, {Name: "数据中心", Code: "member-data"}, {Name: "电子刊物", Code: "member-publications"}, {Name: "我的空间", Code: "member-space"}}},
 	{Name: "视频专区", Code: "videos", Children: []columnSpec{{Name: "视频资讯", Code: "videos-news"}, {Name: "会员专享", Code: "videos-members"}}},
 	{Name: "政策研究", Code: "policy-research", Children: []columnSpec{{Name: "行业报告", Code: "policy-reports"}, {Name: "数据中心", Code: "policy-data"}, {Name: "国家鼓励发展的重大环保技术装备目录", Code: "policy-major-equipment-catalogue"}, {Name: "环保装备制造业规范条件企业", Code: "policy-qualified-enterprises"}, {Name: "重大环保技术装备创新任务揭榜挂帅", Code: "policy-innovation-tasks"}}},
@@ -86,15 +92,23 @@ func NewSource() *Source {
 	appendColumns([]columnSpec{{Name: "首页内容", Code: "home", Children: []columnSpec{
 		{Name: "轮播图", Code: "home-hero"},
 	}}}, 0)
+	appendColumns([]columnSpec{{Name: "About CAMIE", Code: "about-english"}}, 0)
 
 	base := time.Date(2026, 9, 29, 9, 0, 0, 0, time.FixedZone("CST", 8*60*60))
 	for _, column := range source.Columns {
 		if isMemberColumn(column.Code) || len(childrenOf(source.Columns, column.ID)) > 0 {
 			continue
 		}
+		if column.Code == "about-english" {
+			source.Items[column.ID] = []model.Article{{ID: column.ID*1000 + 1, ColumnID: column.ID, Type: model.ArticleTypeContent, Title: "About CAMIE", Content: englishAboutContent, PublishTime: base}}
+			continue
+		}
 		for index := 0; index < 12; index++ {
 			articleType := model.ArticleTypeContent
 			cover := "assets/images/hero-building.png"
+			if column.Code == "home-hero" {
+				cover = "assets/images/hero-preview-museum.jpg"
+			}
 			title := fmt.Sprintf("%s：环保装备行业高质量发展动态 %d", column.Name, index+1)
 			if titles := previewNoticeTitles[column.Code]; index < len(titles) {
 				title = titles[index]

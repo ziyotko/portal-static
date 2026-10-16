@@ -145,6 +145,9 @@ img { display: block; max-width: 100%; }
 }
 
 .language-switch {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   height: 40px;
   min-width: 83px;
   padding: 0 12px;
@@ -532,6 +535,11 @@ img { display: block; max-width: 100%; }
 .about-page .article-body { overflow-wrap: anywhere; }
 .about-page .content-grid > section { min-width: 0; }
 .about-page .article-body img { max-width: 100%; height: auto; }
+.english-about-page .content-grid { grid-template-columns: minmax(0, 1fr); }
+.english-about-page .article-card { padding: 38px 48px; }
+.english-about-page .article-card h1 { margin: 0; text-align: center; font-size: 28px; font-weight: 500; }
+.english-about-page .article-body { max-width: 900px; margin: 0 auto; line-height: 1.8; }
+.english-about-page .article-body p { text-indent: 0; }
 .article-pager { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 36px; padding: 16px 0 0; border-top: 1px solid #e0e3e1; color: #596168; font-size: 14px; }
 .article-pager-prev { grid-column: 1; text-align: left; }
 .article-pager-next { grid-column: 2; text-align: right; }
@@ -645,6 +653,10 @@ img { display: block; max-width: 100%; }
 .friend-title { margin-bottom: 7px; font-size: 18px; }
 .friend-links { display: flex; flex-wrap: wrap; gap: 5px 30px; font-size: 16px; }
 .friend-links a:hover { text-decoration: underline; }
+.contact-info { margin-top: 16px; }
+.contact-title { margin-bottom: 7px; font-size: 18px; }
+.contact-details { display: flex; flex-wrap: wrap; gap: 5px 30px; font-size: 16px; }
+.contact-details a:hover { text-decoration: underline; }
 .copyright { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 6px 16px; margin-top: 13px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,.1); line-height: 20px; text-align: center; }
 .copyright > span, .beian-record { display: inline-flex; align-items: center; min-height: 20px; white-space: nowrap; }
 .beian-record { gap: 4px; }
@@ -808,6 +820,7 @@ img { display: block; max-width: 100%; }
   .page-jump { justify-content: center; }
   .pagination { gap: 6px; }
   .article-card { padding: 18px 10px 24px; }
+  .english-about-page .article-card { padding: 22px 16px; }
   .article-header h1 { font-size: 21px; }
   .article-body { padding: 10px 4px; font-size: 16px; line-height: 1.9; }
   .article-pager { gap: 12px; }
@@ -816,6 +829,7 @@ img { display: block; max-width: 100%; }
   .video-stage { aspect-ratio: 16/9; }
   .footer-inner { width: calc(100% - 30px); padding-block: 23px 16px; }
   .friend-links { display: grid; grid-template-columns: 1fr; gap: 5px; font-size: 14px; }
+  .contact-details { display: grid; grid-template-columns: 1fr; gap: 5px; font-size: 14px; }
   .copyright { font-size: 13px; }
   .back-to-top { right: 14px; bottom: 14px; }
 }
