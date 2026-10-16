@@ -23,7 +23,7 @@ import (
 	"portal-static/internal/contracts"
 )
 
-const homeNoticeLimit = 8
+const homeNoticeLimit = 11
 
 var titleColorPattern = regexp.MustCompile(`^#[0-9a-fA-F]{3}(?:[0-9a-fA-F]{3})?$`)
 

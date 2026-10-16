@@ -108,9 +108,9 @@
   flex: 1 1 auto;
   min-height: 0;
   display: grid;
-  grid-template-rows: repeat(8, minmax(0, 1fr));
+  grid-template-rows: repeat(11, minmax(0, 1fr));
   margin: 0;
-  padding: 0 8px 0 0;
+  padding: 10px 8px 0 0;
   list-style: none;
 }
 .notice-list[hidden] { display: none; }
@@ -142,7 +142,7 @@
   background-position: left top, right top;
   background-repeat: no-repeat;
 }
-.updates-panel { display: grid; grid-template-columns: minmax(0, 1fr) 418px; gap: 24px; padding: 29px 0 0; }
+.updates-panel { display: grid; grid-template-columns: minmax(0, 1fr) 418px; gap: 24px; padding: 10px 0 0; }
 .updates-panel[hidden] { display: none; }
 .updates-list { margin: 0; padding: 0; list-style: none; }
 .updates-list li { min-height: 41px; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 15px; padding: 4px 8px; font-size: 18px; }

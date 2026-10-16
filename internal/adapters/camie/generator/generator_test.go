@@ -398,7 +398,7 @@ func TestHomeHeroShowsEveryPublishedPlacement(t *testing.T) {
 	}
 }
 
-func TestHomeNoticeTabsFillEightRowsWithFullTitleHints(t *testing.T) {
+func TestHomeNoticeTabsFillElevenRowsWithFullTitleHints(t *testing.T) {
 	cfg := testConfig(t)
 	source := demo.NewSource()
 	result, err := New(cfg, source).GenerateSite(context.Background())
@@ -415,21 +415,21 @@ func TestHomeNoticeTabsFillEightRowsWithFullTitleHints(t *testing.T) {
 			}
 		}
 		items := source.Items[columnID]
-		if columnID == 0 || len(items) < 9 {
-			t.Fatalf("%s needs at least nine preview articles to verify the eight-item limit", code)
+		if columnID == 0 || len(items) < 12 {
+			t.Fatalf("%s needs at least twelve preview articles to verify the eleven-item limit", code)
 		}
 		pattern := fmt.Sprintf(`(?s)<ul id="notice-%d" class="notice-list"[^>]*>(.*?)</ul>`, index+1)
 		matches := regexp.MustCompile(pattern).FindStringSubmatch(home)
-		if len(matches) != 2 || strings.Count(matches[1], `<li class="searchable">`) != 8 {
-			t.Fatalf("%s homepage tab did not render exactly eight items", code)
+		if len(matches) != 2 || strings.Count(matches[1], `<li class="searchable">`) != 11 {
+			t.Fatalf("%s homepage tab did not render exactly eleven items", code)
 		}
-		for _, item := range items[:8] {
+		for _, item := range items[:11] {
 			if !strings.Contains(matches[1], `title="`+item.Title+`">`+item.Title+`</a>`) {
 				t.Fatalf("%s homepage tab lost the full title %q", code, item.Title)
 			}
 		}
-		if strings.Contains(matches[1], items[8].Title) {
-			t.Fatalf("%s homepage tab exceeded the eight-item limit", code)
+		if strings.Contains(matches[1], items[11].Title) {
+			t.Fatalf("%s homepage tab exceeded the eleven-item limit", code)
 		}
 	}
 }
@@ -843,8 +843,8 @@ func TestGenerateCompletePublicSiteAndMemberShells(t *testing.T) {
 	if len(noticePanel) != 2 {
 		t.Fatal("home page lost the notice panel")
 	}
-	if count := strings.Count(noticePanel[1], `<li `); count != 8 {
-		t.Fatalf("home notice item count = %d, want 8", count)
+	if count := strings.Count(noticePanel[1], `<li `); count != 11 {
+		t.Fatalf("home notice item count = %d, want 11", count)
 	}
 	for _, marker := range []string{
 		`class="home-tabs" data-group="notice"`,

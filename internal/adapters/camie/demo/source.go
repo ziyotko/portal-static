@@ -36,7 +36,7 @@ var navigation = []columnSpec{
 }
 
 // The homepage preview fills every notice tab with mixed title lengths so
-// single-line truncation and the eight-row layout can be checked visually.
+// single-line truncation and the eleven-row layout can be checked visually.
 var previewNoticeTitles = map[string][]string{
 	"news-notice": {
 		"【预览】关于召开环保装备行业交流会的通知",
