@@ -47,10 +47,10 @@ Dia 后台已于 2026-09-21 将页面层合并进模板，使用 `column.templat
 | 大会横幅 | 优先指向大会栏目内文章 ID `20163` 的实际静态详情页，并携带 `training-meetings-conference` 栏目上下文；文章不存在时回退到大会栏目页 | **固定**：横幅图 `assets/images/conference-banner.png`、目标文章 ID `20163`。详情路径按文章当前发布时间生成，不在模板中写死年月。当前不读取后台“广告管理” | 更换目标文章时修改生成器中的目标 ID；修改后重新生成首页 |
 | 横幅下四个专题入口 | `standards-green-promotion`、`policy-major-equipment-catalogue`、`policy-qualified-enterprises`、`policy-innovation-tasks` | **固定**：四个标题和顺序；**静态活**：链接指向各栏目生成页。当前不读取后台“友情链接管理” | 首页模板改标题/数量；后台栏目与文章改目标内容 |
 | “分支机构”九张卡片 | `main-branch-water`、`main-branch-atmosphere`、`main-branch-solid-waste`、`main-branch-monitoring`、`main-branch-noise`、`main-branch-uv`、`main-branch-ozone`、`main-branch-ai`、`main-branch-engineering` | **固定**：九个名称、顺序、图片和首页卡片样式不变；**静态活**：每张卡片进入新栏目各自的文章列表。“分支机构”标题默认进入第一个水分会列表 | 在“首页 → 分支机构 → 各分会”维护列表文章；旧 `branch-*` 只维护“关于协会”下的简介 |
-| “专家视野” | 标题入口直接到 `about-expert-insights`；内容取该栏目最多 3 篇 | **静态活**：标题入口、首篇标题、链接和封面及其余标题；首篇未上传封面时使用全站默认占位图。**固定**：“专家视野”及“中国环保机械行业协会／专家委员会”字样 | 在“关于协会 → 专家委员会 → 专家视野”维护文章和封面 |
+| “专家视野” | 标题入口直接到 `home-expert-insights`；内容取该栏目最多 3 篇 | **静态活**：标题入口、首篇标题、链接和封面及其余标题；首篇未上传封面时使用全站默认占位图。**固定**：“专家视野”及“中国环保机械行业协会／专家委员会”字样 | 在“首页内容 → 专家视野”维护文章和封面 |
 | “副会长单位”滚动标志 | Go 生成器的 `PartnerRows` 数组 | **固定**：单位名称、标志文件、官网 URL、排序均写在代码里；**未接入**后台“友情链接管理” | CAMIE 生成器 `PartnerRows` 与 `assets/images/partner-logos/` |
 
-首页资讯标签悬停或聚焦时切换展示列表，点击进入对应正式栏目；这些资讯区块不需要重复投放首页栏目。首页独立轮播使用 `home-hero`，首页分支机构卡片使用 `home-fenzhijigou` 下的 `main-branch-*` 列表。其他旧的重复 `home-*` 栏目仍不参与公开静态化。发布前的 SQL 检查会阻止文章只投放在那些旧首页栏目；应先在对应正式栏目完成发布。迁移脚本把旧首页栏目移到停用的“历史首页栏目”模板，保留原投放记录供核对。
+首页资讯标签悬停或聚焦时切换展示列表，点击进入对应正式栏目；这些资讯区块不需要重复投放首页栏目。首页独立轮播使用 `home-hero`，首页分支机构卡片使用 `home-fenzhijigou` 下的 `main-branch-*` 列表，专家视野使用 `home-expert-insights`。其他旧的重复 `home-*` 栏目仍不参与公开静态化。发布前的 SQL 检查会阻止文章只投放在那些旧首页栏目；应先在对应正式栏目完成发布。迁移脚本把旧首页栏目移到停用的“历史首页栏目”模板，保留原投放记录供核对。
 
 ## 全站公共区域
 
@@ -101,7 +101,7 @@ Dia 后台已于 2026-09-21 将页面层合并进模板，使用 `column.templat
 
 ## 本机完整栏目树（按 `column.code` 对照）
 
-下列是本机测试库的当前栏目树；新栏目部署字段和只读核对 SQL 见 [CAMIE 部署与运维交接](../camie-deployment.md#三个新栏目的运维数据配置)。顶部六个公开栏目分支分别归属上表六条页面模板；视频专区、政策研究及原会员栏目结构归 `camie-list`。运维导出的 82 编码为 `home-fenzhijigou`、父栏目为 65 `home`，其子栏目是 84、85、87–93 的 `main-branch-*`。旧生成器跳过 82 页面却加载其子栏目，导致子页的面包屑指向不存在的 `list/82/1.html`；本版把 82 和子栏目都生成，并将它们作为首页分支机构的专用列表栏目。
+下列是预览数据的栏目树；新栏目部署字段和只读核对 SQL 见 [CAMIE 部署与运维交接](../camie-deployment.md#三个新栏目的运维数据配置)。顶部六个公开栏目分支分别归属上表六条页面模板；视频专区、政策研究及原会员栏目结构归 `camie-list`。正式导出的 82 编码为 `home-fenzhijigou`、父栏目为 65 `home`，其子栏目是 84、85、87–93 的 `main-branch-*`；83 `home-expert-insights` 同样位于 65 下。生成器为这些首页独立栏目生成列表页。
 
 ```text
 党建专栏 party
@@ -133,9 +133,8 @@ Dia 后台已于 2026-09-21 将页面层合并进模板，使用 `column.templat
     水分会 branch-water；大气分会 branch-atmosphere；固废分会 branch-solid-waste
     环境监测分会 branch-monitoring；噪声分会 branch-noise；紫外线分会 branch-uv
     臭氧分会 branch-ozone；人工智能分会 branch-ai；环境工程分会 branch-engineering
-  信息公开 about-disclosure
   专家委员会 about-experts
-    专家视野 about-expert-insights
+  信息公开 about-disclosure
 会员中心 member（公开静态化排除，会员实时内容另见 member_column）
   行业报告 member-reports；数据中心 member-data；电子刊物 member-publications；我的空间 member-space
 视频专区 videos
@@ -145,6 +144,9 @@ Dia 后台已于 2026-09-21 将页面层合并进模板，使用 `column.templat
   国家鼓励发展的重大环保技术装备目录 policy-major-equipment-catalogue
   环保装备制造业规范条件企业 policy-qualified-enterprises
   重大环保技术装备创新任务揭榜挂帅 policy-innovation-tasks
+首页内容 home
+  轮播图 home-hero；分支机构 home-fenzhijigou；专家视野 home-expert-insights
+  分支机构下有九个 main-branch-* 子栏目
 ```
 
 注意三个容易重名的栏目：“行业报告”有公开的 `policy-reports` 和原结构中的 `member-reports`，真正会员列表还使用独立的 `member_column`“行业报告”；“数据中心”同理。维护时先确认页面区域与数据表，不能只按中文名投放。

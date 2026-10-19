@@ -7,7 +7,7 @@ SELECT DATABASE() AS database_name, NOW() AS database_now, @@session.time_zone A
 SELECT c.id, c.name, c.code, c.status AS column_status,
        c.template_id, t.code AS template_code, t.status AS template_status
 FROM `column` c LEFT JOIN template t ON t.id = c.template_id
-WHERE c.code IN ('home-hero', 'about-expert-insights', 'about-experts', 'news-hot')
+WHERE c.code IN ('home-hero', 'home-expert-insights', 'about-experts', 'news-hot')
 ORDER BY c.code, c.id;
 
 -- 2. 轮播栏目当前勾选和发布记录的差异。含已下线/未审核文章，用来解释后台列表与公开站的差异。
@@ -48,7 +48,7 @@ WHERE a.status = 1 AND a.audit_status = 2 AND a.type IN (1, 2)
 ORDER BY a.is_top DESC, a.publish_time DESC, a.id DESC
 LIMIT 10;
 
--- 4. 专家委员会两个候选栏目的归属；检查误入首页的通知是否真的投放在专家栏目。
+-- 4. 首页专家视野与关于协会专家委员会的投放归属。
 SELECT c.code, c.id AS column_id, a.id AS article_id, a.title,
        a.status, a.audit_status, a.publish_time,
        CASE WHEN ac.article_id IS NULL THEN 0 ELSE 1 END AS currently_selected,
@@ -61,7 +61,7 @@ JOIN article a ON a.id IN (
 )
 LEFT JOIN article_column ac ON ac.article_id = a.id AND ac.column_id = c.id
 LEFT JOIN article_column_publish p ON p.article_id = a.id AND p.column_id = c.id
-WHERE c.code IN ('about-expert-insights', 'about-experts')
+WHERE c.code IN ('home-expert-insights', 'about-experts')
 GROUP BY c.code, c.id, a.id, a.title, a.status, a.audit_status, a.publish_time, ac.article_id
 ORDER BY c.code, a.publish_time DESC, a.id DESC;
 

@@ -120,7 +120,7 @@ func TestCrossPostedDetailKeepsEachPublishedSidebarContext(t *testing.T) {
 	source := demo.NewSource()
 	aboutID := branchColumnID(source, "about")
 	waterID := branchColumnID(source, "main-branch-water")
-	expertID := branchColumnID(source, "about-expert-insights")
+	expertID := branchColumnID(source, "home-expert-insights")
 	water := source.Items[waterID][0]
 	expert := source.Items[expertID][0]
 	// About is loaded before these sections, so it becomes the static default.
@@ -135,7 +135,7 @@ func TestCrossPostedDetailKeepsEachPublishedSidebarContext(t *testing.T) {
 		label   string
 	}{
 		{water, "main-branch-water", "大气分会"},
-		{expert, "about-expert-insights", "专家视野"},
+		{expert, "home-expert-insights", "专家视野"},
 	} {
 		page := readGenerated(t, result.Output, fmt.Sprintf("article/2026/09/%d.html", tc.article.ID))
 		if !strings.Contains(page, `data-default-column-code="about"`) {
@@ -413,7 +413,7 @@ func TestHomeReusesPublicSectionsAndKeepsIndependentHeroPlacement(t *testing.T) 
 			heroColumn = column
 		case "about":
 			aboutColumn = column
-		case "about-expert-insights":
+		case "home-expert-insights":
 			expertColumn = column
 		case "about-experts":
 			expertParentColumn = column
@@ -479,7 +479,7 @@ func TestHomeReusesPublicSectionsAndKeepsIndependentHeroPlacement(t *testing.T) 
 		category string
 	}{
 		{shared.ID, "news-notice", shared.Title, noticeColumn.Name},
-		{expert.ID, "about-expert-insights", expert.Title, expertColumn.Name},
+		{expert.ID, "home-expert-insights", expert.Title, expertColumn.Name},
 		{parentExpert.ID, "about-experts", parentExpert.Title, expertParentColumn.Name},
 	} {
 		detail := readGenerated(t, result.Output, fmt.Sprintf("article/2026/09/%d.html", check.id))
@@ -504,18 +504,25 @@ func TestHomeReusesPublicSectionsAndKeepsIndependentHeroPlacement(t *testing.T) 
 		t.Fatal("article published directly in the expert parent column leaked into homepage expert section")
 	}
 	expertLinks := regexp.MustCompile(`(?s)<ul class="expert-links">.*?</ul>`).FindString(homePage)
-	if !strings.Contains(expertLinks, fmt.Sprintf("%d.html?from=about-expert-insights", crossPostedExpert.ID)) || strings.Contains(expertLinks, fmt.Sprintf("%d.html?from=news-hot", crossPostedExpert.ID)) {
+	if !strings.Contains(expertLinks, fmt.Sprintf("%d.html?from=home-expert-insights", crossPostedExpert.ID)) || strings.Contains(expertLinks, fmt.Sprintf("%d.html?from=news-hot", crossPostedExpert.ID)) {
 		t.Fatal("cross-posted expert article lost its expert context on homepage")
+	}
+	expertHomeList := readGenerated(t, result.Output, fmt.Sprintf("list/%d/1.html", expertColumn.ID))
+	if !strings.Contains(expertHomeList, expert.Title) || strings.Contains(expertHomeList, parentExpert.Title) {
+		t.Fatal("homepage expert list did not use its dedicated column")
 	}
 	if strings.Contains(expertLinks, crossPostedParent.Title) {
 		t.Fatal("cross-posted expert parent article leaked into homepage expert section")
 	}
-	expertParentList := readGenerated(t, result.Output, fmt.Sprintf("list/%d/1.html", expertParentColumn.ID))
-	if strings.Contains(expertParentList, crossPostedParent.Title) || !strings.Contains(expertParentList, expert.Title) {
-		t.Fatal("expert committee top-level page did not default to its first second-level column")
+	expertParentPage := readGenerated(t, result.Output, fmt.Sprintf("list/%d/1.html", expertParentColumn.ID))
+	if !strings.Contains(expertParentPage, parentExpert.Content) || strings.Contains(expertParentPage, expert.Title) {
+		t.Fatal("expert committee introduction did not render its own article body")
 	}
-	if !strings.Contains(readGenerated(t, result.Output, "article/2026/09/990002.html"), `>专家委员会`) {
-		t.Fatal("formal expert detail lost the public expert sidebar")
+	if !strings.Contains(expertParentPage, `>关于协会</a>`) || !strings.Contains(expertParentPage, `>专家委员会</span>`) {
+		t.Fatal("expert committee introduction lost its About breadcrumb")
+	}
+	if !strings.Contains(expertParentPage, `class="side-menu"`) || !strings.Contains(expertParentPage, `>协会简介</a>`) || !strings.Contains(expertParentPage, `aria-current="page">专家委员会</a>`) {
+		t.Fatal("expert committee introduction lost its About sidebar")
 	}
 	expertDetail := readGenerated(t, result.Output, "article/2026/09/990002.html")
 	hrefJSON := regexp.MustCompile(`<script id="column-path-hrefs" type="application/json">(.*?)</script>`).FindStringSubmatch(expertDetail)
@@ -526,8 +533,8 @@ func TestHomeReusesPublicSectionsAndKeepsIndependentHeroPlacement(t *testing.T) 
 	if err := json.Unmarshal([]byte(hrefJSON[1]), &columnHrefs); err != nil {
 		t.Fatalf("parse breadcrumb column links: %v", err)
 	}
-	wantExpertHrefs := fmt.Sprintf("list/%d/1.html,list/%d/1.html", expertParentColumn.ID, expertColumn.ID)
-	if got := strings.Join(columnHrefs["about-expert-insights"], ","); got != wantExpertHrefs {
+	wantExpertHrefs := fmt.Sprintf("list/%d/1.html", expertColumn.ID)
+	if got := strings.Join(columnHrefs["home-expert-insights"], ","); got != wantExpertHrefs {
 		t.Fatalf("expert breadcrumb links = %q, want %q", got, wantExpertHrefs)
 	}
 	if strings.Contains(homePage, onlyHome.Title) {
@@ -919,13 +926,13 @@ func TestGenerateCompletePublicSiteAndMemberShells(t *testing.T) {
 	generatedAt := result.GeneratedAt.Format(time.RFC3339Nano)
 	htmlBuildID := strings.ReplaceAll(buildID, "+", "&#43;")
 	htmlGeneratedAt := strings.ReplaceAll(generatedAt, "+", "&#43;")
-	jsBuildID := strings.ReplaceAll(buildID, "+", `\u002b`)
-	jsGeneratedAt := strings.ReplaceAll(generatedAt, "+", `\u002b`)
+	jsBuildLabel := result.GeneratedAt.Format("20060102-150405.000")
+	jsGeneratedAtLabel := strings.ReplaceAll(result.GeneratedAt.Format("2006-01-02 15:04:05 -07:00"), "+", `\u002b`)
 	urlBuildID := strings.ReplaceAll(buildID, "+", "%2b")
 	for _, marker := range []string{
 		`data-static-build="` + htmlBuildID + `"`,
 		`data-generated-at="` + htmlGeneratedAt + `"`,
-		`console.info("[CAMIE 静态化] 构建版本：` + jsBuildID + ` | 生成时间：` + jsGeneratedAt + `")`,
+		`console.info("[CAMIE 静态化] 构建版本：` + jsBuildLabel + ` | 生成时间：` + jsGeneratedAtLabel + `")`,
 		`generated-content.js?v=` + urlBuildID,
 	} {
 		if !strings.Contains(homePage, marker) {
@@ -1012,8 +1019,8 @@ func TestGenerateCompletePublicSiteAndMemberShells(t *testing.T) {
 		}
 	}
 	aboutMenu := regexp.MustCompile(`(?s)<a class="nav-link"[^>]*>关于协会</a><div class="nav-submenu">(.*?)</div>`).FindStringSubmatch(homePage)
-	if len(aboutMenu) != 2 || !strings.Contains(aboutMenu[1], "分支机构") || strings.Contains(aboutMenu[1], "专家委员会") {
-		t.Fatal("about navigation must retain branches but keep experts standalone")
+	if len(aboutMenu) != 2 || !strings.Contains(aboutMenu[1], "分支机构") || !strings.Contains(aboutMenu[1], "专家委员会") {
+		t.Fatal("about navigation must include branches and expert committee")
 	}
 	var all strings.Builder
 	err = filepath.WalkDir(result.Output, func(path string, entry os.DirEntry, err error) error {
@@ -1086,7 +1093,7 @@ func TestGenerateCompletePublicSiteAndMemberShells(t *testing.T) {
 		}
 	}
 	if !strings.Contains(branchHome, fmt.Sprintf(`<h2 class="section-title"><a href="./list/%d/1.html"><span class="section-title-logo" aria-hidden="true"></span>分支机构</a>`, branchColumnID(source, "main-branch-water"))) ||
-		!strings.Contains(branchHome, fmt.Sprintf(`<h2 class="section-title"><a href="./list/%d/1.html"><span class="section-title-logo" aria-hidden="true"></span>专家视野</a>`, branchColumnID(source, "about-expert-insights"))) {
+		!strings.Contains(branchHome, fmt.Sprintf(`<h2 class="section-title"><a href="./list/%d/1.html"><span class="section-title-logo" aria-hidden="true"></span>专家视野</a>`, branchColumnID(source, "home-expert-insights"))) {
 		t.Fatal("homepage section headings do not open their section pages")
 	}
 	assertPublicListAndDetailShells(t, result.Output)

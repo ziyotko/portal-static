@@ -61,7 +61,7 @@
           </div>
         </section>
         <section>
-          <h2 class="section-title"><a href="{{columnURL . "about-expert-insights"}}"><span class="section-title-logo" aria-hidden="true"></span>专家视野</a></h2>
+          <h2 class="section-title"><a href="{{columnURL . "home-expert-insights"}}"><span class="section-title-logo" aria-hidden="true"></span>专家视野</a></h2>
           {{with .Experts.Feature}}
           <a class="expert-feature" href="{{root $ .Href}}?from={{.ColumnCode}}"><img src="{{root $ .Cover}}" alt="{{.Title}}"><p><span class="expert-feature-title{{if .Bold}} is-bold{{end}}"{{if .Color}} style="color:{{.Color}}"{{end}}>{{.Title}}</span><small>中国环保机械行业协会 · 专家委员会</small></p></a>
           {{end}}

@@ -117,29 +117,30 @@ type Partner struct {
 	Width, Height, DisplayWidth int
 }
 type Page struct {
-	ActiveNav                             string
-	Title, Kind, BodyClass, RootPrefix    string
-	StaticBuildID, StaticGeneratedAt      string
-	ColumnCode                            string
-	ColumnPaths                           template.JS
-	ColumnPathHrefs                       template.JS
-	DetailContexts                        template.JS
-	Items                                 []*Article
-	Article, PreviousArticle, NextArticle *Article
-	Parent                                *Link
-	Breadcrumbs                           []Link
-	Side, Pages                           []Link
-	Hero                                  []*Article
-	Notices, Topics                       []Group
-	Experts                               Group
-	DataCenterURL                         string
-	ConferenceBannerURL                   string
-	MemberLoginPath, MemberRegisterPath   string
-	Branches                              []Branch
-	BranchIntro                           bool
-	PartnerRows                           [][]Partner
-	Total, PageSize, Page, TotalPages     int
-	Previous, Next, BackHref, PagePrefix  string
+	ActiveNav                                string
+	Title, Kind, BodyClass, RootPrefix       string
+	StaticBuildID, StaticGeneratedAt         string
+	StaticBuildLabel, StaticGeneratedAtLabel string
+	ColumnCode                               string
+	ColumnPaths                              template.JS
+	ColumnPathHrefs                          template.JS
+	DetailContexts                           template.JS
+	Items                                    []*Article
+	Article, PreviousArticle, NextArticle    *Article
+	Parent                                   *Link
+	Breadcrumbs                              []Link
+	Side, Pages                              []Link
+	Hero                                     []*Article
+	Notices, Topics                          []Group
+	Experts                                  Group
+	DataCenterURL                            string
+	ConferenceBannerURL                      string
+	MemberLoginPath, MemberRegisterPath      string
+	Branches                                 []Branch
+	BranchIntro                              bool
+	PartnerRows                              [][]Partner
+	Total, PageSize, Page, TotalPages        int
+	Previous, Next, BackHref, PagePrefix     string
 }
 type Result struct {
 	Output      string    `json:"output"`
@@ -204,9 +205,8 @@ func (g *Generator) load(ctx context.Context) (*catalog, error) {
 			if _, exists := c.byCode[col.Code]; exists {
 				return nil, fmt.Errorf("duplicate column code %q", col.Code)
 			}
-			// Expert articles and the dedicated homepage branch lists have their
-			// own public navigation, even when the CMS nests them under About/Home.
-			if col.Code == "about-experts" || col.Code == "home-fenzhijigou" {
+			// Dedicated homepage lists have their own public navigation.
+			if col.Code == "home-fenzhijigou" || col.Code == "home-expert-insights" {
 				col.ParentID = 0
 			}
 			seen[col.ID] = true
@@ -634,6 +634,8 @@ func activeNav(c *catalog, p Page) string {
 		return ""
 	case "home-fenzhijigou":
 		return "首页"
+	case "home-expert-insights":
+		return "首页"
 	default:
 		return "首页"
 	}
@@ -741,6 +743,8 @@ func (g *Generator) GenerateSite(ctx context.Context) (result Result, err error)
 		p.ActiveNav = activeNav(c, p)
 		p.StaticBuildID = buildID
 		p.StaticGeneratedAt = generatedAt.Format(time.RFC3339Nano)
+		p.StaticBuildLabel = generatedAt.Format("20060102-150405.000")
+		p.StaticGeneratedAtLabel = generatedAt.Format("2006-01-02 15:04:05 -07:00")
 		p.ColumnPaths = template.JS(columnPathJSON)
 		p.ColumnPathHrefs = template.JS(columnPathHrefJSON)
 		currentColumn := p.ColumnCode
@@ -868,7 +872,7 @@ func (g *Generator) GenerateSite(ctx context.Context) (result Result, err error)
 	if dataCenter.Feature != nil {
 		home.DataCenterURL = dataCenter.Feature.Href
 	}
-	home.Experts = group(c, "about-expert-insights", 3)
+	home.Experts = group(c, "home-expert-insights", 3)
 	conference := group(c, "training-meetings-conference", 0)
 	home.ConferenceBannerURL = conference.Href
 	for _, article := range conference.Items {
@@ -929,11 +933,14 @@ func (g *Generator) GenerateSite(ctx context.Context) (result Result, err error)
 		return nil
 	}
 	for _, col := range c.columns {
-		if isPrivateColumnCode(col.Code) || col.Code == "home" || (strings.HasPrefix(col.Code, "home-") && col.Code != "home-fenzhijigou") {
+		if isPrivateColumnCode(col.Code) || col.Code == "home" || (strings.HasPrefix(col.Code, "home-") && col.Code != "home-fenzhijigou" && col.Code != "home-expert-insights") {
 			continue
 		}
-		if col.Code == "about" || col.Code == "about-introduction" || col.Code == "about-organization" || col.Code == "about-charter" || col.Code == "about-english" || col.Code == "about-branches" || strings.HasPrefix(col.Code, "branch-") {
+		if col.Code == "about" || col.Code == "about-introduction" || col.Code == "about-organization" || col.Code == "about-charter" || col.Code == "about-experts" || col.Code == "about-english" || col.Code == "about-branches" || strings.HasPrefix(col.Code, "branch-") {
 			displayColumn := defaultListColumn(c, col.ID)
+			if col.Code == "about-experts" {
+				displayColumn = col
+			}
 			bodyClass := "about-page"
 			if col.Code == "about-english" {
 				bodyClass += " english-about-page"

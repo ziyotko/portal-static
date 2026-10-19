@@ -1,5 +1,5 @@
 {
-  "source": "协会网站栏目分级列表.doc（2026-09）",
+  "source": "协会网站栏目分级列表.doc（2026-09）；专家栏目按 2026-10-19 column.sql 更新",
   "navigation": [
     {
       "name": "党建专栏",
@@ -114,14 +114,8 @@
             { "name": "环境工程分会", "code": "branch-engineering" }
           ]
         },
+        { "name": "专家委员会", "code": "about-experts" },
         { "name": "信息公开", "code": "about-disclosure" }
-      ]
-    },
-    {
-      "name": "专家委员会",
-      "code": "about-experts",
-      "children": [
-        { "name": "专家视野", "code": "about-expert-insights" }
       ]
     },
     {
@@ -156,6 +150,7 @@
   ],
   "homepagePlacements": [
     { "name": "轮播图", "code": "home-hero", "displayType": "carousel" },
+    { "name": "专家视野", "code": "home-expert-insights", "displayType": "list" },
     { "name": "快捷服务", "code": "home-service-links", "displayType": "link" },
     { "name": "大会横幅", "code": "home-conference-banner", "displayType": "ad" },
     { "name": "首页专题入口", "code": "home-special-topics", "displayType": "link" },

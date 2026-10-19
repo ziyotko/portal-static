@@ -51,7 +51,7 @@ SELECT 'BLOCKER', 'legacy_home_articles_missing_formal_publication', COUNT(*)
       WHERE current_p.article_id=p.article_id
         AND current_c.code=CASE legacy.code
           WHEN 'home-policy-reports' THEN 'policy-reports'
-          WHEN 'home-experts' THEN 'about-expert-insights'
+          WHEN 'home-experts' THEN 'home-expert-insights'
           ELSE SUBSTRING(legacy.code, 6)
         END
    );
