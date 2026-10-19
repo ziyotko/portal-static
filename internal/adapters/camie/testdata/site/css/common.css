@@ -787,8 +787,11 @@ img { display: block; max-width: 100%; }
   .page-shell { min-height: 620px; }
   .page-inner { width: calc(100% - 28px); }
   .quick-rail { position: static; width: auto; margin: 30px auto 0; grid-template-columns: repeat(4, 1fr); }
-  .quick-rail-global { width: calc(100% - 28px); margin-block: 30px; }
+  .page-shell > .page-inner { width: calc(100% - 86px); margin-left: 14px; margin-right: 72px; }
+  .quick-rail-global { position: fixed; top: clamp(90px, 20vh, 160px); right: 8px; width: 56px; margin: 0; grid-template-columns: 1fr; }
   .quick-rail > a, .quick-mobile-trigger { height: auto; min-height: 58px; }
+  .quick-rail-global > a, .quick-rail-global .quick-mobile-trigger { height: 58px; font-size: 11px; }
+  .quick-rail-global .quick-icon { width: 23px; height: 23px; }
   .mobile-qr-card { position: fixed; top: 50%; right: auto; left: 50%; width: min(650px, calc(100vw - 30px)); gap: clamp(6px, 2vw, 14px); padding: clamp(9px, 2.5vw, 18px); transform: translate(-50%, -50%); }
   .mobile-qr-card::after { display: none; }
   .mobile-qr-item img { border-width: 3px; }

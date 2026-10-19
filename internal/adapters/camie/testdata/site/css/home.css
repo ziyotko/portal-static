@@ -21,17 +21,9 @@
   --hero-caption-height: 56px;
   width: 100%;
   display: grid;
-  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr) 86px;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
   gap: 12px;
   align-items: start;
-}
-.home-lead > .quick-rail {
-  position: relative;
-  top: auto;
-  right: auto;
-  left: auto;
-  width: 100%;
-  margin: 0;
 }
 
 .hero-slider { position: relative; overflow: hidden; background: #fff; }
@@ -128,7 +120,7 @@
 }
 .tab-panel[hidden] { display: none; }
 
-.updates { margin-top: 67px; }
+.updates { margin-top: 27px; }
 .updates-tabs { display: flex; border-bottom: 1px solid #d4dad7; overflow-x: auto; }
 .updates-tabs button { flex: 0 0 auto; height: 45px; padding: 0 24px; border: 0; color: #333; background: transparent; font-size: 18px; font-weight: 600; cursor: pointer; transition: color .18s ease, background-color .18s ease; }
 .updates-tabs button:hover, .updates-tabs button:focus-visible { color: var(--green-700); background: #eef7ef; }
@@ -182,7 +174,7 @@
   outline: 0;
 }
 
-.home-lower { margin-top: 0; padding: 48px 0 37px; background: transparent; }
+.home-lower { margin-top: 0; padding: 27px 0 37px; background: transparent; }
 .columns-two { display: grid; grid-template-columns: 756px 418px; gap: 26px; }
 .section-title { display: flex; align-items: center; gap: 8px; margin: 0 0 13px; font-size: 20px; color: #314054; }
 .section-title img { width: 42px; height: 42px; }
@@ -210,7 +202,7 @@
 .expert-links li { min-width: 0; margin-top: 8px; }
 .expert-links a { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-.partners { margin-top: 52px; }
+.partners { margin-top: 27px; }
 .partners .section-title { margin-bottom: 17px; }
 .partner-grid { display: grid; gap: 10px; overflow: hidden; }
 .partner-row { overflow: hidden; }
@@ -260,11 +252,11 @@
 }
 
 @media (min-width: 781px) and (max-width: 1435px) {
-  .home-main { width: min(var(--content-width), calc(100% - 36px)); }
+  .home-main { width: min(var(--content-width), calc(100% - 200px)); }
 }
 
 @media (max-width: 1100px) {
-  .home-lead { --hero-height: clamp(220px, calc(34vw - 48px), 326px); --hero-caption-height: 62px; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr) 66px; gap: 10px; }
+  .home-lead { --hero-height: clamp(220px, calc(34vw - 48px), 326px); --hero-caption-height: 62px; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 10px; }
   .hero-caption { padding: 6px 12px; }
   .hero-caption h1 { font-size: 14px; }
   .home-tabs { flex-basis: 32px; gap: 20px; }
@@ -272,8 +264,6 @@
   .notice-list { padding-top: 4px; }
   .notice-list li { font-size: 14px; line-height: 1.4; gap: 6px; }
   .notice-list time { font-size: 11px; }
-  .home-lead > .quick-rail > a, .home-lead > .quick-rail .quick-mobile-trigger { height: 52px; font-size: 11px; }
-  .home-lead > .quick-rail .quick-icon { width: 23px; height: 23px; }
   .updates-tabs button { padding-inline: 12px; font-size: 16px; }
   .updates-tabs button.active { padding-left: 10px; padding-right: 30px; }
   .columns-two { grid-template-columns: 1.65fr 1fr; }
@@ -286,7 +276,6 @@
   .updates-list a::before { width: 7px; height: 7px; margin-right: 8px; }
   .home-main { padding-top: 14px; }
   .home-lead { --hero-height: clamp(331px, calc(68vw + 71px), 431px); --hero-caption-height: 56px; grid-template-columns: minmax(0, 1fr); }
-  .home-lead > .quick-rail { width: auto; margin: 30px auto 0; }
   .notice-panel { height: auto; display: block; }
   .notice-list { height: auto; display: block; margin-top: 8px; }
   .notice-list[hidden] { display: none; }
@@ -296,8 +285,6 @@
   .home-tabs button { height: 40px; padding-bottom: 8px; font-size: 20px; }
   .hero-caption { padding: 8px 16px; }
   .hero-caption h1 { font-size: 22px; }
-  .home-lead > .quick-rail > a, .home-lead > .quick-rail .quick-mobile-trigger { height: auto; font-size: 16px; }
-  .home-lead > .quick-rail .quick-icon { width: 34px; height: 34px; }
   .updates-panel { grid-template-columns: 1fr; padding-inline: 0; }
   .updates-image { order: -1; }
   .updates-image img { height: 190px; }

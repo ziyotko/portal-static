@@ -44,14 +44,76 @@ func testConfig(t *testing.T) config.Config {
 	return cfg
 }
 
-func TestTopLevelColumnDefaultsToFirstSecondLevelColumn(t *testing.T) {
+func TestAboutBranchesDefaultsToFirstBranchIntro(t *testing.T) {
 	g := New(testConfig(t), demo.NewSource())
 	column, total, err := g.Column(context.Background(), "about-branches", 0)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if column.Code != "about-branches" || total != 12 {
-		t.Fatalf("top-level column = %q, total = %d, want first second-level column's 12 articles", column.Code, total)
+		t.Fatalf("about branches = %q, first branch article count = %d, want 12", column.Code, total)
+	}
+}
+
+func TestHomeBranchTreeGeneratesDedicatedListsAndParent(t *testing.T) {
+	source := demo.NewSource()
+	parentID := branchColumnID(source, "home-fenzhijigou")
+	waterID := branchColumnID(source, "main-branch-water")
+	result, err := New(testConfig(t), source).GenerateSite(context.Background())
+	if err != nil {
+		t.Fatalf("dedicated home branch tree broke site generation: %v", err)
+	}
+	for _, id := range []int64{parentID, waterID} {
+		if _, err := os.Stat(filepath.Join(result.Output, "list", fmt.Sprint(id), "1.html")); err != nil {
+			t.Fatalf("dedicated branch page %d missing: %v", id, err)
+		}
+	}
+	waterList := readGenerated(t, result.Output, fmt.Sprintf("list/%d/1.html", waterID))
+	if !strings.Contains(waterList, `class="news-list"`) || !strings.Contains(waterList, `class="side-menu"`) || strings.Contains(waterList, `class="article-body"`) {
+		t.Fatal("homepage water branch did not render a dedicated list")
+	}
+	waterDetail := readGenerated(t, result.Output, fmt.Sprintf("article/2026/09/%d.html", source.Items[waterID][0].ID))
+	if !strings.Contains(waterDetail, `data-default-column-code="main-branch-water"`) ||
+		strings.Contains(waterDetail, `?from=home-fenzhijigou`) ||
+		!strings.Contains(waterDetail, `?from=main-branch-water`) {
+		t.Fatal("branch article detail did not keep its own branch context")
+	}
+}
+
+func TestMeetingParentAndChildrenKeepTheirOwnArticles(t *testing.T) {
+	source := demo.NewSource()
+	parentID := branchColumnID(source, "training-meetings")
+	conferenceID := branchColumnID(source, "training-meetings-conference")
+	otherID := branchColumnID(source, "training-meetings-other")
+	disclosureID := branchColumnID(source, "about-disclosure")
+	if len(source.Items[parentID]) == 0 || len(source.Items[conferenceID]) == 0 || len(source.Items[otherID]) == 0 {
+		t.Fatal("missing direct parent or child fixture")
+	}
+	result, err := New(testConfig(t), source).GenerateSite(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct {
+		id   int64
+		own  string
+		away string
+	}{
+		{parentID, source.Items[parentID][0].Title, source.Items[conferenceID][0].Title},
+		{conferenceID, source.Items[conferenceID][0].Title, source.Items[parentID][0].Title},
+		{otherID, source.Items[otherID][0].Title, source.Items[conferenceID][0].Title},
+	} {
+		page := readGenerated(t, result.Output, fmt.Sprintf("list/%d/1.html", tc.id))
+		if !strings.Contains(page, tc.own) || strings.Contains(page, tc.away) {
+			t.Fatalf("column %d did not render only its own articles", tc.id)
+		}
+	}
+	home := readGenerated(t, result.Output, "index.html")
+	if !strings.Contains(home, fmt.Sprintf(`class="conference-banner" href="./list/%d/1.html"`, conferenceID)) {
+		t.Fatal("conference banner does not link to its child column")
+	}
+	disclosure := readGenerated(t, result.Output, fmt.Sprintf("list/%d/1.html", disclosureID))
+	if !strings.Contains(disclosure, `class="news-list"`) || !strings.Contains(disclosure, source.Items[disclosureID][0].Title) {
+		t.Fatal("about disclosure did not render as an article list")
 	}
 }
 
@@ -666,6 +728,10 @@ func TestVideoHubOnlyUsesVideoNewsColumn(t *testing.T) {
 func TestGenerateCompletePublicSiteAndMemberShells(t *testing.T) {
 	cfg := testConfig(t)
 	source := demo.NewSource()
+	waterID := branchColumnID(source, "branch-water")
+	waterItems := source.Items[waterID]
+	waterItems[0].Content = "<p>水分会专属简介</p>"
+	source.Items[waterID] = waterItems
 	var privateID, introductionID, organizationID, charterID, sharedColumnID int64
 	for _, column := range source.Columns {
 		switch column.Code {
@@ -748,7 +814,7 @@ func TestGenerateCompletePublicSiteAndMemberShells(t *testing.T) {
 	} {
 		page := readGenerated(t, result.Output, fmt.Sprintf("list/%d/1.html", section.id))
 		first := source.Items[section.id][0]
-		if !strings.Contains(page, `<section class="article-card"><div class="article-body">`) || strings.Contains(page, `<h1>`+first.Title+`</h1>`) ||
+		if !strings.Contains(page, `<div class="article-body">`) || strings.Contains(page, `<h1>`+first.Title+`</h1>`) ||
 			strings.Contains(page, `class="pagination-wrap"`) || strings.Contains(page, `class="article-header"`) {
 			t.Fatalf("%s did not use the about content layout", section.name)
 		}
@@ -764,7 +830,7 @@ func TestGenerateCompletePublicSiteAndMemberShells(t *testing.T) {
 		t.Fatalf("existing organization detail link was removed: %v", err)
 	}
 	for pageName, railClass := range map[string]string{
-		"index.html":        `class="quick-rail"`,
+		"index.html":        `class="quick-rail quick-rail-global"`,
 		"news.html":         `class="quick-rail quick-rail-global"`,
 		"detail.html":       `class="quick-rail quick-rail-global"`,
 		"pages/about.html":  `class="quick-rail quick-rail-global"`,
@@ -773,6 +839,9 @@ func TestGenerateCompletePublicSiteAndMemberShells(t *testing.T) {
 		page := readGenerated(t, result.Output, pageName)
 		if strings.Count(page, `aria-label="快捷服务"`) != 1 || !strings.Contains(page, railClass) {
 			t.Fatalf("%s did not render exactly one shared quick rail", pageName)
+		}
+		if pageName == "index.html" && strings.Index(page, `class="quick-rail quick-rail-global"`) < strings.Index(page, `</main>`) {
+			t.Fatal("homepage quick rail must stay outside the content grid")
 		}
 	}
 	for _, text := range []string{"京公网安备11010202009494", "京ICP备09071629号", "技术支持：机械工业信息中心"} {
@@ -787,7 +856,7 @@ func TestGenerateCompletePublicSiteAndMemberShells(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(result.Output, "assets/images/beian-emblem.png")); err != nil {
 		t.Fatalf("missing public security emblem asset: %v", err)
 	}
-	for _, name := range []string{"pages/about.html", "list/36/1.html"} {
+	for _, name := range []string{"pages/about.html", fmt.Sprintf("list/%d/1.html", branchColumnID(source, "about-introduction"))} {
 		page := readGenerated(t, result.Output, name)
 		if !strings.Contains(page, beianEmblem) {
 			t.Fatalf("%s footer does not use the root-relative public security emblem path", name)
@@ -806,8 +875,8 @@ func TestGenerateCompletePublicSiteAndMemberShells(t *testing.T) {
 		}
 	}
 	aboutMenu := regexp.MustCompile(`(?s)<a class="nav-link"[^>]*>关于协会</a><div class="nav-submenu">(.*?)</div>`).FindStringSubmatch(homePage)
-	if len(aboutMenu) != 2 || strings.Contains(aboutMenu[1], "分支机构") || strings.Contains(aboutMenu[1], "专家委员会") {
-		t.Fatal("about navigation still contains standalone branch or expert sections")
+	if len(aboutMenu) != 2 || !strings.Contains(aboutMenu[1], "分支机构") || strings.Contains(aboutMenu[1], "专家委员会") {
+		t.Fatal("about navigation must retain branches but keep experts standalone")
 	}
 	var all strings.Builder
 	err = filepath.WalkDir(result.Output, func(path string, entry os.DirEntry, err error) error {
@@ -868,7 +937,7 @@ func TestGenerateCompletePublicSiteAndMemberShells(t *testing.T) {
 		seenBranchLinks[match[1]] = true
 	}
 	for _, column := range source.Columns {
-		if !strings.HasPrefix(column.Code, "branch-") {
+		if !strings.HasPrefix(column.Code, "main-branch-") {
 			continue
 		}
 		want := fmt.Sprintf("./list/%d/1.html", column.ID)
@@ -876,9 +945,9 @@ func TestGenerateCompletePublicSiteAndMemberShells(t *testing.T) {
 			t.Fatalf("homepage branch %s does not link to its own list page %s", column.Name, want)
 		}
 	}
-	if !strings.Contains(branchHome, fmt.Sprintf(`<h2 class="section-title"><a href="./list/%d/1.html"><span class="section-title-logo" aria-hidden="true"></span>分支机构</a>`, branchColumnID(source, "branch-water"))) ||
+	if !strings.Contains(branchHome, fmt.Sprintf(`<h2 class="section-title"><a href="./list/%d/1.html"><span class="section-title-logo" aria-hidden="true"></span>分支机构</a>`, branchColumnID(source, "main-branch-water"))) ||
 		!strings.Contains(branchHome, fmt.Sprintf(`<h2 class="section-title"><a href="./list/%d/1.html"><span class="section-title-logo" aria-hidden="true"></span>专家委员会</a>`, branchColumnID(source, "about-expert-insights"))) {
-		t.Fatal("homepage standalone section headings do not open their first second-level list pages")
+		t.Fatal("homepage section headings do not open their section pages")
 	}
 	assertPublicListAndDetailShells(t, result.Output)
 	var noticeColumn model.Column
@@ -918,15 +987,18 @@ func TestGenerateCompletePublicSiteAndMemberShells(t *testing.T) {
 		}
 	}
 	branchDetail := readGenerated(t, result.Output, fmt.Sprintf("article/2026/09/%d.html", branchColumn.ID*1000+1))
-	expectedCurrentBranch := fmt.Sprintf(`class="is-active"><a href="../../../list/%d/1.html" aria-current="page">%s</a>`, branchColumn.ID, branchColumn.Name)
+	expectedCurrentBranch := fmt.Sprintf(`class="current"><a href="../../../list/%d/1.html" aria-current="page">%s</a>`, branchColumn.ID, branchColumn.Name)
 	branchBreadcrumb := regexp.MustCompile(`<nav class="breadcrumb"[^>]*>.*?</nav>`).FindString(branchDetail)
-	if !strings.Contains(branchDetail, expectedCurrentBranch) || strings.Contains(branchBreadcrumb, `>关于协会</a>`) {
-		t.Fatal("branch article did not use the independent branch section navigation")
+	if !strings.Contains(branchDetail, expectedCurrentBranch) || !strings.Contains(branchBreadcrumb, `>关于协会</a>`) {
+		t.Fatal("branch article did not retain the about association hierarchy")
 	}
-	branchList := readGenerated(t, result.Output, fmt.Sprintf("list/%d/1.html", branchParent.ID))
-	expectedBranchLink := fmt.Sprintf(`class="is-active"><a href="../../list/%d/1.html" aria-current="page">%s</a>`, branchColumn.ID, branchColumn.Name)
-	if !strings.Contains(branchList, expectedBranchLink) || strings.Contains(branchList, `aria-label="展开或收起`+branchParent.Name+`子栏目"`) {
-		t.Fatal("branch top-level page did not default to its first second-level list")
+	branchDefault := readGenerated(t, result.Output, fmt.Sprintf("list/%d/1.html", branchParent.ID))
+	if !strings.Contains(branchDefault, `<div class="article-body"><p>水分会专属简介</p>`) || !strings.Contains(branchDefault, fmt.Sprintf(`class="current"><a href="../../list/%d/1.html" aria-current="page">%s</a>`, branchColumn.ID, branchColumn.Name)) || strings.Contains(branchDefault, `class="branch-directory"`) {
+		t.Fatal("about branches page did not default to the first branch introduction")
+	}
+	branchIntro := readGenerated(t, result.Output, fmt.Sprintf("list/%d/1.html", branchColumn.ID))
+	if !strings.Contains(branchIntro, `<div class="article-body"><p>水分会专属简介</p>`) || strings.Contains(branchIntro, `<h1>`) || strings.Contains(branchIntro, `class="news-list"`) || strings.Contains(branchIntro, waterItems[1].Title) {
+		t.Fatal("branch page did not render only its first article body like the association introduction")
 	}
 	listPage := readGenerated(t, result.Output, fmt.Sprintf("list/%d/1.html", noticeColumn.ID))
 	for _, marker := range []string{`<nav class="pagination" aria-label="分页">`, `class="plain disabled"`, `class="page-number active"`, `class="page-jump"`, `data-page-prefix="../../list/`} {
@@ -966,7 +1038,7 @@ func TestGenerateCompletePublicSiteAndMemberShells(t *testing.T) {
 		`class="home-tabs" data-group="notice"`,
 		`<button class="active" data-tab="notice-1"`,
 		`class="hero-dots"`,
-		`class="quick-rail"`,
+		`class="quick-rail quick-rail-global"`,
 		`class="updates-image"`,
 		`class="conference-banner"`,
 		`class="feature-links"`,
@@ -1125,7 +1197,7 @@ func TestEmptyAboutCharterUsesContentPage(t *testing.T) {
 		t.Fatal(err)
 	}
 	page := readGenerated(t, result.Output, fmt.Sprintf("list/%d/1.html", charterID))
-	if !strings.Contains(page, `<section class="article-card"><p>暂无公开内容</p></section>`) || strings.Contains(page, `<h1>协会章程</h1>`) ||
+	if !strings.Contains(page, `<p>暂无公开内容</p>`) || strings.Contains(page, `<h1>协会章程</h1>`) ||
 		strings.Contains(page, `class="pagination-wrap"`) ||
 		!strings.Contains(page, `href="../../list/`+fmt.Sprint(charterID)+`/1.html" aria-current="page">协会章程</a>`) {
 		t.Fatal("empty charter did not retain the shared about content layout and active sidebar")

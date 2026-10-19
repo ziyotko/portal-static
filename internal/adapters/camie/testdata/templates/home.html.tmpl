@@ -28,7 +28,6 @@
         {{end}}
       </section>
 
-      {{template "quick-rail" .}}
     </section>
 
     <section class="updates">
@@ -45,7 +44,7 @@
       {{end}}
     </section>
 
-    <a class="conference-banner" href="{{columnURL . "training-meetings"}}"><img src="{{root . "assets/images/conference-banner.png"}}" alt="环保装备高质量发展大会"></a>
+    <a class="conference-banner" href="{{columnURL . "training-meetings-conference"}}"><img src="{{root . "assets/images/conference-banner.png"}}" alt="环保装备高质量发展大会"></a>
     <nav class="feature-links" aria-label="专题入口">
       <a href="{{columnURL . "standards-green-promotion"}}">绿色技术推广</a>
       <a href="{{columnURL . "policy-major-equipment-catalogue"}}">国家鼓励发展的重大环保<br>技术装备目录</a>
@@ -56,7 +55,7 @@
     <div class="home-lower">
       <div class="columns-two">
         <section>
-          <h2 class="section-title"><a href="{{columnURL . "about-branches"}}"><span class="section-title-logo" aria-hidden="true"></span>分支机构</a></h2>
+          <h2 class="section-title"><a href="{{columnURL . "home-fenzhijigou"}}"><span class="section-title-logo" aria-hidden="true"></span>分支机构</a></h2>
           <div class="branch-grid">
             {{range .Branches}}<a class="branch-card" href="{{columnURL $ .Code}}"><img src="{{root $ .Image}}" alt="">{{.Name}}</a>{{end}}
           </div>

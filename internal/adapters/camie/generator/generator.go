@@ -134,6 +134,7 @@ type Page struct {
 	DataCenterURL                         string
 	MemberLoginPath, MemberRegisterPath   string
 	Branches                              []Branch
+	BranchIntro                           bool
 	PartnerRows                           [][]Partner
 	Total, PageSize, Page, TotalPages     int
 	Previous, Next, BackHref, PagePrefix  string
@@ -190,9 +191,9 @@ func (g *Generator) load(ctx context.Context) (*catalog, error) {
 			if _, exists := c.byCode[col.Code]; exists {
 				return nil, fmt.Errorf("duplicate column code %q", col.Code)
 			}
-			// These two homepage destinations are standalone public sections even
-			// when an older CMS hierarchy still returns them beneath About.
-			if col.Code == "about-branches" || col.Code == "about-experts" {
+			// Expert articles and the dedicated homepage branch lists have their
+			// own public navigation, even when the CMS nests them under About/Home.
+			if col.Code == "about-experts" || col.Code == "home-fenzhijigou" {
 				col.ParentID = 0
 			}
 			seen[col.ID] = true
@@ -446,7 +447,7 @@ func groupByID(c *catalog, id int64, limit int) Group {
 		}
 	}
 	// 一级栏目是导航容器：它不读取自身文章，默认落到第一个公开二级栏目。
-	if selected.ID != 0 && selected.ParentID == 0 && selected.Code != "home" {
+	if selected.ID != 0 && ((selected.ParentID == 0 && selected.Code != "home") || selected.Code == "about-branches") {
 		for _, column := range c.columns {
 			if column.ParentID == selected.ID && !isPrivateColumnCode(column.Code) {
 				displayID = column.ID
@@ -509,7 +510,7 @@ func defaultListColumn(c *catalog, id int64) model.Column {
 			break
 		}
 	}
-	if selected.ID == 0 || selected.ParentID != 0 || selected.Code == "home" {
+	if selected.ID == 0 || (selected.ParentID != 0 && selected.Code != "about-branches") || selected.Code == "home" {
 		return selected
 	}
 	for _, column := range c.columns {
@@ -609,8 +610,10 @@ func activeNav(c *catalog, p Page) string {
 		return "科技标准"
 	case "about":
 		return "关于协会"
-	case "about-branches", "about-experts":
+	case "about-experts":
 		return ""
+	case "home-fenzhijigou":
+		return "首页"
 	default:
 		return "首页"
 	}
@@ -789,15 +792,15 @@ func (g *Generator) GenerateSite(ctx context.Context) (result Result, err error)
 		BodyClass: "home",
 		Hero:      group(c, g.cfg.Site.HeroColumn, 0).Items,
 		Branches: []Branch{
-			{Name: "水分会", Code: "branch-water", Image: "assets/images/branch-water.png"},
-			{Name: "大气分会", Code: "branch-atmosphere", Image: "assets/images/branch-atmosphere.png"},
-			{Name: "固废分会", Code: "branch-solid-waste", Image: "assets/images/branch-solid-waste.png"},
-			{Name: "环境监测分会", Code: "branch-monitoring", Image: "assets/images/branch-monitoring.png"},
-			{Name: "噪声分会", Code: "branch-noise", Image: "assets/images/branch-noise.png"},
-			{Name: "紫外线分会", Code: "branch-uv", Image: "assets/images/branch-uv.png"},
-			{Name: "臭氧分会", Code: "branch-ozone", Image: "assets/images/branch-odor.png"},
-			{Name: "人工智能分会", Code: "branch-ai", Image: "assets/images/branch-ai.png"},
-			{Name: "环境工程分会", Code: "branch-engineering", Image: "assets/images/branch-engineering.png"},
+			{Name: "水分会", Code: "main-branch-water", Image: "assets/images/branch-water.png"},
+			{Name: "大气分会", Code: "main-branch-atmosphere", Image: "assets/images/branch-atmosphere.png"},
+			{Name: "固废分会", Code: "main-branch-solid-waste", Image: "assets/images/branch-solid-waste.png"},
+			{Name: "环境监测分会", Code: "main-branch-monitoring", Image: "assets/images/branch-monitoring.png"},
+			{Name: "噪声分会", Code: "main-branch-noise", Image: "assets/images/branch-noise.png"},
+			{Name: "紫外线分会", Code: "main-branch-uv", Image: "assets/images/branch-uv.png"},
+			{Name: "臭氧分会", Code: "main-branch-ozone", Image: "assets/images/branch-odor.png"},
+			{Name: "人工智能分会", Code: "main-branch-ai", Image: "assets/images/branch-ai.png"},
+			{Name: "环境工程分会", Code: "main-branch-engineering", Image: "assets/images/branch-engineering.png"},
 		},
 		PartnerRows: [][]Partner{
 			{
@@ -898,16 +901,16 @@ func (g *Generator) GenerateSite(ctx context.Context) (result Result, err error)
 		return nil
 	}
 	for _, col := range c.columns {
-		if isPrivateColumnCode(col.Code) || col.Code == "home" || strings.HasPrefix(col.Code, "home-") {
+		if isPrivateColumnCode(col.Code) || col.Code == "home" || (strings.HasPrefix(col.Code, "home-") && col.Code != "home-fenzhijigou") {
 			continue
 		}
-		if col.Code == "about" || col.Code == "about-introduction" || col.Code == "about-organization" || col.Code == "about-charter" || col.Code == "about-english" {
+		if col.Code == "about" || col.Code == "about-introduction" || col.Code == "about-organization" || col.Code == "about-charter" || col.Code == "about-english" || col.Code == "about-branches" || strings.HasPrefix(col.Code, "branch-") {
 			displayColumn := defaultListColumn(c, col.ID)
 			bodyClass := "about-page"
 			if col.Code == "about-english" {
 				bodyClass += " english-about-page"
 			}
-			p := Page{Title: displayColumn.Name, ColumnCode: displayColumn.Code, Kind: "about", BodyClass: bodyClass, Side: side(c, displayColumn.Code)}
+			p := Page{Title: displayColumn.Name, ColumnCode: displayColumn.Code, Kind: "about", BodyClass: bodyClass, Side: side(c, displayColumn.Code), BranchIntro: strings.HasPrefix(displayColumn.Code, "branch-")}
 			items := c.groups[displayColumn.ID]
 			for _, a := range items {
 				if !a.Video && !strings.HasPrefix(a.Href, "http") {

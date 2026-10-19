@@ -1,6 +1,6 @@
 # CAMIE 门户部署与运维交接
 
-> 更新：2026-10-07。本文是交接准备，不表示已经部署。实施时使用目标环境的域名、目录、账号和密钥；不要把本机测试库、测试账号或 `.local/` 配置原样搬到生产环境。页面和栏目逐项对照见 [CAMIE 页面区块与栏目维护对照表](column-mapping/camie-site-areas.md)。
+> 更新：2026-10-19。本文是交接准备，不表示已经部署。实施时使用目标环境的域名、目录、账号和密钥；不要把本机测试库、测试账号或 `.local/` 配置原样搬到生产环境。页面和栏目逐项对照见 [CAMIE 页面区块与栏目维护对照表](column-mapping/camie-site-areas.md)。
 
 生产服务器不承担构建。统一在受控的 Windows 构建机运行 `scripts/build-camie-release.ps1 -Version <版本>`，生成 Linux amd64 的版本化 `.tar.gz` 和独立 SHA256 文件；服务器只校验、解压、配置、迁移和启动。构建脚本要求两个仓库的当前 commit 都带同名 `camie-release-<版本>` tag，并拒绝未提交的发布源码。发布包模板、systemd、Nginx、SQL 与操作说明位于 `deploy/camie/`。
 
@@ -65,6 +65,50 @@
 构建前在仓库根目录执行 `go test ./...`、`go vet ./...`，再构建二进制。`portal-static preview --config <CAMIE配置>` 使用**内置演示数据**，可检查页面结构与资源，但不能证明目标库的栏目和文章正确；目标库验收应将 `dist_root` 指向隔离目录后执行 `portal-static generate --config <隔离配置>`。核对完产物，再用正式配置启动一站一进程的静态化服务。例如：
 
 `file` 模式下只改 `.tmpl` 无须先更新数据库 `source_code` 才能看到页面变化，但仍须发布同版本程序和模板资源并重建页面。发布包的 `db/migrate.sql` 目前仍会写入模板源码及栏目归属等数据；有数据库变更的版本必须按发布流水线执行。切到 `database` 模式前，应核对数据库模板已是目标版本；切换后发布脚本仍可能覆盖运维在后台改过的 `source_code`，届时要调整迁移策略。
+
+**分支机构验收：**后台保留“关于协会 `about` → 分支机构 `about-branches` → 九个 `branch-*`”结构。每个旧 `branch-*` 栏目首篇已发布图文是分会简介，页面沿用“协会简介”的正文模板，只显示首篇正文；“关于协会”中的“分支机构”默认选中水分会。首页九张卡片的外观和顺序不变，但链接进入 82 `home-fenzhijigou` 下各 `main-branch-*` 的专用文章列表，首页“分支机构”标题默认进入水分会列表。直接打开 `list/<about-branches 栏目 ID>/1.html` 显示水分会简介，不显示九宫格。发布时一起更新生成器、`camie-home`、`camie-about` 和 `camie-layout` 模板；若使用 `database` 模式，须先将对应数据库模板源码更新到同版并在隔离目录生成核对。检查九张卡片、九个列表页、九个简介页、默认选中状态、面包屑及链接校验。
+
+2026-10-19 的栏目导出中，82 `home-fenzhijigou` 位于 65 `home` 下，84、85、87–93 `main-branch-*` 位于 82 下。旧生成器加载子栏目却跳过 82 列表，造成 `list/82/1.html` 断链；本版生成 82 及子栏目的列表页，并在导航中将它们视为独立的分支机构栏目。运维保留这套新栏目，在 `main-branch-*` 发布需要展示在首页入口后的动态文章；旧 `branch-*` 只维护简介，不必将同一篇简介重复投放。不要直接删除或修改生产库。其他 `main-*` 栏目须按其自身用途单独核对。
+
+**会议活动及信息公开：**在“交流培训 → 会议活动”下新增 `training-meetings-conference`（环保装备高质量发展大会）和 `training-meetings-other`（其他活动）；在“关于协会”下新增 `about-disclosure`（信息公开）。三个新栏目都使用普通文章列表。二、三级栏目只显示直接发布到自身的文章：父级“会议活动”已有文章继续留在父级，两个子栏目各自维护文章，不自动上卷或合并；需要跨栏目出现的文章应在后台分别投放。首页“会议活动”资讯标签继续读取父栏目，环保装备高质量发展大会横幅进入同名子栏目。修改栏目或文章后重新生成全站，核对三个新列表及父子文章互不混入。
+
+### 三个新栏目的运维数据配置
+
+正式库须由运维在 Dia“栏目管理”创建；本地测试库中的 ID 99、100、101 仅供联调，**不要在正式库固定使用这些 ID，也不要导入 `.local/` 中的测试文章**。本次发布包的 `migrate.sql` 会按栏目树统一校正模板归属，但不会新建这三条栏目。后台如果不能设置稳定 `code` 或模板归属，应由运维在备份、审核和回滚准备完成后执行等价的受控数据迁移；静态化服务本身只读数据库。
+
+| 新栏目名称 | 稳定 `column.code` | 父栏目 `code` | 模板 `code` | 同级排序 | 展示方式 |
+| --- | --- | --- | --- | ---: | --- |
+| 环保装备高质量发展大会 | `training-meetings-conference` | `training-meetings` | `camie-training` | 0 | 普通文章列表 |
+| 其他活动 | `training-meetings-other` | `training-meetings` | `camie-training` | 1 | 普通文章列表 |
+| 信息公开 | `about-disclosure` | `about` | `camie-about` | 放在分支机构后 | 普通文章列表 |
+
+三个栏目均须启用（`status=1`），本地库的普通列表 `display_type=1`。父栏目 `training-meetings`、`about` 的编码和现有文章不变。运维创建后按 `code`、`parent_id`、`template_id`、排序及启用状态复核，再把文章直接投放到目标栏目并完成审核发布；只调整栏目层级不会迁移文章的 `article_column` / `article_column_publish` 关系。先发布匹配的生成器与模板、准备栏目数据，随后生成全站；核对首页大会横幅、首页“会议活动”资讯、会议活动父列表、两个子列表、“关于协会 → 信息公开”侧栏和列表，以及文章详情、面包屑。`list/<栏目ID>/1.html` 的 ID 以正式库实测为准。
+
+运维可在目标库执行以下**只读**查询，将结果附在上线验收记录中；三行都应返回，并与上表的父级、模板、排序和状态一致：
+
+```sql
+SELECT c.id, c.name, c.code, p.code AS parent_code,
+       t.code AS template_code, c.sort, c.status, c.display_type
+FROM `column` AS c
+JOIN `column` AS p ON p.id = c.parent_id
+JOIN template AS t ON t.id = c.template_id
+WHERE c.code IN ('training-meetings-conference',
+                 'training-meetings-other', 'about-disclosure')
+ORDER BY p.code, c.sort;
+```
+
+运维可在目标库执行以下**只读**查询，将结果附在上线验收记录中；三行都应返回，并与上表的父级、模板、排序和状态一致：
+
+```sql
+SELECT c.id, c.name, c.code, p.code AS parent_code,
+       t.code AS template_code, c.sort, c.status, c.display_type
+FROM `column` AS c
+JOIN `column` AS p ON p.id = c.parent_id
+JOIN template AS t ON t.id = c.template_id
+WHERE c.code IN ('training-meetings-conference',
+                 'training-meetings-other', 'about-disclosure')
+ORDER BY p.code, c.sort;
+```
 
 ```bash
 /opt/portal-static/current/portal-static generate --config /etc/portal-static/camie-staging.yaml

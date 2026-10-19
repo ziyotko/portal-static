@@ -1,12 +1,12 @@
 # CAMIE 门户页面区块与栏目维护对照表
 
-> 核对时间：2026-10-13。依据当前 CAMIE 生成器、十份 `camie-*` 数据库模板，以及本机 `camie_portal` 测试库。这里的本机栏目 ID 只是测试数据，正式库应按稳定的 `column.code` 核对，不能照抄 ID。尚未部署正式站。部署前另见 [CAMIE 门户部署与运维交接](../camie-deployment.md)。
+> 核对时间：2026-10-19。依据当前 CAMIE 生成器、文件模板、本机测试库，以及运维提供的 `column.sql` 导出。导出只用于核对栏目配置，不代表已核对生产文章或模板内容。这里的栏目 ID 仅用于解释该导出，其他环境应按稳定的 `column.code` 核对。尚未部署正式站。部署前另见 [CAMIE 门户部署与运维交接](../camie-deployment.md)。
 
-Dia 把模板作为页面，栏目直接通过 `column.template_id` 归属模板。本机已把顶部七个导航页面分别设为七条启用的“首页”类型模板；在“栏目管理 → 首页”依次点“首页”“党建专栏”等模板，就能分别看到各自栏目树。`camie-list` 是通用栏目页渲染模板，`camie-article` 是通用详情渲染模板，`camie-layout` 是公共布局。原 CAMIE 的 64 个分类节点仍完整保留；首页只保留根栏目 `home` 和独立轮播栏目 `home-hero` 两个专用节点，其余首页区块直接复用正式栏目树。
+Dia 把模板作为页面，栏目直接通过 `column.template_id` 归属模板。本机已把顶部七个导航页面分别设为七条启用的“首页”类型模板；在“栏目管理 → 首页”依次点“首页”“党建专栏”等模板，就能分别看到各自栏目树。`camie-list` 是通用栏目页渲染模板，`camie-article` 是通用详情渲染模板，`camie-layout` 是公共布局。首页轮播用 `home-hero`；首页分支机构列表用 82 `home-fenzhijigou` 及其 `main-branch-*` 子栏目。关于协会下的旧 `branch-*` 专门提供简介正文，两类页面各有用途。
 
 | 顶部页面模板 | 稳定编码 | 本机栏目节点数 | 生成页面 |
 | --- | --- | ---: | --- |
-| 首页 | `camie-home` | 2 | `index.html` |
+| 首页 | `camie-home` | 原有 2 个首页节点，另有 82/84–93 分支列表节点 | `index.html`，以及首页分支机构专用列表 |
 | 党建专栏 | `camie-party` | 4 | `pages/party.html` 及其子栏目 |
 | 部委动态 | `camie-ministry` | 8 | `pages/ministry.html` 及其子栏目 |
 | 新闻中心 | `camie-news` | 5 | `pages/news.html` 及其子栏目 |
@@ -43,14 +43,14 @@ Dia 后台已于 2026-09-21 将页面层合并进模板，使用 `column.templat
 | 快捷栏“会员中心” | 未登录跳转 `/business_member/login`，已登录进入 `pages/member.html` | **固定入口 → 实时活页面**；无令牌或登录失效时直接进入登录页，不再停留在会员页显示二次登录按钮 | 模板 `camie-home`；会员栏目与内容见下文 |
 | 快捷栏“移动媒体” | 三张微信二维码图片 | **固定**图片及文字，不从后台二维码、广告或链接表取数 | `assets/images/qr-wechat-service.jpg`、`qr-wechat-video.png`、`qr-wechat-subscription.jpg` 与首页模板 |
 | 快捷栏“视频专区” | `videos.html`，聚合公开视频 | **固定入口**，目标列表是**静态活** | 首页模板固定入口；公开视频文章维护见下文 |
-| 中部六组资讯标签 | 依次为 `training-meetings`、`standards-work`、`standards-innovation`、`training-international`、`training-talent`、`policy-research`，每组最多 6 篇；`policy-research` 自动聚合其五个启用子栏目 | **静态活**：标签名、标题、日期、详情及栏目链接；右侧图片取该组第一篇新闻封面，未上传封面时使用全站默认占位图。**固定**：六组顺序 | 在“交流培训”“科技标准”“政策研究”的正式栏目维护，无须重复投放首页栏目 |
-| 大会横幅 | 点击指向 `training-meetings` | **固定**：横幅图 `assets/images/conference-banner.png`；**静态活**：点击目标按栏目 code 找到生成页。当前不读取后台“广告管理” | 首页模板及图片资源；栏目内容在“会议活动”维护 |
+| 中部六组资讯标签 | 依次为 `training-meetings`、`standards-work`、`standards-innovation`、`training-international`、`training-talent`、`policy-research`，每组最多 6 篇；二级栏目只取直接发布的文章，`policy-research` 顶级入口默认取首个启用子栏目 | **静态活**：标签名、标题、日期、详情及栏目链接；右侧图片取该组第一篇新闻封面，未上传封面时使用全站默认占位图。**固定**：六组顺序 | 在“交流培训”“科技标准”“政策研究”的正式栏目维护，无须重复投放首页栏目 |
+| 大会横幅 | 点击指向 `training-meetings-conference` | **固定**：横幅图 `assets/images/conference-banner.png`；**静态活**：点击目标按栏目 code 找到生成页。当前不读取后台“广告管理” | 首页模板及图片资源；大会文章发布在“会议活动 → 环保装备高质量发展大会” |
 | 横幅下四个专题入口 | `standards-green-promotion`、`policy-major-equipment-catalogue`、`policy-qualified-enterprises`、`policy-innovation-tasks` | **固定**：四个标题和顺序；**静态活**：链接指向各栏目生成页。当前不读取后台“友情链接管理” | 首页模板改标题/数量；后台栏目与文章改目标内容 |
-| “分支机构”九张卡片 | `branch-water`、`branch-atmosphere`、`branch-solid-waste`、`branch-monitoring`、`branch-noise`、`branch-uv`、`branch-ozone`、`branch-ai`、`branch-engineering` | **固定**：九个名称、顺序和图标；**静态活**：每张卡片指向各自栏目。后台新增第十个分支栏目不会自动长出首页卡片 | CAMIE 生成器中的 `Branches` 改卡片；后台栏目与文章改分支内容 |
+| “分支机构”九张卡片 | `main-branch-water`、`main-branch-atmosphere`、`main-branch-solid-waste`、`main-branch-monitoring`、`main-branch-noise`、`main-branch-uv`、`main-branch-ozone`、`main-branch-ai`、`main-branch-engineering` | **固定**：九个名称、顺序、图片和首页卡片样式不变；**静态活**：每张卡片进入新栏目各自的文章列表。“分支机构”标题默认进入第一个水分会列表 | 在“首页 → 分支机构 → 各分会”维护列表文章；旧 `branch-*` 只维护“关于协会”下的简介 |
 | “专家委员会” | 标题到 `about-experts`；内容取 `about-expert-insights` 最多 3 篇 | **静态活**：首篇标题、链接和封面及其余标题；首篇未上传封面时使用全站默认占位图。**固定**：“中国环保机械行业协会／专家委员会”字样 | 在“关于协会 → 专家委员会 → 专家视野”维护文章和封面 |
 | “副会长单位”滚动标志 | Go 生成器的 `PartnerRows` 数组 | **固定**：单位名称、标志文件、官网 URL、排序均写在代码里；**未接入**后台“友情链接管理” | CAMIE 生成器 `PartnerRows` 与 `assets/images/partner-logos/` |
 
-首页标签悬停或聚焦时切换展示列表，点击直接进入对应正式栏目。除独立轮播 `home-hero` 外，首页只从正式栏目读取文章，无须再投放到“首页内容”下的同名栏目。旧的重复 `home-*` 栏目不再参与公开静态化。发布前的 SQL 检查会阻止仍有文章只投放在旧首页栏目；应先在对应正式栏目完成发布。迁移脚本把旧首页栏目移到停用的“历史首页栏目”模板，保留原投放记录供核对，并使“首页”模板不再显示这些重复栏目。
+首页资讯标签悬停或聚焦时切换展示列表，点击进入对应正式栏目；这些资讯区块不需要重复投放首页栏目。首页独立轮播使用 `home-hero`，首页分支机构卡片使用 `home-fenzhijigou` 下的 `main-branch-*` 列表。其他旧的重复 `home-*` 栏目仍不参与公开静态化。发布前的 SQL 检查会阻止文章只投放在那些旧首页栏目；应先在对应正式栏目完成发布。迁移脚本把旧首页栏目移到停用的“历史首页栏目”模板，保留原投放记录供核对。
 
 ## 全站公共区域
 
@@ -71,10 +71,13 @@ Dia 后台已于 2026-09-21 将页面层合并进模板，使用 `column.templat
 
 | 页面 | 栏目/内容来源 | 维护口径 |
 | --- | --- | --- |
-| `pages/party.html`、`pages/ministry.html`、`pages/news.html`、`pages/training.html`、`pages/standards.html`、`pages/about.html` | 分别对应 `party`、`ministry`、`news`、`training`、`standards`、`about`；也是 `list/<栏目ID>/1.html` 的别名入口 | **静态活**。顶级栏目列表聚合其公开子孙栏目文章，左侧菜单按启用栏目树生成 |
+| `pages/party.html`、`pages/ministry.html`、`pages/news.html`、`pages/training.html`、`pages/standards.html`、`pages/about.html` | 分别对应 `party`、`ministry`、`news`、`training`、`standards`、`about`；也是 `list/<栏目ID>/1.html` 的别名入口 | **静态活**。顶级导航入口默认展示首个启用子栏目，左侧菜单按启用栏目树生成 |
 | `pages/policy.html`、`pages/experts.html`、`pages/videos.html` | 分别对应 `policy-research`、`about-experts`、`videos` | **静态活**栏目别名。`pages/videos.html` 与根目录 `videos.html` 均为公开视频入口 |
 | 其余栏目列表 `list/<栏目ID>/<页码>.html` | 对应每个启用公开栏目的 `column.code`；本机 ID 仅为示例 | **静态活**：10 条/页；文章置顶优先、发布时间倒序。栏目改名不要求改 code |
 | “关于协会/协会简介/组织架构/协会章程”内容区 | `about` 页优先取 `about-introduction` 的首篇公开图文；三个子栏目各取本栏目首篇公开图文 | **静态活**正文；没有文章时显示“暂无公开内容”。三个子栏目入口均指向栏目正文页，原文章详情链接仍可访问 |
+| “关于协会 → 分支机构 → 各分会” | `about-branches`（导出 ID 49）默认展示第一个水分会，不显示分会九宫格；旧 `branch-*`（导出 ID 50–58）各取本栏首篇已发布的非视频、非外链图文正文 | **静态活**简介，使用与“协会简介”相同的正文样式，只显示内容。点击“关于协会”中的“分支机构”默认选中水分会；没有合适图文时显示“暂无公开内容”。这些简介页与首页卡片的文章列表是不同页面 |
+| “交流培训 → 会议活动”及其两个子栏目 | `training-meetings`、`training-meetings-conference`、`training-meetings-other` 各取直接发布到本栏目的文章 | **静态活**普通列表。发布到大会或其他活动的文章不会出现在父栏目；要在两个栏目同时展示，需在后台分别投放 |
+| “关于协会 → 信息公开” | `about-disclosure` 直接发布的文章 | **静态活**普通文章列表 |
 | `en/about.html` 英文简介 | 独立栏目 `about-english` 的首篇公开图文 | **静态活**正文和图片；无左栏。栏目不放进中文导航树，编辑只需维护一篇英文图文；旧站英文段落与配图已整理为 `internal/adapters/camie/demo/english-about.html` 和 `assets/images/about-english.png`，可作为后台初次录入内容，图片地址填 `assets/images/about-english.png` |
 | 公开文章详情 `article/YYYY/MM/<文章ID>.html` | 后台公开 `article` + 栏目发布关系（首页轮播以当前栏目勾选为准）+ 附件 | **静态活**：标题、日期、来源、正文、附件、上一篇/下一篇；公开富文本会在生成时净化。文章若设置有效的 HTTP(S) 外链 `url`，列表直接跳外链，不生成该文章的本地详情 |
 | `videos.html`、`pages/videos.html` 与视频详情 | 公开类型 `2` 的视频文章；`videos-news` 的栏目列表也使用视频卡片样式 | **静态活**：在“图文管理”新增视频并投放到“CAMIE栏目 / 视频资讯”（栏目展示方式须为“视频展示”）；详情优先播放文章的 MP4 附件，也兼容正文中的视频标签。没有视频源时显示提示，不显示假的播放按钮 |
@@ -98,7 +101,7 @@ Dia 后台已于 2026-09-21 将页面层合并进模板，使用 `column.templat
 
 ## 本机完整栏目树（按 `column.code` 对照）
 
-下列是本机测试库与 CAMIE 栏目结构文件核对后的 9 个原始一级栏目、64 个分类节点。顶部六个公开栏目分支分别归属上表六条页面模板；视频专区、政策研究及原会员栏目结构归 `camie-list`。首页不需要重复栏目树，正文区块按上表从其他正式栏目取数；仅 `home` 与 `home-hero` 保留为首页专用结构，其他旧 `home-*` 栏目会被生成器忽略。
+下列是本机测试库的当前栏目树；新栏目部署字段和只读核对 SQL 见 [CAMIE 部署与运维交接](../camie-deployment.md#三个新栏目的运维数据配置)。顶部六个公开栏目分支分别归属上表六条页面模板；视频专区、政策研究及原会员栏目结构归 `camie-list`。运维导出的 82 编码为 `home-fenzhijigou`、父栏目为 65 `home`，其子栏目是 84、85、87–93 的 `main-branch-*`。旧生成器跳过 82 页面却加载其子栏目，导致子页的面包屑指向不存在的 `list/82/1.html`；本版把 82 和子栏目都生成，并将它们作为首页分支机构的专用列表栏目。
 
 ```text
 党建专栏 party
@@ -112,7 +115,9 @@ Dia 后台已于 2026-09-21 将页面层合并进模板，使用 `column.templat
 新闻中心 news
   热点关注 news-hot；通知公告 news-notice；协会动态 news-association；会员动态 news-member
 交流培训 training
-  会议活动 training-meetings；人才培训 training-talent
+  会议活动 training-meetings
+    环保装备高质量发展大会 training-meetings-conference；其他活动 training-meetings-other
+  人才培训 training-talent
     通知及动态 training-talent-notices；人才交流平台 training-talent-exchange
   国际交流与合作 training-international
     出海培训 training-overseas-training；海外考察 training-overseas-visits；交流对接 training-business-matching
@@ -128,6 +133,7 @@ Dia 后台已于 2026-09-21 将页面层合并进模板，使用 `column.templat
     水分会 branch-water；大气分会 branch-atmosphere；固废分会 branch-solid-waste
     环境监测分会 branch-monitoring；噪声分会 branch-noise；紫外线分会 branch-uv
     臭氧分会 branch-ozone；人工智能分会 branch-ai；环境工程分会 branch-engineering
+  信息公开 about-disclosure
   专家委员会 about-experts
     专家视野 about-expert-insights
 会员中心 member（公开静态化排除，会员实时内容另见 member_column）
@@ -149,7 +155,9 @@ Dia 后台已于 2026-09-21 将页面层合并进模板，使用 `column.templat
 2. **下线或删除公开文章**：后台操作后检查旧详情 URL 已失效，列表、首页、搜索均不再出现。自动静态化是尽力而为；若任务失败，恢复服务后手动重建全站并复查。
 3. **改栏目名称、层级、排序或启用状态**：在“栏目管理”维护，保留已有稳定 code。公开页面需要重新生成；首页固定的区块数量、顺序、卡片和配图不会因为新增栏目自动变化。
 4. **改会员栏目与会员内容**：在后台“会员专区”维护 `member_column`/`member_content`，不需要生成公开静态页；使用正式会员账号刷新动态页面核对，并用非正式会员账号核对前端拦截。服务端 `active` 校验尚未实现，需另外验证 API 直调并解决上述上线阻断项。
-5. **改固定区块**：生产模板 `camie-home` 负责首页，`camie-party` 等五条页面模板负责各自栏目树的列表外观，`camie-about` 负责“关于协会”及“协会简介、组织架构、协会章程”正文页；`camie-list` 负责视频/政策等通用列表及搜索、会员动态壳，`camie-article` 负责公开详情，`camie-layout` 负责全站布局。其 `source_code` 在后台“模板管理”；固定分支卡片/合作单位映射在生成器；CSS、JS、图片在源码资源目录。修改前先备份模板或资源，再生成到预览/测试目录核对。不要直接编辑 `dist/camie-portal` 或 `dist/camie-preview`。
+5. **改固定区块**：生产模板 `camie-home` 负责首页，`camie-party` 等五条页面模板负责各自栏目树的列表外观，`camie-about` 负责“关于协会”及分会简介等正文页；`camie-list` 负责视频/政策等通用列表及搜索、会员动态壳，`camie-article` 负责公开详情，`camie-layout` 负责全站布局。其 `source_code` 在后台“模板管理”；固定分支卡片/合作单位映射在生成器；CSS、JS、图片在源码资源目录。修改前先备份模板或资源，再生成到预览/测试目录核对。不要直接编辑 `dist/camie-portal` 或 `dist/camie-preview`。
+
+**分会维护步骤：**保留“关于协会 → 分支机构 → 水分会等”原层级及 `about-branches`、`branch-*` 编码；在每个旧 `branch-*` 栏目投放一篇排在首位的已发布图文，正文填写完整简介。首页的新 82 `home-fenzhijigou` 和 84/85/87–93 `main-branch-*` 保留启用，在对应新子栏目发布需要进入专用列表的动态文章，不必把同一篇简介重复投放过去。重新生成全站后，分别检查首页九张卡片进入列表、首页标题进入水分会列表、关于协会的分支机构进入水分会简介，以及每个页面的侧栏和面包屑。不要直接改生产数据库或删除栏目。
 
 当前首页横幅、专题入口、副会长单位和页脚友情链接**没有消费**后台广告/友情链接表；原 `camie-portal/frontend-preview` 中的 `data-display-type="ad/link"` 标记不等于这套生成器已完成接入。
 
