@@ -903,11 +903,11 @@ func TestGenerateCompletePublicSiteAndMemberShells(t *testing.T) {
 		}
 	}
 	homePage := readGenerated(t, result.Output, "index.html")
-	if !strings.Contains(homePage, `href="./en/about.html" aria-label="英文版"`) {
-		t.Fatal("language switch does not link to the generated English page")
+	if !strings.Contains(homePage, `class="language-switch" href="#coming-soon" aria-label="中英文切换敬请期待"`) {
+		t.Fatal("language switch does not show the coming-soon state")
 	}
 	englishPage := readGenerated(t, result.Output, "en/about.html")
-	for _, marker := range []string{`<html lang="en">`, `class="about-page english-about-page"`, `href="../pages/about.html" aria-label="中文版"`, `The China Association of Machinery Industry`, `src="../assets/images/about-english.png"`} {
+	for _, marker := range []string{`<html lang="en">`, `class="about-page english-about-page"`, `class="language-switch" href="#coming-soon"`, `The China Association of Machinery Industry`, `src="../assets/images/about-english.png"`} {
 		if !strings.Contains(englishPage, marker) {
 			t.Fatalf("English page missing %q", marker)
 		}
@@ -1047,11 +1047,11 @@ func TestGenerateCompletePublicSiteAndMemberShells(t *testing.T) {
 		t.Fatal("member column structure leaked into public page metadata")
 	}
 	for name, markers := range map[string][]string{
-		"index.html":               {`href="/member-entry/register"`, `href="./pages/member.html" data-member-entry`, `href="./videos.html"`},
-		"videos.html":              {`member.html?column=`, `mode=video`},
+		"index.html":               {`href="#coming-soon"`, `href="./videos.html"`},
+		"videos.html":              {`href="#coming-soon"`, `>会员专享</a>`},
 		"pages/member.html":        {`data-member-list-shell`, `data-member-columns`, `data-member-login-path="/member-entry/login?site=camie"`, `data-member-auth-gate`, `js/member.js`},
 		"pages/member-detail.html": {`data-member-detail-shell`, `data-member-breadcrumb`, `data-member-login-path="/member-entry/login?site=camie"`, `data-member-auth-gate`, `js/member.js`},
-		"js/main.js":               {`[data-member-entry]`, `memberLoginURL(link.href)`},
+		"js/main.js":               {`a[href="#coming-soon"]`, `showToast('敬请期待')`},
 		"js/member.js":             {`memberSpaceItem`, `我的空间`, `/business_member/member/dashboard`, `location.replace(loginURL())`},
 	} {
 		page := readGenerated(t, result.Output, name)
@@ -1060,6 +1060,9 @@ func TestGenerateCompletePublicSiteAndMemberShells(t *testing.T) {
 				t.Fatalf("%s missing %q", name, marker)
 			}
 		}
+	}
+	if got := strings.Count(readGenerated(t, result.Output, "index.html"), `href="#coming-soon"`); got != 3 {
+		t.Fatalf("homepage coming-soon links = %d, want 3", got)
 	}
 	branchHome := readGenerated(t, result.Output, "index.html")
 	branchLinks := regexp.MustCompile(`class="branch-card" href="([^"]+)"`).FindAllStringSubmatch(branchHome, -1)
@@ -1083,7 +1086,7 @@ func TestGenerateCompletePublicSiteAndMemberShells(t *testing.T) {
 		}
 	}
 	if !strings.Contains(branchHome, fmt.Sprintf(`<h2 class="section-title"><a href="./list/%d/1.html"><span class="section-title-logo" aria-hidden="true"></span>分支机构</a>`, branchColumnID(source, "main-branch-water"))) ||
-		!strings.Contains(branchHome, fmt.Sprintf(`<h2 class="section-title"><a href="./list/%d/1.html"><span class="section-title-logo" aria-hidden="true"></span>专家委员会</a>`, branchColumnID(source, "about-expert-insights"))) {
+		!strings.Contains(branchHome, fmt.Sprintf(`<h2 class="section-title"><a href="./list/%d/1.html"><span class="section-title-logo" aria-hidden="true"></span>专家视野</a>`, branchColumnID(source, "about-expert-insights"))) {
 		t.Fatal("homepage section headings do not open their section pages")
 	}
 	assertPublicListAndDetailShells(t, result.Output)

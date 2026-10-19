@@ -598,7 +598,7 @@ func side(c *catalog, currentCode string) []Link {
 		links = append(links, Link{Name: top.Name, Href: groupByID(c, top.ID, 0).Href, Active: true, Current: top.Code == currentCode})
 	}
 	if top.Code == "videos" {
-		links = append(links, Link{Name: "会员专享", Href: "pages/member.html?column=会员专享&mode=video"})
+		links = append(links, Link{Name: "会员专享", Href: "#coming-soon"})
 	}
 	return links
 }

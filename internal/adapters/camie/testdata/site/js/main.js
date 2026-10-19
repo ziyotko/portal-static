@@ -1,20 +1,6 @@
 (() => {
   const body = document.body;
   const rootPrefix = body.dataset.rootPrefix || './';
-  const memberLoginURL = (returnURL) => {
-    const login = new URL(body.dataset.memberLoginPath, location.href);
-    login.searchParams.set('returnUrl', returnURL);
-    return login.href;
-  };
-  document.querySelectorAll('[data-member-entry]').forEach((link) => {
-    link.addEventListener('click', (event) => {
-      let token = '';
-      try { token = localStorage.getItem('member-token') || ''; } catch { token = ''; }
-      if (token) return;
-      event.preventDefault();
-      location.href = memberLoginURL(link.href);
-    });
-  });
   let columnPaths = {};
   try {
     columnPaths = JSON.parse(document.querySelector('#column-paths')?.textContent || '{}');
@@ -197,6 +183,13 @@
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => toast.classList.remove('show'), 2200);
   };
+
+  document.querySelectorAll('a[href="#coming-soon"]').forEach((link) => {
+    link.addEventListener('click', (event) => {
+      event.preventDefault();
+      showToast('敬请期待');
+    });
+  });
 
   document.querySelectorAll('a[href="#"], a[href="#mobile"]').forEach((link) => {
     link.addEventListener('click', (event) => {
