@@ -128,13 +128,13 @@ AND EXISTS (
 func (r *Repository) fetchColumnArticles(ctx context.Context, id int64, limit int) ([]model.Article, error) {
 	query := `SELECT a.id,a.type,a.title,COALESCE(a.summary,''),COALESCE(a.content,''),COALESCE(a.cover,''),
 COALESCE(NULLIF(acp.author,''),a.author,''),COALESCE(NULLIF(acp.source,''),a.source,''),
-COALESCE(a.is_bold,0),COALESCE(a.is_top,0),COALESCE(a.default_color,''),
+COALESCE(acp.is_bold,0),COALESCE(acp.is_top,0),COALESCE(NULLIF(acp.color,''),a.default_color,''),
 COALESCE(a.url,''),a.publish_time
 FROM {{schema}}.article_column_publish acp INNER JOIN {{schema}}.article a ON a.id=acp.article_id
 INNER JOIN {{schema}}.` + "`column`" + ` c ON c.id=acp.column_id AND c.status=1 AND c.template_id=acp.template_id
 INNER JOIN {{schema}}.template t ON t.id=c.template_id AND t.status=1
 WHERE acp.column_id=? AND a.status=1 AND a.audit_status=2 AND a.publish_time<=NOW()
-AND a.type IN (1,2) ORDER BY a.is_top DESC,a.publish_time DESC,a.id DESC`
+AND a.type IN (1,2) ORDER BY acp.is_top DESC,a.publish_time DESC,a.id DESC`
 	args := []any{id}
 	if limit > 0 {
 		query += " LIMIT ?"
@@ -159,7 +159,9 @@ func (r *Repository) FetchArticle(ctx context.Context, id int64) (model.Column, 
 a.id,a.type,a.title,COALESCE(a.summary,''),COALESCE(a.content,''),COALESCE(a.cover,''),
 COALESCE(CASE WHEN c.code='home-hero' THEN a.author ELSE NULLIF(acp.author,'') END,a.author,''),
 COALESCE(CASE WHEN c.code='home-hero' THEN a.source ELSE NULLIF(acp.source,'') END,a.source,''),
-COALESCE(a.is_bold,0),COALESCE(a.is_top,0),COALESCE(a.default_color,''),
+COALESCE(CASE WHEN c.code='home-hero' THEN a.is_bold ELSE acp.is_bold END,0),
+COALESCE(CASE WHEN c.code='home-hero' THEN a.is_top ELSE acp.is_top END,0),
+COALESCE(CASE WHEN c.code='home-hero' THEN a.default_color ELSE NULLIF(acp.color,'') END,a.default_color,''),
 COALESCE(a.url,''),a.publish_time
 FROM {{schema}}.article a INNER JOIN {{schema}}.` + "`column`" + ` c ON c.status=1
 INNER JOIN {{schema}}.template t ON t.id=c.template_id AND t.status=1
@@ -167,7 +169,7 @@ LEFT JOIN {{schema}}.article_column_publish acp ON acp.article_id=a.id AND acp.c
 WHERE a.id=? AND a.status=1 AND a.audit_status=2 AND a.publish_time<=NOW() AND a.type IN (1,2)
 AND ((c.code<>'home-hero' AND acp.id IS NOT NULL) OR (c.code='home-hero' AND EXISTS (
   SELECT 1 FROM {{schema}}.article_column ac WHERE ac.article_id=a.id AND ac.column_id=c.id
-))) ORDER BY a.is_top DESC,c.sort,c.id LIMIT 1`
+))) ORDER BY COALESCE(CASE WHEN c.code='home-hero' THEN a.is_top ELSE acp.is_top END,0) DESC,c.sort,c.id LIMIT 1`
 	var c model.Column
 	var a model.Article
 	err := r.db.QueryRowContext(ctx, query, id).Scan(&c.ID, &c.Name, &c.Code, &c.TemplateID, &c.ParentID, &c.Description, &c.Sort,

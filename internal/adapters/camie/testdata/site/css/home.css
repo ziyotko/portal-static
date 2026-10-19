@@ -91,7 +91,7 @@
   .hero-slide, .hero-media img { transition: none; }
 }
 
-.notice-panel { height: var(--hero-height); display: flex; flex-direction: column; padding: 0; background: #fff; }
+.notice-panel { height: var(--hero-height); display: flex; flex-direction: column; margin-left: 20px; padding: 0; background: #fff; }
 .home-tabs { flex: 0 0 40px; display: flex; align-items: flex-start; gap: 30px; border-bottom: 1px solid #96b0df; }
 .home-tabs button { height: 40px; padding: 0 0 8px; border: 0; color: #404040; background: transparent; font-size: 20px; line-height: 1.2; white-space: nowrap; cursor: pointer; }
 .home-tabs button.active { color: var(--green-700); font-weight: 700; border-bottom: 3px solid var(--green-700); }

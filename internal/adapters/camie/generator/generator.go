@@ -133,6 +133,7 @@ type Page struct {
 	Notices, Topics                       []Group
 	Experts                               Group
 	DataCenterURL                         string
+	ConferenceBannerURL                   string
 	MemberLoginPath, MemberRegisterPath   string
 	Branches                              []Branch
 	BranchIntro                           bool
@@ -225,6 +226,16 @@ func (g *Generator) load(ctx context.Context) (*catalog, error) {
 			if err != nil {
 				return nil, err
 			}
+			sort.SliceStable(items, func(i, j int) bool {
+				a, b := items[i], items[j]
+				if a.IsTop != b.IsTop {
+					return a.IsTop
+				}
+				if !a.PublishTime.Equal(b.PublishTime) {
+					return a.PublishTime.After(b.PublishTime)
+				}
+				return a.ID > b.ID
+			})
 			if isPrivateColumnCode(col.Code) {
 				for _, article := range items {
 					restricted[article.ID] = true
@@ -260,13 +271,14 @@ func (g *Generator) load(ctx context.Context) (*catalog, error) {
 					copy := *existing
 					copy.Category, copy.ColumnCode = col.Name, col.Code
 					copy.Bold, copy.Color = a.IsBold, color
+					copy.Href, copy.Source = href, a.Source
 					copy.HasCover = hasCover
 					if col.Code == "home-hero" {
 						// A shared article may have reached c.byID through an old
 						// publication snapshot. The carousel displays current article
-						// fields from its own query, including the current source.
-						copy.Title, copy.Summary, copy.Source = a.Title, a.Summary, a.Source
-						copy.Date, copy.Href, copy.Cover, copy.Video = a.PublishTime.Format("2006-01-02"), href, cover, a.Type == 2
+						// fields from its own query.
+						copy.Title, copy.Summary = a.Title, a.Summary
+						copy.Date, copy.Cover, copy.Video = a.PublishTime.Format("2006-01-02"), cover, a.Type == 2
 					}
 					v = &copy
 				} else {
@@ -446,6 +458,22 @@ func isPrivateColumnCode(code string) bool {
 	return code == "member" || strings.HasPrefix(code, "member-") || code == "videos-members"
 }
 
+func publicChildColumns(c *catalog, parentID int64) []model.Column {
+	children := make([]model.Column, 0)
+	for _, column := range c.columns {
+		if column.ParentID == parentID && !isPrivateColumnCode(column.Code) {
+			children = append(children, column)
+		}
+	}
+	sort.SliceStable(children, func(i, j int) bool {
+		if children[i].Sort != children[j].Sort {
+			return children[i].Sort < children[j].Sort
+		}
+		return children[i].ID < children[j].ID
+	})
+	return children
+}
+
 func groupByID(c *catalog, id int64, limit int) Group {
 	name, code := "", ""
 	displayID := id
@@ -460,31 +488,21 @@ func groupByID(c *catalog, id int64, limit int) Group {
 	}
 	// 一级栏目是导航容器：它不读取自身文章，默认落到第一个公开二级栏目。
 	if selected.ID != 0 && ((selected.ParentID == 0 && selected.Code != "home") || selected.Code == "about-branches") {
-		for _, column := range c.columns {
-			if column.ParentID == selected.ID && !isPrivateColumnCode(column.Code) {
-				displayID = column.ID
-				break
-			}
+		if children := publicChildColumns(c, selected.ID); len(children) > 0 {
+			displayID = children[0].ID
 		}
 	}
 	// 二级、三级栏目只展示直接发布在当前栏目的文章，不汇总后代栏目。
 	// Keep each publication's current-column context when an article is cross-posted.
-	articlesByID := map[int64]*Article{}
+	// Each column is ordered by its own publication's top/date values.
+	// A shared article can have a different priority in another column, so the
+	// globally sorted catalog cannot determine this list's order.
+	items := make([]*Article, 0, len(c.groups[displayID]))
+	seen := make(map[int64]bool, len(c.groups[displayID]))
 	for _, article := range c.groups[displayID] {
-		if articlesByID[article.ID] == nil {
-			articlesByID[article.ID] = article
-		}
-	}
-	items := make([]*Article, 0, len(articlesByID))
-	if code == "home-hero" {
-		// The carousel query has its own top/date order. Reusing c.all would
-		// sort shared articles by their first ordinary-column publication.
-		items = append(items, c.groups[displayID]...)
-	} else {
-		for _, article := range c.all {
-			if publication := articlesByID[article.ID]; publication != nil {
-				items = append(items, publication)
-			}
+		if !seen[article.ID] {
+			seen[article.ID] = true
+			items = append(items, article)
 		}
 	}
 	if limit > 0 && len(items) > limit {
@@ -525,10 +543,8 @@ func defaultListColumn(c *catalog, id int64) model.Column {
 	if selected.ID == 0 || (selected.ParentID != 0 && selected.Code != "about-branches") || selected.Code == "home" {
 		return selected
 	}
-	for _, column := range c.columns {
-		if column.ParentID == selected.ID && !isPrivateColumnCode(column.Code) {
-			return column
-		}
+	if children := publicChildColumns(c, selected.ID); len(children) > 0 {
+		return children[0]
 	}
 	return selected
 }
@@ -561,11 +577,8 @@ func side(c *catalog, currentCode string) []Link {
 	activeID := c.byCode[currentCode]
 	if activeID == top.ID {
 		activeID = 0
-		for _, column := range c.columns {
-			if column.ParentID == top.ID && !isPrivateColumnCode(column.Code) {
-				activeID = column.ID
-				break
-			}
+		if children := publicChildColumns(c, top.ID); len(children) > 0 {
+			activeID = children[0].ID
 		}
 	} else {
 		for activeID != 0 && columns[activeID].ParentID != top.ID {
@@ -573,16 +586,11 @@ func side(c *catalog, currentCode string) []Link {
 		}
 	}
 	var links []Link
-	for _, column := range c.columns {
-		if column.ParentID != top.ID || isPrivateColumnCode(column.Code) {
-			continue
-		}
+	for _, column := range publicChildColumns(c, top.ID) {
 		active := column.ID == activeID
 		link := Link{Name: column.Name, Href: groupByID(c, column.ID, 0).Href, Active: active, Current: column.Code == currentCode}
-		for _, child := range c.columns {
-			if child.ParentID == column.ID && !isPrivateColumnCode(child.Code) {
-				link.Children = append(link.Children, Link{Name: child.Name, Href: groupByID(c, child.ID, 0).Href, Active: child.Code == currentCode, Current: child.Code == currentCode})
-			}
+		for _, child := range publicChildColumns(c, column.ID) {
+			link.Children = append(link.Children, Link{Name: child.Name, Href: groupByID(c, child.ID, 0).Href, Active: child.Code == currentCode, Current: child.Code == currentCode})
 		}
 		links = append(links, link)
 	}
@@ -861,6 +869,14 @@ func (g *Generator) GenerateSite(ctx context.Context) (result Result, err error)
 		home.DataCenterURL = dataCenter.Feature.Href
 	}
 	home.Experts = group(c, "about-expert-insights", 3)
+	conference := group(c, "training-meetings-conference", 0)
+	home.ConferenceBannerURL = conference.Href
+	for _, article := range conference.Items {
+		if article.ID == 20163 {
+			home.ConferenceBannerURL = article.Href + "?from=training-meetings-conference"
+			break
+		}
+	}
 	if err = render("index.html", "home", home); err != nil {
 		return result, err
 	}
@@ -956,15 +972,11 @@ func (g *Generator) GenerateSite(ctx context.Context) (result Result, err error)
 		}
 	}
 	var videos []*Article
-	videoPublications := make(map[int64]*Article)
+	seenVideos := make(map[int64]bool)
 	for _, a := range c.groups[c.byCode["videos-news"]] {
-		if a.Video {
-			videoPublications[a.ID] = a
-		}
-	}
-	for _, a := range c.all {
-		if publication := videoPublications[a.ID]; publication != nil {
-			videos = append(videos, publication)
+		if a.Video && !seenVideos[a.ID] {
+			seenVideos[a.ID] = true
+			videos = append(videos, a)
 		}
 	}
 	if err = makeLists("新闻中心", "news", "list/news", "news.html", news); err != nil {

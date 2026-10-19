@@ -55,6 +55,42 @@ func TestAboutBranchesDefaultsToFirstBranchIntro(t *testing.T) {
 	}
 }
 
+func TestSidebarUsesBackendColumnSortOrder(t *testing.T) {
+	c := &catalog{
+		columns: []model.Column{
+			{ID: 1, Name: "关于协会", Code: "about", Sort: 0},
+			{ID: 4, Name: "信息公开", Code: "about-disclosure", ParentID: 1, Sort: 40},
+			{ID: 3, Name: "分支机构", Code: "about-branches", ParentID: 1, Sort: 30},
+			{ID: 2, Name: "协会简介", Code: "about-introduction", ParentID: 1, Sort: 10},
+			{ID: 6, Name: "大气分会", Code: "branch-atmosphere", ParentID: 3, Sort: 20},
+			{ID: 5, Name: "水分会", Code: "branch-water", ParentID: 3, Sort: 10},
+		},
+		byCode: map[string]int64{
+			"about": 1, "about-introduction": 2, "about-branches": 3,
+			"about-disclosure": 4, "branch-water": 5, "branch-atmosphere": 6,
+		},
+		groups: map[int64][]*Article{},
+	}
+
+	links := side(c, "about-disclosure")
+	names := make([]string, 0, len(links))
+	for _, link := range links {
+		names = append(names, link.Name)
+	}
+	if got := strings.Join(names, ","); got != "协会简介,分支机构,信息公开" {
+		t.Fatalf("sidebar order = %q", got)
+	}
+	if got := strings.Join([]string{links[1].Children[0].Name, links[1].Children[1].Name}, ","); got != "水分会,大气分会" {
+		t.Fatalf("nested sidebar order = %q", got)
+	}
+	if !links[2].Current || !links[2].Active {
+		t.Fatal("information disclosure link is not current and active")
+	}
+	if got := defaultListColumn(c, 1).Code; got != "about-introduction" {
+		t.Fatalf("default column = %q", got)
+	}
+}
+
 func TestHomeBranchTreeGeneratesDedicatedListsAndParent(t *testing.T) {
 	source := demo.NewSource()
 	parentID := branchColumnID(source, "home-fenzhijigou")
@@ -131,6 +167,11 @@ func TestMeetingParentAndChildrenKeepTheirOwnArticles(t *testing.T) {
 	if len(source.Items[parentID]) == 0 || len(source.Items[conferenceID]) == 0 || len(source.Items[otherID]) == 0 {
 		t.Fatal("missing direct parent or child fixture")
 	}
+	source.Items[conferenceID] = append(source.Items[conferenceID], model.Article{
+		ID: 20163, ColumnID: conferenceID, Type: model.ArticleTypeContent,
+		Title:       "第十一届环保装备高质量发展大会的通知",
+		PublishTime: time.Date(2026, 9, 23, 9, 0, 0, 0, time.Local),
+	})
 	result, err := New(testConfig(t), source).GenerateSite(context.Background())
 	if err != nil {
 		t.Fatal(err)
@@ -150,12 +191,25 @@ func TestMeetingParentAndChildrenKeepTheirOwnArticles(t *testing.T) {
 		}
 	}
 	home := readGenerated(t, result.Output, "index.html")
-	if !strings.Contains(home, fmt.Sprintf(`class="conference-banner" href="./list/%d/1.html"`, conferenceID)) {
-		t.Fatal("conference banner does not link to its child column")
+	if !strings.Contains(home, `class="conference-banner" href="./article/2026/09/20163.html?from=training-meetings-conference"`) {
+		t.Fatal("conference banner does not link to the configured conference detail")
 	}
 	disclosure := readGenerated(t, result.Output, fmt.Sprintf("list/%d/1.html", disclosureID))
 	if !strings.Contains(disclosure, `class="news-list"`) || !strings.Contains(disclosure, source.Items[disclosureID][0].Title) {
 		t.Fatal("about disclosure did not render as an article list")
+	}
+}
+
+func TestConferenceBannerFallsBackToColumnWhenArticleMissing(t *testing.T) {
+	source := demo.NewSource()
+	conferenceID := branchColumnID(source, "training-meetings-conference")
+	result, err := New(testConfig(t), source).GenerateSite(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	home := readGenerated(t, result.Output, "index.html")
+	if !strings.Contains(home, fmt.Sprintf(`class="conference-banner" href="./list/%d/1.html"`, conferenceID)) {
+		t.Fatal("conference banner did not fall back to its column")
 	}
 }
 
@@ -211,6 +265,47 @@ func TestListRendersCurrentTitleStyles(t *testing.T) {
 	home := readGenerated(t, result.Output, "index.html")
 	if !styledLink.MatchString(home) {
 		t.Fatalf("styled title missing from homepage: %s", styled.Title)
+	}
+}
+
+func TestCrossPostedColumnKeepsItsOwnPriorityAndStyles(t *testing.T) {
+	source := demo.NewSource()
+	var hotID, noticeID int64
+	for _, column := range source.Columns {
+		switch column.Code {
+		case "news-hot":
+			hotID = column.ID
+		case "news-notice":
+			noticeID = column.ID
+		}
+	}
+	if hotID == 0 || noticeID == 0 || len(source.Items[hotID]) < 2 {
+		t.Fatal("missing news columns or articles")
+	}
+	newer, older := source.Items[hotID][0], source.Items[hotID][1]
+	newer.IsTop, older.IsTop = true, false
+	source.Items[hotID] = []model.Article{newer, older}
+	older.ColumnID, older.IsTop, older.IsBold, older.DefaultColor = noticeID, true, true, "#008000"
+	newer.ColumnID, newer.IsTop, newer.IsBold, newer.DefaultColor = noticeID, false, false, "#0000ff"
+	// The repository returns this column in publication-specific top/date order.
+	source.Items[noticeID] = []model.Article{older, newer}
+
+	result, err := New(testConfig(t), source).GenerateSite(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	list := readGenerated(t, result.Output, fmt.Sprintf("list/%d/1.html", noticeID))
+	if first, second := strings.Index(list, older.Title), strings.Index(list, newer.Title); first < 0 || second < 0 || first >= second {
+		t.Fatalf("column list ignored its own top order: first=%d second=%d", first, second)
+	}
+	styled := regexp.MustCompile(`<a[^>]*class="is-bold"[^>]*style="color:#008000"[^>]*>` + regexp.QuoteMeta(older.Title) + `</a>`)
+	if !styled.MatchString(list) {
+		t.Fatal("column list ignored its own bold/color settings")
+	}
+	home := readGenerated(t, result.Output, "index.html")
+	notice := regexp.MustCompile(`(?s)<ul id="notice-1".*?</ul>`).FindString(home)
+	if first, second := strings.Index(notice, older.Title), strings.Index(notice, newer.Title); first < 0 || second < 0 || first >= second || !styled.MatchString(notice) {
+		t.Fatal("homepage notice tab ignored column-specific order or styles")
 	}
 }
 
