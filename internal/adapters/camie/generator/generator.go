@@ -123,6 +123,7 @@ type Page struct {
 	ColumnCode                            string
 	ColumnPaths                           template.JS
 	ColumnPathHrefs                       template.JS
+	DetailContexts                        template.JS
 	Items                                 []*Article
 	Article, PreviousArticle, NextArticle *Article
 	Parent                                *Link
@@ -145,6 +146,17 @@ type Result struct {
 	Articles    int       `json:"articles"`
 	Lists       int       `json:"lists"`
 	GeneratedAt time.Time `json:"generated_at"`
+}
+
+type detailArticleLink struct {
+	Title string `json:"title"`
+	Href  string `json:"href"`
+}
+
+type detailContext struct {
+	Sidebar  string             `json:"sidebar"`
+	Previous *detailArticleLink `json:"previous,omitempty"`
+	Next     *detailArticleLink `json:"next,omitempty"`
 }
 type Generator struct {
 	cfg    config.Config
@@ -966,11 +978,47 @@ func (g *Generator) GenerateSite(ctx context.Context) (result Result, err error)
 	if len(videos) > 0 {
 		firstVideo = videos[0]
 	}
+	articleColumns := make(map[int64][]model.Column)
+	for _, column := range c.columns {
+		for _, publication := range c.groups[column.ID] {
+			articleColumns[publication.ID] = append(articleColumns[publication.ID], column)
+		}
+	}
 	for _, a := range c.all {
 		if strings.HasPrefix(a.Href, "http") {
 			continue
 		}
 		p := Page{Title: a.Title, ColumnCode: a.ColumnCode, Kind: "article", BodyClass: "article-page", Article: a, Side: side(c, a.ColumnCode), BackHref: group(c, a.ColumnCode, 0).Href}
+		contexts := make(map[string]detailContext)
+		for _, column := range articleColumns[a.ID] {
+			links := side(c, column.Code)
+			var sidebar bytes.Buffer
+			if len(links) > 0 {
+				if err = templates.ExecuteTemplate(&sidebar, "sidebar", Page{Side: links, RootPrefix: strings.Repeat("../", strings.Count(a.Href, "/"))}); err != nil {
+					return result, err
+				}
+			}
+			context := detailContext{Sidebar: sidebar.String()}
+			siblings := c.groups[column.ID]
+			for i, sibling := range siblings {
+				if sibling.ID != a.ID {
+					continue
+				}
+				if i > 0 {
+					context.Previous = &detailArticleLink{Title: siblings[i-1].Title, Href: siblings[i-1].Href}
+				}
+				if i+1 < len(siblings) {
+					context.Next = &detailArticleLink{Title: siblings[i+1].Title, Href: siblings[i+1].Href}
+				}
+				break
+			}
+			contexts[column.Code] = context
+		}
+		contextJSON, marshalErr := json.Marshal(contexts)
+		if marshalErr != nil {
+			return result, marshalErr
+		}
+		p.DetailContexts = template.JS(contextJSON)
 		if a.ColumnCode == "home-hero" {
 			p.BodyClass += " home-placement-detail"
 		}

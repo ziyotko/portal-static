@@ -57,13 +57,13 @@
     menuButton.setAttribute('aria-expanded', String(open));
   });
 
-  document.querySelectorAll('.side-menu button[aria-expanded]').forEach((button) => {
-    button.addEventListener('click', () => {
-      const expanded = button.getAttribute('aria-expanded') !== 'true';
-      button.setAttribute('aria-expanded', String(expanded));
-      const submenu = document.getElementById(button.getAttribute('aria-controls'));
-      if (submenu) submenu.hidden = !expanded;
-    });
+  document.addEventListener('click', (event) => {
+    const button = event.target.closest('.side-menu button[aria-expanded]');
+    if (!button) return;
+    const expanded = button.getAttribute('aria-expanded') !== 'true';
+    button.setAttribute('aria-expanded', String(expanded));
+    const submenu = document.getElementById(button.getAttribute('aria-controls'));
+    if (submenu) submenu.hidden = !expanded;
   });
 
   const sectionBreadcrumbNav = document.querySelector('.breadcrumb[data-sync-section]');
@@ -116,9 +116,54 @@
 
   const detailPage = document.querySelector('[data-detail-page]');
   if (detailPage) {
+    let detailContexts = {};
+    try {
+      detailContexts = JSON.parse(document.querySelector('#detail-contexts')?.textContent || '{}');
+    } catch {
+      detailContexts = {};
+    }
     const requestedCode = new URLSearchParams(window.location.search).get('from');
     const isHomeSlot = requestedCode === 'home' || requestedCode?.startsWith('home-');
-    const columnCode = !isHomeSlot && columnPaths[requestedCode] ? requestedCode : detailPage.dataset.defaultColumnCode;
+    const columnCode = !isHomeSlot && detailContexts[requestedCode] && columnPaths[requestedCode]
+      ? requestedCode : detailPage.dataset.defaultColumnCode;
+    const context = detailContexts[columnCode];
+    if (context && columnCode !== detailPage.dataset.defaultColumnCode) {
+      const grid = detailPage.querySelector('.content-grid');
+      const oldSidebar = grid?.querySelector(':scope > aside');
+      if (context.sidebar) {
+        const fragment = document.createElement('template');
+        fragment.innerHTML = context.sidebar;
+        const newSidebar = fragment.content.firstElementChild;
+        if (oldSidebar) oldSidebar.replaceWith(newSidebar);
+        else grid?.prepend(newSidebar);
+      } else {
+        oldSidebar?.remove();
+      }
+
+      const articleCard = grid?.querySelector(':scope > article');
+      articleCard?.querySelector('.article-pager')?.remove();
+      if (articleCard && (context.previous || context.next)) {
+        const pager = document.createElement('nav');
+        pager.className = 'article-pager';
+        pager.setAttribute('aria-label', '相邻文章');
+        for (const [direction, label] of [['previous', '上一篇：'], ['next', '下一篇：']]) {
+          const sibling = context[direction];
+          if (!sibling) continue;
+          const link = document.createElement('a');
+          link.className = `article-pager-${direction === 'previous' ? 'prev' : 'next'}`;
+          const target = new URL(sibling.href, new URL(rootPrefix, location.href));
+          target.searchParams.set('from', columnCode);
+          link.href = target.href;
+          const strong = document.createElement('strong');
+          strong.textContent = label;
+          const title = document.createElement('span');
+          title.textContent = sibling.title;
+          link.append(strong, title);
+          pager.append(link);
+        }
+        articleCard.append(pager);
+      }
+    }
     const path = columnPaths[columnCode];
     const hrefs = columnPathHrefs[columnCode] || [];
     const breadcrumbList = detailPage.querySelector('[data-detail-breadcrumb] ol');

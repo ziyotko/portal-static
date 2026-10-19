@@ -80,6 +80,48 @@ func TestHomeBranchTreeGeneratesDedicatedListsAndParent(t *testing.T) {
 	}
 }
 
+func TestCrossPostedDetailKeepsEachPublishedSidebarContext(t *testing.T) {
+	source := demo.NewSource()
+	aboutID := branchColumnID(source, "about")
+	waterID := branchColumnID(source, "main-branch-water")
+	expertID := branchColumnID(source, "about-expert-insights")
+	water := source.Items[waterID][0]
+	expert := source.Items[expertID][0]
+	// About is loaded before these sections, so it becomes the static default.
+	source.Items[aboutID] = []model.Article{water, expert}
+	result, err := New(testConfig(t), source).GenerateSite(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct {
+		article model.Article
+		code    string
+		label   string
+	}{
+		{water, "main-branch-water", "大气分会"},
+		{expert, "about-expert-insights", "专家视野"},
+	} {
+		page := readGenerated(t, result.Output, fmt.Sprintf("article/2026/09/%d.html", tc.article.ID))
+		if !strings.Contains(page, `data-default-column-code="about"`) {
+			t.Fatal("fixture did not reproduce the About default context")
+		}
+		payload := regexp.MustCompile(`(?s)<script id="detail-contexts" type="application/json">(.*?)</script>`).FindStringSubmatch(page)
+		if len(payload) != 2 {
+			t.Fatal("detail page is missing publication contexts")
+		}
+		var contexts map[string]detailContext
+		if err := json.Unmarshal([]byte(payload[1]), &contexts); err != nil {
+			t.Fatal(err)
+		}
+		if !strings.Contains(contexts[tc.code].Sidebar, tc.label) || strings.Contains(contexts[tc.code].Sidebar, "协会简介") {
+			t.Fatalf("%s detail did not include its dedicated sidebar", tc.code)
+		}
+		if _, ok := contexts["news-hot"]; ok {
+			t.Fatal("detail accepted a column without a publication relationship")
+		}
+	}
+}
+
 func TestMeetingParentAndChildrenKeepTheirOwnArticles(t *testing.T) {
 	source := demo.NewSource()
 	parentID := branchColumnID(source, "training-meetings")
