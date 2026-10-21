@@ -372,6 +372,7 @@ img { display: block; max-width: 100%; }
 .side-menu .side-submenu a { padding-left: 13px; color: #6f7474; font-size: 15px; }
 .side-menu .side-submenu a:hover,
 .side-menu .side-submenu .current a { color: var(--green-600); }
+.side-menu .side-submenu .current > a { font-weight: 700; }
 .side-menu-toggle-icon {
   width: 8px;
   height: 8px;

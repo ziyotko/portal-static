@@ -191,8 +191,8 @@ func TestMeetingParentAndChildrenKeepTheirOwnArticles(t *testing.T) {
 		}
 	}
 	home := readGenerated(t, result.Output, "index.html")
-	if !strings.Contains(home, `class="conference-banner" href="./article/2026/09/20163.html?from=training-meetings-conference"`) {
-		t.Fatal("conference banner does not link to the configured conference detail")
+	if !strings.Contains(home, fmt.Sprintf(`class="conference-banner" href="./list/%d/1.html"`, conferenceID)) {
+		t.Fatal("conference banner does not link to the conference column")
 	}
 	disclosure := readGenerated(t, result.Output, fmt.Sprintf("list/%d/1.html", disclosureID))
 	if !strings.Contains(disclosure, `class="news-list"`) || !strings.Contains(disclosure, source.Items[disclosureID][0].Title) {
@@ -200,7 +200,7 @@ func TestMeetingParentAndChildrenKeepTheirOwnArticles(t *testing.T) {
 	}
 }
 
-func TestConferenceBannerFallsBackToColumnWhenArticleMissing(t *testing.T) {
+func TestConferenceBannerLinksToColumnWhenArticleMissing(t *testing.T) {
 	source := demo.NewSource()
 	conferenceID := branchColumnID(source, "training-meetings-conference")
 	result, err := New(testConfig(t), source).GenerateSite(context.Background())
@@ -209,7 +209,7 @@ func TestConferenceBannerFallsBackToColumnWhenArticleMissing(t *testing.T) {
 	}
 	home := readGenerated(t, result.Output, "index.html")
 	if !strings.Contains(home, fmt.Sprintf(`class="conference-banner" href="./list/%d/1.html"`, conferenceID)) {
-		t.Fatal("conference banner did not fall back to its column")
+		t.Fatal("conference banner does not link to the conference column")
 	}
 }
 

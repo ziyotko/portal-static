@@ -44,7 +44,7 @@ Dia 后台已于 2026-09-21 将页面层合并进模板，使用 `column.templat
 | 快捷栏“移动媒体” | 三张微信二维码图片 | **固定**图片及文字，不从后台二维码、广告或链接表取数 | `assets/images/qr-wechat-service.jpg`、`qr-wechat-video.png`、`qr-wechat-subscription.jpg` 与首页模板 |
 | 快捷栏“视频专区” | `videos.html`，聚合公开视频 | **固定入口**，目标列表是**静态活** | 首页模板固定入口；公开视频文章维护见下文 |
 | 中部六组资讯标签 | 依次为 `training-meetings`、`standards-work`、`standards-innovation`、`training-international`、`training-talent`、`policy-research`，每组最多 6 篇；二级栏目只取直接发布的文章，`policy-research` 顶级入口默认取首个启用子栏目 | **静态活**：标签名、标题、日期、详情及栏目链接；右侧图片取该组第一篇新闻封面，未上传封面时使用全站默认占位图。**固定**：六组顺序 | 在“交流培训”“科技标准”“政策研究”的正式栏目维护，无须重复投放首页栏目 |
-| 大会横幅 | 优先指向大会栏目内文章 ID `20163` 的实际静态详情页，并携带 `training-meetings-conference` 栏目上下文；文章不存在时回退到大会栏目页 | **固定**：横幅图 `assets/images/conference-banner.png`、目标文章 ID `20163`。详情路径按文章当前发布时间生成，不在模板中写死年月。当前不读取后台“广告管理” | 更换目标文章时修改生成器中的目标 ID；修改后重新生成首页 |
+| 大会横幅 | 指向 `training-meetings-conference` 大会栏目列表页 | **固定**：横幅图 `assets/images/conference-banner.png`。链接随大会栏目生成，当前不读取后台“广告管理” | 在大会栏目维护文章；修改栏目配置后重新生成首页 |
 | 横幅下四个专题入口 | `standards-green-promotion`、`policy-major-equipment-catalogue`、`policy-qualified-enterprises`、`policy-innovation-tasks` | **固定**：四个标题和顺序；**静态活**：链接指向各栏目生成页。当前不读取后台“友情链接管理” | 首页模板改标题/数量；后台栏目与文章改目标内容 |
 | “分支机构”九张卡片 | `main-branch-water`、`main-branch-atmosphere`、`main-branch-solid-waste`、`main-branch-monitoring`、`main-branch-noise`、`main-branch-uv`、`main-branch-ozone`、`main-branch-ai`、`main-branch-engineering` | **固定**：九个名称、顺序、图片和首页卡片样式不变；**静态活**：每张卡片进入新栏目各自的文章列表。“分支机构”标题默认进入第一个水分会列表 | 在“首页 → 分支机构 → 各分会”维护列表文章；旧 `branch-*` 只维护“关于协会”下的简介 |
 | “专家视野” | 标题入口直接到 `home-expert-insights`；内容取该栏目最多 3 篇 | **静态活**：标题入口、首篇标题、链接和封面及其余标题；首篇未上传封面时使用全站默认占位图。**固定**：“专家视野”及“中国环保机械行业协会／专家委员会”字样 | 在“首页内容 → 专家视野”维护文章和封面 |

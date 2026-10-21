@@ -875,12 +875,6 @@ func (g *Generator) GenerateSite(ctx context.Context) (result Result, err error)
 	home.Experts = group(c, "home-expert-insights", 3)
 	conference := group(c, "training-meetings-conference", 0)
 	home.ConferenceBannerURL = conference.Href
-	for _, article := range conference.Items {
-		if article.ID == 20163 {
-			home.ConferenceBannerURL = article.Href + "?from=training-meetings-conference"
-			break
-		}
-	}
 	if err = render("index.html", "home", home); err != nil {
 		return result, err
 	}
