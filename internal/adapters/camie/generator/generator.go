@@ -830,11 +830,10 @@ func (g *Generator) GenerateSite(ctx context.Context) (result Result, err error)
 			{
 				{Name: "南京大学环境学院", Href: "https://www.nju.edu.cn/", Image: "assets/images/partner-logos/nanjing-university.png", ViewBox: "12 8 219 50", Width: 244, Height: 66, DisplayWidth: 219},
 				{Name: "紫金龙净环保新能源股份有限公司", Href: "https://www.longking.com.cn/", Image: "assets/images/partner-logos/zijin-longking.png", ViewBox: "0 0 183 48", Width: 183, Height: 48, DisplayWidth: 183},
-				{Name: "北京城市排水集团有限责任公司", Href: "https://www.bdc.cn/", Image: "assets/images/partner-logos/beijing-drainage.png", ViewBox: "41 7 158 51", Width: 244, Height: 66, DisplayWidth: 158},
+				{Name: "北京城市排水集团有限责任公司", Href: "https://www.bdc.cn/", Image: "assets/images/partner-logos/beijing-drainage.png", ViewBox: "0 0 785 189", Width: 785, Height: 189, DisplayWidth: 244},
 				{Name: "苏州帝瀚环保科技股份有限公司", Href: "https://www.dihillgreen.com/", Image: "assets/images/partner-logos/dihill.png", ViewBox: "58 18 136 30", Width: 244, Height: 66, DisplayWidth: 136},
 				{Name: "江苏一环集团有限公司", Href: "http://www.yihuan.com/", Image: "assets/images/partner-logos/jiangsu-yihuan.png", ViewBox: "9 13 224 40", Width: 244, Height: 66, DisplayWidth: 224},
 				{Name: "河南康宁特环保科技股份有限公司", Href: "https://www.knthb.com/", Image: "assets/images/partner-logos/kangningte.png", ViewBox: "61 7 122 52", Width: 244, Height: 66, DisplayWidth: 122},
-				{Name: "龙净环保股份有限公司", Href: "https://www.longking.com.cn/", Image: "assets/images/partner-logos/longking.png", ViewBox: "58 11 129 44", Width: 244, Height: 66, DisplayWidth: 129},
 			},
 			{
 				{Name: "中国天楹股份有限公司", Href: "https://www.cnty.cn/", Image: "assets/images/partner-logos/cnty.png", ViewBox: "48 10 148 46", Width: 244, Height: 66, DisplayWidth: 148},
