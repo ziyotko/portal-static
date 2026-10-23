@@ -57,6 +57,7 @@ Set-Location D:\WebstormProjects\dia-platform\business\portal\backend
 
 $env:PORTAL_DB_PASSWORD = '你的MySQL密码'
 $env:PORTAL_JWT_SECRET = 'portal-local-jwt-secret-please-change-2026'
+$env:PORTAL_MEMBER_JWT_SECRET = 'member-local-jwt-secret-please-change-2026'
 $env:CAMIE_STATIC_TOKEN = 'camie-portal-static-local-token'
 
 go run .
@@ -108,12 +109,32 @@ Portal 后台：[http://127.0.0.1:3000/business_portal/](http://127.0.0.1:3000/b
 ```powershell
 Set-Location D:\WebstormProjects\portal-static
 
-npx --yes http-server .\dist\camie-portal -p 8090 -c-1 -P http://127.0.0.1:8092
+node .\scripts\serve-camie-preview.mjs
 ```
 
 访问：[http://127.0.0.1:8090/](http://127.0.0.1:8090/)
 
-只检查生成目录中的文件时不需要启动这个窗口。不要用 `file://` 双击 HTML。
+这个预览服务把生成的静态页面、Portal API、Member 登录页和 Member API 放在同一个 `127.0.0.1:8090` 域名下。只检查生成目录中的文件时不需要启动这个窗口。不要用 `file://` 双击 HTML；会员页的登录回跳和浏览器登录态都需要同源 HTTP 地址。
+
+若要进入会员专区的数据中心，还要分别启动 Member 后端（`8093`）和前端（`3001`）：
+
+```powershell
+# 新窗口：先检查 business\member\backend\config.yaml 的 MySQL 地址和数据库名
+Set-Location D:\WebstormProjects\dia-platform\business\member\backend
+$env:MEMBER_DB_PASSWORD = '你的MySQL密码'
+$env:MEMBER_JWT_SECRET = 'member-local-jwt-secret-please-change-2026'
+go run .
+```
+
+```powershell
+# 另一个新窗口
+Set-Location D:\WebstormProjects\dia-platform\business\member\frontend
+npm run dev
+```
+
+CAMIE 使用独立的 `camie_member` 会员库；当前本地配置已指向它。启动会员后端前，先确认 `camie_member` 已创建。切换数据库不会迁移旧会员账号；新库没有管理员时，首次启动才会生成初始管理员。
+
+Portal 后端窗口也要在 `go run .` **之前**设置 `$env:PORTAL_MEMBER_JWT_SECRET`，值与 `MEMBER_JWT_SECRET` 完全相同；若已启动，请重启。统计数据集须在后台发布，登录账号须为正式会员。打开 [http://127.0.0.1:8090/pages/member.html?column=数据中心](http://127.0.0.1:8090/pages/member.html?column=数据中心) 查看统计图表。
 
 ### CAMIE 启动后检查
 
@@ -297,7 +318,7 @@ CAMIE 生成后通过第一节的 `8090` 静态网站检查首页、列表、详
 
 ```powershell
 Set-Location D:\WebstormProjects\portal-static
-npx --yes http-server .\dist\camie-portal -p 8090 -c-1 -P http://127.0.0.1:8092
+node .\scripts\serve-camie-preview.mjs
 ```
 
 访问：[http://127.0.0.1:8090/](http://127.0.0.1:8090/)
@@ -362,4 +383,4 @@ Portal 后端：CAMIE_STATIC_TOKEN=camie-portal-static-local-token
 Ctrl + C
 ```
 
-CAMIE 的四个基础窗口需要分别按 `Ctrl + C`。如果启动了查看站点的 `http-server`，也在该窗口按 `Ctrl + C`。建议先停止静态网站、Dia 前端和静态化服务，再停止 Portal 后端，最后停止 Redis。关闭 PowerShell 后，本窗口中设置的环境变量会自动失效，下次启动时重新执行本页命令即可。
+CAMIE 的四个基础窗口需要分别按 `Ctrl + C`。如果启动了查看站点的预览服务，也在该窗口按 `Ctrl + C`。建议先停止静态网站、Dia 前端和静态化服务，再停止 Portal 后端，最后停止 Redis。关闭 PowerShell 后，本窗口中设置的环境变量会自动失效，下次启动时重新执行本页命令即可。

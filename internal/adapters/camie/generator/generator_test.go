@@ -1054,7 +1054,7 @@ func TestGenerateCompletePublicSiteAndMemberShells(t *testing.T) {
 		t.Fatal("member column structure leaked into public page metadata")
 	}
 	for name, markers := range map[string][]string{
-		"index.html":               {`href="#coming-soon"`, `href="./videos.html"`},
+		"index.html":               {`href="#coming-soon"`, `href="./pages/member.html"`, `href="./videos.html"`},
 		"videos.html":              {`href="#coming-soon"`, `>会员专享</a>`},
 		"pages/member.html":        {`data-member-list-shell`, `data-member-columns`, `data-member-login-path="/member-entry/login?site=camie"`, `data-member-auth-gate`, `js/member.js`},
 		"pages/member-detail.html": {`data-member-detail-shell`, `data-member-breadcrumb`, `data-member-login-path="/member-entry/login?site=camie"`, `data-member-auth-gate`, `js/member.js`},
@@ -1068,8 +1068,8 @@ func TestGenerateCompletePublicSiteAndMemberShells(t *testing.T) {
 			}
 		}
 	}
-	if got := strings.Count(readGenerated(t, result.Output, "index.html"), `href="#coming-soon"`); got != 3 {
-		t.Fatalf("homepage coming-soon links = %d, want 3", got)
+	if got := strings.Count(readGenerated(t, result.Output, "index.html"), `href="#coming-soon"`); got != 2 {
+		t.Fatalf("homepage coming-soon links = %d, want 2", got)
 	}
 	branchHome := readGenerated(t, result.Output, "index.html")
 	branchLinks := regexp.MustCompile(`class="branch-card" href="([^"]+)"`).FindAllStringSubmatch(branchHome, -1)
