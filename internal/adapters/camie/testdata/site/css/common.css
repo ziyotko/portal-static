@@ -525,7 +525,10 @@ img { display: block; max-width: 100%; }
 .article-header h1 { margin: 0 0 12px; font-size: 26px; line-height: 1.45; font-weight: 500; color: #262a2a; }
 .article-meta { color: #adb1b1; }
 .article-meta span + span { margin-left: 18px; }
+.article-cover { margin: 16px 18px 0; border-radius: 10px; overflow: hidden; }
+.article-cover img { width: 100%; max-height: 360px; object-fit: cover; }
 .article-body { padding: 14px 18px 10px; font-size: 17px; line-height: 2.05; }
+.article-body :is(h1, h2, h3, h4, h5, h6) { font-size: inherit; line-height: inherit; }
 .article-body p { margin: 0 0 16px; text-indent: 2em; }
 .article-body [data-text-align="center"] { text-align: center; text-indent: 0; }
 .article-body [data-text-align="right"] { text-align: right; text-indent: 0; }

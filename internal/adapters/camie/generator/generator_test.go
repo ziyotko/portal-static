@@ -872,6 +872,13 @@ func TestVideoHubOnlyUsesVideoNewsColumn(t *testing.T) {
 func TestGenerateCompletePublicSiteAndMemberShells(t *testing.T) {
 	cfg := testConfig(t)
 	source := demo.NewSource()
+	noticeID := branchColumnID(source, "news-notice")
+	noticeItems := source.Items[noticeID]
+	if len(noticeItems) < 3 {
+		t.Fatal("missing notice article fixture")
+	}
+	noticeItems[2].Cover = "https://example.com/conference-cover.jpg"
+	source.Items[noticeID] = noticeItems
 	waterID := branchColumnID(source, "branch-water")
 	waterItems := source.Items[waterID]
 	waterItems[0].Content = "<p>水分会专属简介</p>"
@@ -1107,6 +1114,9 @@ func TestGenerateCompletePublicSiteAndMemberShells(t *testing.T) {
 	noticeDetail := readGenerated(t, result.Output, fmt.Sprintf("article/2026/09/%d.html", noticeColumn.ID*1000+3))
 	if !strings.Contains(noticeDetail, `class="article-pager"`) {
 		t.Fatal("article detail lost adjacent article navigation")
+	}
+	if !strings.Contains(noticeDetail, `<div class="article-cover"><img src="https://example.com/conference-cover.jpg"`) {
+		t.Fatal("article detail did not render its real cover before the body")
 	}
 	videoDetail := readGenerated(t, result.Output, "video-detail.html")
 	if !strings.Contains(videoDetail, `class="video-unavailable"`) || strings.Contains(videoDetail, `<video controls`) {
