@@ -127,6 +127,6 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   const server = createPreviewServer();
   server.listen(port, '127.0.0.1', () => {
     console.log(`CAMIE 本地预览：http://127.0.0.1:${port}/`);
-    console.log(`会员数据中心：http://127.0.0.1:${port}/pages/member.html?column=数据中心`);
+    console.log(`会员数据中心：http://127.0.0.1:${port}/pages/member-statistics.html`);
   });
 }

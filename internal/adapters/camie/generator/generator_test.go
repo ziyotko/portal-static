@@ -911,7 +911,7 @@ func TestGenerateCompletePublicSiteAndMemberShells(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, name := range []string{"index.html", "news.html", "videos.html", "search.html", "pages/member.html", "pages/member-detail.html", "js/member.js", "generated-content.js"} {
+	for _, name := range []string{"index.html", "news.html", "videos.html", "search.html", "pages/member.html", "pages/member-statistics.html", "pages/member-detail.html", "css/member-statistics.css", "js/member.js", "js/member-statistics-dashboard.js", "js/member-statistics.js", "assets/images/member-statistics-banner.svg", "generated-content.js"} {
 		if _, err := os.Stat(filepath.Join(result.Output, filepath.FromSlash(name))); err != nil {
 			t.Fatalf("missing %s: %v", name, err)
 		}
@@ -1061,12 +1061,14 @@ func TestGenerateCompletePublicSiteAndMemberShells(t *testing.T) {
 		t.Fatal("member column structure leaked into public page metadata")
 	}
 	for name, markers := range map[string][]string{
-		"index.html":               {`href="#coming-soon"`, `href="./pages/member.html"`, `href="./videos.html"`},
-		"videos.html":              {`href="#coming-soon"`, `>会员专享</a>`},
-		"pages/member.html":        {`data-member-list-shell`, `data-member-columns`, `data-member-login-path="/member-entry/login?site=camie"`, `data-member-auth-gate`, `js/member.js`},
-		"pages/member-detail.html": {`data-member-detail-shell`, `data-member-breadcrumb`, `data-member-login-path="/member-entry/login?site=camie"`, `data-member-auth-gate`, `js/member.js`},
-		"js/main.js":               {`a[href="#coming-soon"]`, `showToast('敬请期待')`},
-		"js/member.js":             {`memberSpaceItem`, `我的空间`, `/business_member/member/dashboard`, `location.replace(loginURL())`},
+		"index.html":                   {`href="#coming-soon"`, `href="./pages/member.html"`, `href="./videos.html"`},
+		"videos.html":                  {`href="#coming-soon"`, `>会员专享</a>`},
+		"pages/member.html":            {`data-member-list-shell`, `data-member-columns`, `data-member-login-path="/member-entry/login?site=camie"`, `data-member-auth-gate`, `js/member.js`},
+		"pages/member-statistics.html": {`data-member-statistics-dashboard`, `data-member-login-path="/member-entry/login?site=camie"`, `data-member-auth-gate`, `js/member-statistics.js`},
+		"pages/member-detail.html":     {`data-member-detail-shell`, `data-member-breadcrumb`, `data-member-login-path="/member-entry/login?site=camie"`, `data-member-auth-gate`, `js/member.js`},
+		"js/main.js":                   {`a[href="#coming-soon"]`, `showToast('敬请期待')`},
+		"js/member.js":                 {`memberSpaceItem`, `我的空间`, `/business_member/member/dashboard`, `member-statistics.html`, `a.target = '_blank'`, `location.replace(loginURL())`},
+		"js/member-statistics.js":      {`/business_portal/api/member-zone/statistics/dashboard`, `/business_member/api/member/profile`, `window.mountEnvironmentDashboard`},
 	} {
 		page := readGenerated(t, result.Output, name)
 		for _, marker := range markers {

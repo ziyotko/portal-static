@@ -1100,6 +1100,9 @@ func (g *Generator) GenerateSite(ctx context.Context) (result Result, err error)
 	if err = render("pages/member.html", "member-shell", Page{Title: "会员中心", ColumnCode: "member", Kind: "member", BodyClass: "list-page"}); err != nil {
 		return result, err
 	}
+	if err = render("pages/member-statistics.html", "member-statistics-shell", Page{Title: "数据中心", ColumnCode: "member", Kind: "member-statistics"}); err != nil {
+		return result, err
+	}
 	if err = render("pages/member-detail.html", "member-detail-shell", Page{Title: "会员内容", ColumnCode: "member", Kind: "member-detail", BodyClass: "article-page"}); err != nil {
 		return result, err
 	}

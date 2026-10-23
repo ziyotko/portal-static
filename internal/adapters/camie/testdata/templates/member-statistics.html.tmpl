@@ -1,0 +1,5 @@
+{{define "member-statistics-shell"}}<!doctype html>
+<html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>数据中心 - 中国环保机械行业协会</title><link rel="stylesheet" href="{{root . "css/member-statistics.css"}}?v={{.StaticBuildID}}"></head>
+<body data-member-login-path="{{.MemberLoginPath}}" data-generated-at="{{.StaticGeneratedAt}}"><script data-member-auth-gate>(()=>{let token='';try{token=localStorage.getItem('member-token')||''}catch{}if(token)return;const login=new URL(document.body.dataset.memberLoginPath,location.href);login.searchParams.set('returnUrl',location.href);location.replace(login.href)})();</script>
+<a class="env-back-link" href="member.html">← 返回会员中心</a><div class="env-page-status" data-member-statistics-status role="status">正在核验会员身份…</div><div data-member-statistics-dashboard hidden></div>
+<script src="{{root . "js/member-statistics-dashboard.js"}}?v={{.StaticBuildID}}" defer></script><script src="{{root . "js/member-statistics.js"}}?v={{.StaticBuildID}}" defer></script></body></html>{{end}}

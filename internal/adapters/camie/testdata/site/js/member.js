@@ -152,110 +152,6 @@
     slot.hidden = false;
   };
 
-  const renderStatistics = async () => {
-    const slot = shell.querySelector('[data-member-statistics]');
-    const state = { year: '', region: '', province: '', subField: '', isBelt: '', isAxis: '' };
-    let requestNumber = 0;
-    const money = (wan) => (Number(wan || 0) / 10000).toLocaleString('zh-CN', { maximumFractionDigits: 1 });
-    const percentage = (value) => value === '' || value == null ? '—' : `${Number(value).toFixed(1)}%`;
-    const filter = (label, key, choices, value) => {
-      const wrapper = node('label', 'statistics-filter');
-      wrapper.append(node('span', '', label));
-      const select = node('select');
-      select.setAttribute('aria-label', label);
-      const values = key === 'year' ? choices.map(String) : ['', ...choices];
-      values.forEach((choice) => {
-        const flag = key === 'isBelt' || key === 'isAxis';
-        const option = node('option', '', choice === '' ? '全部' : flag ? (choice === '1' ? '是' : '否') : choice);
-        option.value = choice;
-        if (choice === value) option.selected = true;
-        select.append(option);
-      });
-      select.addEventListener('change', () => {
-        state[key] = select.value;
-        if (key === 'year') state.region = state.province = state.subField = state.isBelt = state.isAxis = '';
-        load();
-      });
-      wrapper.append(select);
-      return wrapper;
-    };
-    const chart = (title, items, metric) => {
-      const panel = node('section', 'statistics-chart');
-      panel.append(node('h3', '', title));
-      if (!items.length) { panel.append(node('p', 'statistics-empty', '当前筛选下暂无数据')); return panel; }
-      const ranked = [...items].sort((a, b) => metric === 'count'
-        ? Number(b.enterpriseCount) - Number(a.enterpriseCount) : Number(b.revenueYearWan) - Number(a.revenueYearWan));
-      const max = Math.max(...ranked.map((item) => metric === 'count' ? Number(item.enterpriseCount) : Number(item.revenueYearWan)), 1);
-      const plot = node('div', metric === 'count' ? 'statistics-horizontal' : 'statistics-vertical');
-      ranked.forEach((item) => {
-        const value = metric === 'count' ? Number(item.enterpriseCount) : Number(item.revenueYearWan);
-        const row = node('div', 'statistics-bar-item');
-        const bar = node('span', 'statistics-bar');
-        row.style.setProperty('--bar-size', `${Math.max(2, value / max * 100)}%`);
-        bar.title = `${item.name}：${metric === 'count' ? `${item.enterpriseCount} 家` : `${money(item.revenueYearWan)} 亿元`}${metric === 'growth' ? `；同比 ${percentage(item.yoyPercent)}` : ''}`;
-        row.append(node('span', 'statistics-bar-name', item.name), bar,
-          node('span', 'statistics-bar-value', metric === 'count' ? item.enterpriseCount : money(item.revenueYearWan)));
-        if (metric === 'growth') row.append(node('span', `statistics-yoy ${Number(item.yoyPercent) < 0 ? 'negative' : ''}`, percentage(item.yoyPercent)));
-        plot.append(row);
-      });
-      panel.append(plot);
-      if (metric !== 'count') panel.append(node('p', 'statistics-unit', '柱：主营业务收入（亿元）' + (metric === 'growth' ? '　标签：同比增速' : '')));
-      return panel;
-    };
-    const load = async () => {
-      const current = ++requestNumber;
-      setStatus('正在加载统计数据…');
-      const query = new URLSearchParams();
-      Object.entries(state).forEach(([key, value]) => { if (value) query.set(key, value); });
-      let data;
-      try { data = await api(`${apiBase}/statistics/dashboard?${query}`); }
-      catch (error) { if (current === requestNumber) handleError(error, '统计数据加载失败，请稍后重试。'); return; }
-      if (current !== requestNumber) return;
-      if (!data?.statisticsYear) {
-        slot.hidden = true;
-        setStatus('数据中心暂无已发布的年度统计数据。');
-        return;
-      }
-      state.year = String(data.statisticsYear);
-      const controls = node('div', 'statistics-controls');
-      controls.append(
-        filter('统计年份', 'year', data.years || [], state.year),
-        filter('地区范围', 'region', data.filters?.regions || [], state.region),
-        filter('省份', 'province', data.filters?.provinces || [], state.province),
-        filter('细分领域', 'subField', data.filters?.subFields || [], state.subField),
-        filter('一带', 'isBelt', ['1', '0'], state.isBelt),
-        filter('一轴', 'isAxis', ['1', '0'], state.isAxis),
-      );
-      const intro = node('div', 'statistics-intro');
-      intro.append(node('p', '', `${data.statisticsYear} 年统计数据 · 对比 ${data.comparisonYear} 年`),
-        node('span', '', `数据导入日期：${data.importedAt || '—'}`));
-      const summary = node('div', 'statistics-kpis');
-      [
-        ['覆盖省份', data.summary.provinceCount, '个'],
-        ['样本企业数', data.summary.enterpriseCount, '家'],
-        ['主营业务收入', money(data.summary.revenueYearWan), '亿元'],
-        ['同比增速', percentage(data.summary.totalYoyPercent), ''],
-      ].forEach(([label, value, unit]) => {
-        const card = node('div', 'statistics-kpi');
-        card.append(node('span', '', label), node('strong', '', value), node('small', '', unit));
-        summary.append(card);
-      });
-      const charts = node('div', 'statistics-charts');
-      charts.append(
-        chart('各省市主营业务收入及同比增速', data.provinces || [], 'growth'),
-        chart('各省市企业数量', data.provinces || [], 'count'),
-        chart('细分领域主营业务收入', data.subFields || [], 'revenue'),
-        chart('各地区主营业务收入及同比增速', data.regions || [], 'growth'),
-      );
-      const note = node('p', 'statistics-note',
-        `收入按原表“万元”汇总后换算为亿元；同比按两年收入合计计算。原表 ${data.summary.recordCount} 条记录，企业名称去重后 ${data.summary.enterpriseCount} 家。`);
-      slot.replaceChildren(intro, controls, summary, charts, note);
-      slot.hidden = false;
-      status.hidden = true;
-    };
-    await load();
-  };
-
   const renderList = async () => {
     const sidebar = shell.querySelector('[data-member-columns]');
     const renderSidebar = (items = []) => {
@@ -279,7 +175,8 @@
     renderSidebar(columns.filter((item) => item.name !== '我的空间').map((item) => {
       const li = node('li', item.id === selected.id ? 'is-active' : '');
       const label = item.name;
-      const a = link(label, pageURL(label, 1, item.name === '会员专享' ? 'video' : ''));
+      const a = link(label, item.name === '数据中心' ? 'member-statistics.html' : pageURL(label, 1, item.name === '会员专享' ? 'video' : ''));
+      if (item.name === '数据中心') { a.target = '_blank'; a.rel = 'noopener noreferrer'; }
       if (item.id === selected.id) a.setAttribute('aria-current', 'page');
       li.append(a);
       return li;
@@ -287,7 +184,7 @@
     shell.querySelector('[data-member-heading]').textContent = column;
     setBreadcrumb(column);
     if (selected.name === '数据中心') {
-      await renderStatistics();
+      location.replace(new URL('member-statistics.html', location.href));
       return;
     }
     const requestedPage = Number.parseInt(params.get('page') || '1', 10);
