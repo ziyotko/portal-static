@@ -395,6 +395,19 @@ func (g *Generator) content(raw, prefix string) template.HTML {
 	policy.AllowAttrs("src", "poster", "controls", "preload", "width", "height").OnElements("video")
 	policy.AllowAttrs("src", "type").OnElements("source")
 	policy.AllowAttrs("data-text-align").Matching(regexp.MustCompile(`^(?:left|center|right|justify)$`)).OnElements("p", "div", "section", "h1", "h2", "h3", "h4", "h5", "h6", "td", "th", "img")
+	// 与 Portal 后台富文本预览采用相同的安全样式白名单，避免编辑器的字号、
+	// 字重等在静态化时丢失，使正文标题退回浏览器默认的大号样式。
+	policy.AllowStyles(
+		"color", "background-color",
+		"text-align", "text-indent", "text-decoration",
+		"font-size", "font-family", "font-weight", "font-style",
+		"line-height", "letter-spacing",
+		"margin", "margin-top", "margin-right", "margin-bottom", "margin-left",
+		"padding", "padding-top", "padding-right", "padding-bottom", "padding-left",
+		"border", "border-width", "border-style", "border-color", "border-collapse",
+		"width", "height", "max-width", "min-width",
+		"vertical-align", "white-space", "word-break", "list-style-type",
+	).Globally()
 	policy.AllowRelativeURLs(true)
 	policy.AllowURLSchemes("http", "https")
 	doc, err := html.Parse(strings.NewReader(raw))
@@ -1084,6 +1097,9 @@ func (g *Generator) GenerateSite(ctx context.Context) (result Result, err error)
 		return result, err
 	}
 	if err = render("pages/member.html", "member-shell", Page{Title: "会员中心", ColumnCode: "member", Kind: "member", BodyClass: "list-page"}); err != nil {
+		return result, err
+	}
+	if err = render("pages/member-statistics.html", "member-statistics-shell", Page{Title: "数据中心", ColumnCode: "member", Kind: "member-statistics"}); err != nil {
 		return result, err
 	}
 	if err = render("pages/member-detail.html", "member-detail-shell", Page{Title: "会员内容", ColumnCode: "member", Kind: "member-detail", BodyClass: "article-page"}); err != nil {

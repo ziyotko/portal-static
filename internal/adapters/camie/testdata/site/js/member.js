@@ -10,7 +10,6 @@
   const breadcrumb = shell.querySelector('[data-member-breadcrumb]');
   const params = new URLSearchParams(location.search);
   const typeNames = { 1: '新闻', 2: '数据', 3: '视频', 4: '报刊' };
-  const columnLabel = (name) => name === '数据中心' ? '数据看板' : name;
   const memberDashboardPath = '/business_member/member/dashboard';
   let token = '';
 
@@ -169,20 +168,25 @@
     } catch (error) { handleError(error, '会员栏目加载失败，请稍后重试。'); return; }
     if (!columns.length) { setStatus('暂无可用的会员栏目。'); return; }
     const requested = params.get('column');
-    const selected = columns.find((item) => item.name === requested || columnLabel(item.name) === requested || String(item.id) === requested)
+    const selected = columns.find((item) => item.name === requested || String(item.id) === requested)
       || columns.find((item) => item.name === '行业报告') || columns[0];
-    const column = columnLabel(selected.name);
+    const column = selected.name;
     const mode = params.get('mode') === 'video' ? 'video' : '';
     renderSidebar(columns.filter((item) => item.name !== '我的空间').map((item) => {
       const li = node('li', item.id === selected.id ? 'is-active' : '');
-      const label = columnLabel(item.name);
-      const a = link(label, pageURL(label, 1, item.name === '会员专享' ? 'video' : ''));
+      const label = item.name;
+      const a = link(label, item.name === '数据中心' ? 'member-statistics.html' : pageURL(label, 1, item.name === '会员专享' ? 'video' : ''));
+      if (item.name === '数据中心') { a.target = '_blank'; a.rel = 'noopener noreferrer'; }
       if (item.id === selected.id) a.setAttribute('aria-current', 'page');
       li.append(a);
       return li;
     }));
     shell.querySelector('[data-member-heading]').textContent = column;
     setBreadcrumb(column);
+    if (selected.name === '数据中心') {
+      location.replace(new URL('member-statistics.html', location.href));
+      return;
+    }
     const requestedPage = Number.parseInt(params.get('page') || '1', 10);
     const page = Number.isSafeInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
     const size = 10;

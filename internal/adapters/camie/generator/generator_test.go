@@ -872,6 +872,13 @@ func TestVideoHubOnlyUsesVideoNewsColumn(t *testing.T) {
 func TestGenerateCompletePublicSiteAndMemberShells(t *testing.T) {
 	cfg := testConfig(t)
 	source := demo.NewSource()
+	noticeID := branchColumnID(source, "news-notice")
+	noticeItems := source.Items[noticeID]
+	if len(noticeItems) < 3 {
+		t.Fatal("missing notice article fixture")
+	}
+	noticeItems[2].Cover = "https://example.com/conference-cover.jpg"
+	source.Items[noticeID] = noticeItems
 	waterID := branchColumnID(source, "branch-water")
 	waterItems := source.Items[waterID]
 	waterItems[0].Content = "<p>水分会专属简介</p>"
@@ -904,7 +911,7 @@ func TestGenerateCompletePublicSiteAndMemberShells(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, name := range []string{"index.html", "news.html", "videos.html", "search.html", "pages/member.html", "pages/member-detail.html", "js/member.js", "generated-content.js"} {
+	for _, name := range []string{"index.html", "news.html", "videos.html", "search.html", "pages/member.html", "pages/member-statistics.html", "pages/member-detail.html", "css/member-statistics.css", "js/member.js", "js/member-statistics-dashboard.js", "js/member-statistics.js", "assets/images/member-statistics-banner.svg", "generated-content.js"} {
 		if _, err := os.Stat(filepath.Join(result.Output, filepath.FromSlash(name))); err != nil {
 			t.Fatalf("missing %s: %v", name, err)
 		}
@@ -1054,12 +1061,14 @@ func TestGenerateCompletePublicSiteAndMemberShells(t *testing.T) {
 		t.Fatal("member column structure leaked into public page metadata")
 	}
 	for name, markers := range map[string][]string{
-		"index.html":               {`href="#coming-soon"`, `href="./videos.html"`},
-		"videos.html":              {`href="#coming-soon"`, `>会员专享</a>`},
-		"pages/member.html":        {`data-member-list-shell`, `data-member-columns`, `data-member-login-path="/member-entry/login?site=camie"`, `data-member-auth-gate`, `js/member.js`},
-		"pages/member-detail.html": {`data-member-detail-shell`, `data-member-breadcrumb`, `data-member-login-path="/member-entry/login?site=camie"`, `data-member-auth-gate`, `js/member.js`},
-		"js/main.js":               {`a[href="#coming-soon"]`, `showToast('敬请期待')`},
-		"js/member.js":             {`memberSpaceItem`, `我的空间`, `/business_member/member/dashboard`, `location.replace(loginURL())`},
+		"index.html":                   {`href="#coming-soon"`, `href="./pages/member.html"`, `href="./videos.html"`},
+		"videos.html":                  {`href="#coming-soon"`, `>会员专享</a>`},
+		"pages/member.html":            {`data-member-list-shell`, `data-member-columns`, `data-member-login-path="/member-entry/login?site=camie"`, `data-member-auth-gate`, `js/member.js`},
+		"pages/member-statistics.html": {`data-member-statistics-dashboard`, `data-member-login-path="/member-entry/login?site=camie"`, `data-member-auth-gate`, `js/member-statistics.js`},
+		"pages/member-detail.html":     {`data-member-detail-shell`, `data-member-breadcrumb`, `data-member-login-path="/member-entry/login?site=camie"`, `data-member-auth-gate`, `js/member.js`},
+		"js/main.js":                   {`a[href="#coming-soon"]`, `showToast('敬请期待')`},
+		"js/member.js":                 {`memberSpaceItem`, `我的空间`, `/business_member/member/dashboard`, `member-statistics.html`, `a.target = '_blank'`, `location.replace(loginURL())`},
+		"js/member-statistics.js":      {`/business_portal/api/member-zone/statistics/dashboard`, `/business_member/api/member/profile`, `window.mountEnvironmentDashboard`},
 	} {
 		page := readGenerated(t, result.Output, name)
 		for _, marker := range markers {
@@ -1068,8 +1077,8 @@ func TestGenerateCompletePublicSiteAndMemberShells(t *testing.T) {
 			}
 		}
 	}
-	if got := strings.Count(readGenerated(t, result.Output, "index.html"), `href="#coming-soon"`); got != 3 {
-		t.Fatalf("homepage coming-soon links = %d, want 3", got)
+	if got := strings.Count(readGenerated(t, result.Output, "index.html"), `href="#coming-soon"`); got != 2 {
+		t.Fatalf("homepage coming-soon links = %d, want 2", got)
 	}
 	branchHome := readGenerated(t, result.Output, "index.html")
 	branchLinks := regexp.MustCompile(`class="branch-card" href="([^"]+)"`).FindAllStringSubmatch(branchHome, -1)
@@ -1107,6 +1116,9 @@ func TestGenerateCompletePublicSiteAndMemberShells(t *testing.T) {
 	noticeDetail := readGenerated(t, result.Output, fmt.Sprintf("article/2026/09/%d.html", noticeColumn.ID*1000+3))
 	if !strings.Contains(noticeDetail, `class="article-pager"`) {
 		t.Fatal("article detail lost adjacent article navigation")
+	}
+	if !strings.Contains(noticeDetail, `<div class="article-cover"><img src="https://example.com/conference-cover.jpg"`) {
+		t.Fatal("article detail did not render its real cover before the body")
 	}
 	videoDetail := readGenerated(t, result.Output, "video-detail.html")
 	if !strings.Contains(videoDetail, `class="video-unavailable"`) || strings.Contains(videoDetail, `<video controls`) {
