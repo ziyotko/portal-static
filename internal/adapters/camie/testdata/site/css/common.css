@@ -403,7 +403,6 @@ img { display: block; max-width: 100%; }
   border-radius: 4px;
 }
 
-.news-row:first-child { background: var(--green-100); }
 .news-row a {
   min-width: 0;
   overflow: hidden;
