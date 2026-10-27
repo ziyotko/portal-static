@@ -123,7 +123,7 @@ Dia 后台已于 2026-09-21 将页面层合并进模板，使用 `column.templat
   国际交流与合作 training-international
     出海培训 training-overseas-training；海外考察 training-overseas-visits；交流对接 training-business-matching
 科技标准 standards
-  科技创新及成果转化 standards-innovation
+  创新成果转化 standards-innovation
     科技成果评价 standards-achievement-evaluation；科技成果转化平台 standards-transfer-platform
   标准工作 standards-work
     通知及动态 standards-work-notices；协会标准发布 standards-publications
