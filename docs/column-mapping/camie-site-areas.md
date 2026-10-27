@@ -40,7 +40,7 @@ Dia 后台已于 2026-09-21 将页面层合并进模板，使用 `column.templat
 | 顶部重点新闻轮播 | `adapter.site.hero_column` 固定为 `home-hero`，最多 3 篇 | **静态活**：标题、封面、发布时间、来源、详情链接；按置顶、发布时间、文章 ID 排序。**固定**：轮播位置与切换样式；无内容时没有自动补位 | 在“首页 → 轮播图”单独投放文章和封面；仅投放“热点关注”或“部委动态”不会进入轮播 |
 | 轮播右侧三组资讯标签 | 依次为 `news-notice`、`news-association`、`news-member`，每组最多 8 篇 | **静态活**：标签名、列表和目标链接均取正式栏目。**固定**：三组顺序、每组数量上限及标题单行省略样式；悬停可见完整标题 | 在“新闻中心”对应栏目维护；增减标签需改生成器 |
 | 快捷栏“申请入会” | “敬请期待”提示 | **固定交互**，当前不进入注册流程 | `camie-layout` 模板与 `js/main.js` |
-| 快捷栏“会员中心” | `pages/member.html` | **固定入口**，进入会员专区；未登录先跳会员登录，登录后由会员栏目侧栏进入“数据中心”等实时内容 | `camie-layout` 模板与 `js/member.js` |
+| 快捷栏“会员中心” | “敬请期待”提示 | **固定交互**，暂不从快捷栏进入会员专区 | `camie-layout` 模板与 `js/main.js` |
 | 快捷栏“移动媒体” | 三张微信二维码图片 | **固定**图片及文字，不从后台二维码、广告或链接表取数 | `assets/images/qr-wechat-service.jpg`、`qr-wechat-video.png`、`qr-wechat-subscription.jpg` 与首页模板 |
 | 快捷栏“视频专区” | `videos.html`，聚合公开视频 | **固定入口**，目标列表是**静态活** | 首页模板固定入口；公开视频文章维护见下文 |
 | 中部六组资讯标签 | 依次为 `training-meetings`、`standards-work`、`standards-innovation`、`training-international`、`training-talent`、`policy-research`，每组最多 6 篇；二级栏目只取直接发布的文章，`policy-research` 顶级入口默认取首个启用子栏目 | **静态活**：标签名、标题、日期、详情及栏目链接；右侧图片取该组第一篇新闻封面，未上传封面时使用全站默认占位图。**固定**：六组顺序 | 在“交流培训”“科技标准”“政策研究”的正式栏目维护，无须重复投放首页栏目 |
