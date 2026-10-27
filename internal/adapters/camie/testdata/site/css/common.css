@@ -666,11 +666,7 @@ img { display: block; max-width: 100%; }
 
 .site-footer {
   color: #fff;
-  background-color: #325a16;
-  background-image: url("../assets/images/footer-background.png");
-  background-position: center;
-  background-repeat: no-repeat;
-  background-size: 100% 100%;
+  background: #357626;
 }
 .footer-inner { padding: 28px 0 33px; }
 .friend-title { margin-bottom: 7px; font-size: 18px; }
