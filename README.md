@@ -94,7 +94,7 @@ go run ./cmd/portal-static serve --config configs/<site>.yaml
 当前站点：
 
 - `driver: miic`：示例配置 `configs/miic.example.yaml`，默认监听 `127.0.0.1:9143`。
-- `driver: caam`：示例配置 `configs/caam.example.yaml`，默认监听 `127.0.0.1:9142`。
+- `driver: caam`：示例配置 `configs/caam.example.yaml`，默认监听 `127.0.0.1:9142`；页面资源已复制到 `internal/adapters/caam/site`，运行时无需 `caam-portal` 工程。
 - `driver: camie`：示例配置 `configs/camie.example.yaml`，默认监听 `127.0.0.1:9144`；会员内容仅生成动态壳，不进入静态正文和搜索索引。
 
 ## 公共 HTTP 契约
