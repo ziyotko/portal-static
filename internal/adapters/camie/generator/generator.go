@@ -452,9 +452,56 @@ func (g *Generator) content(raw, prefix string) template.HTML {
 		}
 	}
 	visit(doc)
+	// wangEditor 将图片跳转地址写在 img[data-href]；静态页需要真正的链接，
+	// 同时不能把未经校验的 data-href 直接交给浏览器执行。
+	var linkImages func(*html.Node)
+	linkImages = func(parent *html.Node) {
+		for child := parent.FirstChild; child != nil; {
+			next := child.NextSibling
+			if child.Type == html.ElementNode && child.Data == "img" && parent.Data != "a" {
+				for _, attr := range child.Attr {
+					if attr.Key != "data-href" {
+						continue
+					}
+					if href := safeImageHref(attr.Val); href != "" {
+						link := &html.Node{Type: html.ElementNode, Data: "a", Attr: []html.Attribute{{Key: "href", Val: root(Page{RootPrefix: prefix}, href)}}}
+						parent.InsertBefore(link, child)
+						parent.RemoveChild(child)
+						link.AppendChild(child)
+					}
+					break
+				}
+			} else {
+				linkImages(child)
+			}
+			child = next
+		}
+	}
+	linkImages(doc)
 	var b bytes.Buffer
 	_ = html.Render(&b, doc)
 	return template.HTML(policy.Sanitize(b.String()))
+}
+
+func safeImageHref(raw string) string {
+	href := strings.TrimSpace(raw)
+	if href == "" || strings.HasPrefix(href, "//") {
+		return ""
+	}
+	parsed, err := url.Parse(href)
+	if err != nil {
+		return ""
+	}
+	if parsed.IsAbs() {
+		if (parsed.Scheme == "http" || parsed.Scheme == "https") && parsed.Host != "" {
+			return href
+		}
+		return ""
+	}
+	if strings.HasPrefix(href, "/") {
+		return href
+	}
+	return ""
 }
 
 func playableVideoAttachment(attachment model.Attachment) bool {

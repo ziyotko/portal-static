@@ -27,3 +27,21 @@ func TestArticleContentPreservesSafeAlignment(t *testing.T) {
 		}
 	}
 }
+
+func TestArticleContentImageLink(t *testing.T) {
+	g := &Generator{}
+	content := string(g.content(`<p><img src="/uploads/photo.jpg" data-href="https://example.com/article"></p><p><img src="/uploads/local.jpg" data-href="/list/2/1.html"></p><p><img src="/uploads/plain.jpg"></p><p><img src="/uploads/unsafe.jpg" data-href="javascript:alert(1)"></p>`, "../../"))
+	for _, want := range []string{
+		`<a href="https://example.com/article" rel="nofollow"><img src="/uploads/photo.jpg"`,
+		`<a href="/list/2/1.html" rel="nofollow"><img src="/uploads/local.jpg"`,
+		`<p><img src="/uploads/plain.jpg"`,
+		`<p><img src="/uploads/unsafe.jpg"`,
+	} {
+		if !strings.Contains(content, want) {
+			t.Errorf("generated article missing %q: %s", want, content)
+		}
+	}
+	if strings.Contains(content, `javascript:`) || strings.Contains(content, `data-href=`) {
+		t.Errorf("unsafe or editor-only link retained: %s", content)
+	}
+}
