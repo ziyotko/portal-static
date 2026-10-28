@@ -200,6 +200,15 @@ func NewPageGenerator(cfg config.Config, source PageSource, logger *slog.Logger)
 	policy.AllowElements("video", "source")
 	policy.AllowAttrs("src", "poster", "controls", "preload", "width", "height").OnElements("video")
 	policy.AllowAttrs("src", "type").OnElements("source")
+	policy.AllowStyles(
+		"color", "background-color", "text-align", "text-indent", "text-decoration",
+		"font-size", "font-family", "font-weight", "font-style", "line-height", "letter-spacing",
+		"margin", "margin-top", "margin-right", "margin-bottom", "margin-left",
+		"padding", "padding-top", "padding-right", "padding-bottom", "padding-left",
+		"border", "border-width", "border-style", "border-color", "border-collapse",
+		"width", "height", "max-width", "min-width", "vertical-align", "white-space",
+		"word-break", "list-style-type",
+	).Globally()
 	policy.AllowURLSchemes("http", "https")
 	policy.AllowRelativeURLs(true)
 	policy.RequireNoReferrerOnLinks(true)
@@ -878,11 +887,71 @@ func withListOrigin(href string, columnID int64, columnTitle string, page int) s
 }
 
 func (g *PageGenerator) sanitizeContent(content string) template.HTML {
-	sanitized := strings.TrimSpace(g.sanitizer.Sanitize(content))
+	sanitized := strings.TrimSpace(g.sanitizer.Sanitize(linkContentImages(content)))
 	if sanitized == "" {
 		sanitized = "<p>暂无正文内容</p>"
 	}
 	return template.HTML(g.prefixContentMediaURLs(sanitized))
+}
+
+// wangEditor stores an image's destination in data-href. Turn only safe
+// destinations into links before sanitizing, so the editor-only attribute
+// never reaches the published HTML.
+func linkContentImages(content string) string {
+	doc, err := nethtml.Parse(strings.NewReader(content))
+	if err != nil {
+		return content
+	}
+	var visit func(*nethtml.Node)
+	visit = func(parent *nethtml.Node) {
+		for child := parent.FirstChild; child != nil; {
+			next := child.NextSibling
+			if child.Type == nethtml.ElementNode && child.Data == "img" && parent.Data != "a" {
+				for _, attr := range child.Attr {
+					if attr.Key != "data-href" {
+						continue
+					}
+					if href := safeContentImageHref(attr.Val); href != "" {
+						link := &nethtml.Node{Type: nethtml.ElementNode, Data: "a", Attr: []nethtml.Attribute{{Key: "href", Val: href}}}
+						parent.InsertBefore(link, child)
+						parent.RemoveChild(child)
+						link.AppendChild(child)
+					}
+					break
+				}
+			} else {
+				visit(child)
+			}
+			child = next
+		}
+	}
+	visit(doc)
+	var output strings.Builder
+	if err := nethtml.Render(&output, doc); err != nil {
+		return content
+	}
+	return output.String()
+}
+
+func safeContentImageHref(raw string) string {
+	href := strings.TrimSpace(raw)
+	if href == "" || strings.HasPrefix(href, "//") {
+		return ""
+	}
+	parsed, err := url.Parse(href)
+	if err != nil {
+		return ""
+	}
+	if parsed.IsAbs() {
+		if (parsed.Scheme == "http" || parsed.Scheme == "https") && parsed.Host != "" {
+			return href
+		}
+		return ""
+	}
+	if strings.HasPrefix(href, "/") {
+		return href
+	}
+	return ""
 }
 
 func (g *PageGenerator) prefixContentMediaURLs(content string) string {

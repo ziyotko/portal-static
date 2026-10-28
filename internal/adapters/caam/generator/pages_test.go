@@ -122,7 +122,7 @@ func (f fakePageSource) FetchArticleColumnMappingsBatch(_ context.Context, after
 		for _, article := range f.allArticles {
 			articleID, err := strconv.ParseInt(article.ID, 10, 64)
 			if err == nil && article.ColumnID > 0 {
-				mappings = append(mappings, model.ArticleColumnMapping{ID: int64(len(mappings) + 1), ColumnID: article.ColumnID, ArticleID: articleID})
+				mappings = append(mappings, model.ArticleColumnMapping{ID: int64(len(mappings) + 1), ColumnID: article.ColumnID, ArticleID: articleID, IsTop: article.IsTop, PublishedAt: article.PublishTime})
 			}
 		}
 	}
@@ -735,7 +735,7 @@ func TestContentSnapshotKeepsCrossColumnMembershipAndStableOrder(t *testing.T) {
 		mappings: []model.ArticleColumnMapping{
 			{ID: 1, ColumnID: 14, ArticleID: 101},
 			{ID: 2, ColumnID: 62, ArticleID: 101},
-			{ID: 3, ColumnID: 14, ArticleID: 102},
+			{ID: 3, ColumnID: 14, ArticleID: 102, IsTop: true},
 			{ID: 4, ColumnID: 14, ArticleID: 101},
 		},
 		batchList: []model.Article{
@@ -756,6 +756,55 @@ func TestContentSnapshotKeepsCrossColumnMembershipAndStableOrder(t *testing.T) {
 	}
 	if len(snapshot.listArticlesByColumn[62]) != 1 || snapshot.listArticlesByColumn[62][0].ID != "101" {
 		t.Fatalf("unexpected cross-column membership: %#v", snapshot.listArticlesByColumn[62])
+	}
+}
+
+func TestContentSnapshotOrdersPinnedByColumnPublication(t *testing.T) {
+	published := time.Date(2026, 10, 20, 9, 0, 0, 0, time.UTC)
+	source := fakePageSource{
+		allColumns: []model.Column{{ID: 14, Name: "行业要闻"}, {ID: 62, Name: "会员风采"}},
+		mappings: []model.ArticleColumnMapping{
+			{ID: 1, ColumnID: 14, ArticleID: 101, IsTop: true, PublishedAt: published.Add(2 * time.Hour)},
+			{ID: 2, ColumnID: 14, ArticleID: 102, IsTop: true, PublishedAt: published.Add(3 * time.Hour)},
+			{ID: 3, ColumnID: 62, ArticleID: 101},
+		},
+		batchList: []model.Article{
+			{ID: "101", Type: 1, PublishTime: published.Add(24 * time.Hour)},
+			{ID: "102", Type: 1, PublishTime: published},
+		},
+	}
+	g, err := NewPageGenerator(pageTestConfig(t), source, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	snapshot, err := g.loadContentSnapshot(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	items := snapshot.listArticlesByColumn[14]
+	if len(items) != 2 || items[0].ID != "102" || items[1].ID != "101" {
+		t.Fatalf("later column publication should appear first: %#v", items)
+	}
+	if other := snapshot.listArticlesByColumn[62]; len(other) != 1 || other[0].IsTop {
+		t.Fatalf("pinning leaked across columns: %#v", other)
+	}
+}
+
+func TestArticleContentImageLinksAndEditorStyles(t *testing.T) {
+	g, err := NewPageGenerator(pageTestConfig(t), fakePageSource{}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	content := string(g.sanitizeContent(`<p style="text-align:center;font-size:17px"><img src="/uploads/a.jpg" data-href="https://example.com/a"></p><p><img src="/uploads/b.jpg" data-href="/list/2/1.html"></p><p><img src="/uploads/c.jpg" data-href="javascript:alert(1)"></p>`))
+	for _, want := range []string{`href="https://example.com/a"`, `href="/list/2/1.html"`, `font-size: 17px`, `text-align: center`} {
+		if !strings.Contains(content, want) {
+			t.Errorf("missing %q in %s", want, content)
+		}
+	}
+	for _, forbidden := range []string{`javascript:`, `data-href=`} {
+		if strings.Contains(content, forbidden) {
+			t.Errorf("unsafe or editor-only attribute retained: %s", content)
+		}
 	}
 }
 

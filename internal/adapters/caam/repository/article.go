@@ -230,9 +230,11 @@ func (r *ArticleRepository) FetchPublishedByColumnNameLimit(ctx context.Context,
 
 	rows, err := r.db.QueryContext(ctx, `
 SELECT selected.column_id, a.id, a.type, a.title, a.summary, a.content, a.cover,
-       a.author, a.source, a.is_bold, a.default_color, a.url, a.publish_time
+       COALESCE(NULLIF(selected.author, ''), a.author, ''), COALESCE(NULLIF(selected.source, ''), a.source, ''),
+       COALESCE(selected.is_bold, 0), COALESCE(NULLIF(selected.color, ''), a.default_color, ''), a.url, a.publish_time
 FROM (
-    SELECT acp.column_id, candidate.id
+    SELECT acp.column_id, candidate.id, acp.is_top, acp.is_bold, acp.color,
+           acp.author, acp.source, acp.created_at
     FROM {{schema}}.article candidate
     INNER JOIN {{schema}}.article_column_publish acp
       ON acp.column_id IN (`+strings.Join(columnPlaceholders, ",")+`)
@@ -243,13 +245,18 @@ FROM (
      AND c.template_id = acp.template_id
     WHERE candidate.status = 1
       AND candidate.audit_status = 2
+      AND candidate.publish_time <= NOW()
       AND candidate.type IN (`+strings.Join(typePlaceholders, ",")+`)
       AND candidate.type IN (1, 2, 3)
-    ORDER BY candidate.is_top DESC, candidate.publish_time DESC, candidate.id DESC
+    ORDER BY acp.is_top DESC,
+             CASE WHEN acp.is_top = 1 THEN COALESCE(acp.created_at, candidate.publish_time) ELSE candidate.publish_time END DESC,
+             candidate.id DESC
     LIMIT ?
 ) selected
 INNER JOIN {{schema}}.article a ON a.id = selected.id
-ORDER BY a.is_top DESC, a.publish_time DESC, a.id DESC`, args...)
+ORDER BY selected.is_top DESC,
+         CASE WHEN selected.is_top = 1 THEN COALESCE(selected.created_at, a.publish_time) ELSE a.publish_time END DESC,
+         a.id DESC`, args...)
 	if err != nil {
 		return model.Column{}, nil, fmt.Errorf("query limited global column name %q: %w", name, err)
 	}
@@ -321,7 +328,8 @@ func (r *ArticleRepository) fetchPublishedColumns(ctx context.Context, name stri
 	}
 	rows, err := r.db.QueryContext(ctx, `
 SELECT acp.column_id, a.id, a.type, a.title, a.summary, a.content, a.cover,
-       a.author, a.source, a.is_bold, a.default_color,
+       COALESCE(NULLIF(acp.author, ''), a.author, ''), COALESCE(NULLIF(acp.source, ''), a.source, ''),
+       COALESCE(acp.is_bold, 0), COALESCE(NULLIF(acp.color, ''), a.default_color, ''),
        a.url, a.publish_time
 FROM {{schema}}.article_column_publish acp
 INNER JOIN {{schema}}.article a ON a.id = acp.article_id
@@ -332,8 +340,11 @@ INNER JOIN {{schema}}.`+"`column`"+` c
 WHERE acp.column_id IN (`+strings.Join(placeholders, ",")+`)
   AND a.status = 1
   AND a.audit_status = 2
+  AND a.publish_time <= NOW()
   AND a.type IN (1, 2, 3)
-ORDER BY a.is_top DESC, a.publish_time DESC, a.id DESC`, args...)
+ORDER BY acp.is_top DESC,
+         CASE WHEN acp.is_top = 1 THEN COALESCE(acp.created_at, a.publish_time) ELSE a.publish_time END DESC,
+         a.id DESC`, args...)
 	if err != nil {
 		return model.Column{}, nil, fmt.Errorf("query global column name %q: %w", name, err)
 	}
@@ -383,7 +394,8 @@ func (r *ArticleRepository) FetchPublishedByColumnID(ctx context.Context, id int
 func (r *ArticleRepository) fetchPublishedColumn(ctx context.Context, column model.Column) (model.Column, []model.Article, error) {
 	articleRows, err := r.db.QueryContext(ctx, `
 SELECT a.id, a.type, a.title, a.summary, a.content, a.cover,
-       a.author, a.source, a.is_bold, a.default_color,
+       COALESCE(NULLIF(acp.author, ''), a.author, ''), COALESCE(NULLIF(acp.source, ''), a.source, ''),
+       COALESCE(acp.is_bold, 0), COALESCE(NULLIF(acp.color, ''), a.default_color, ''),
        a.url, a.publish_time
 FROM {{schema}}.article_column_publish acp
 INNER JOIN {{schema}}.article a ON a.id = acp.article_id
@@ -394,8 +406,11 @@ INNER JOIN {{schema}}.`+"`column`"+` c
 WHERE acp.column_id = ?
   AND a.status = 1
   AND a.audit_status = 2
+  AND a.publish_time <= NOW()
   AND a.type IN (1, 2, 3)
-ORDER BY a.is_top DESC, a.publish_time DESC, a.id DESC`, column.ID)
+ORDER BY acp.is_top DESC,
+         CASE WHEN acp.is_top = 1 THEN COALESCE(acp.created_at, a.publish_time) ELSE a.publish_time END DESC,
+         a.id DESC`, column.ID)
 	if err != nil {
 		return model.Column{}, nil, fmt.Errorf("query global column %q: %w", column.Name, err)
 	}
@@ -451,7 +466,7 @@ func (r *ArticleRepository) FetchArticleColumnMappingsBatch(ctx context.Context,
 		return nil, errors.New("mapping batch limit must be positive")
 	}
 	rows, err := r.db.QueryContext(ctx, `
-SELECT id, column_id, article_id
+SELECT id, column_id, article_id, COALESCE(is_top, 0), created_at
 FROM {{schema}}.article_column_publish
 WHERE id > ?
   AND EXISTS (
@@ -470,8 +485,14 @@ LIMIT ?`, afterID, limit)
 	mappings := make([]model.ArticleColumnMapping, 0, limit)
 	for rows.Next() {
 		var mapping model.ArticleColumnMapping
-		if err := rows.Scan(&mapping.ID, &mapping.ColumnID, &mapping.ArticleID); err != nil {
+		var isTop sql.NullInt64
+		var publishedAt sql.NullTime
+		if err := rows.Scan(&mapping.ID, &mapping.ColumnID, &mapping.ArticleID, &isTop, &publishedAt); err != nil {
 			return nil, fmt.Errorf("scan article-column mapping after %d: %w", afterID, err)
+		}
+		mapping.IsTop = isTop.Valid && isTop.Int64 != 0
+		if publishedAt.Valid {
+			mapping.PublishedAt = publishedAt.Time
 		}
 		mappings = append(mappings, mapping)
 	}
@@ -493,6 +514,7 @@ FROM {{schema}}.article a
 WHERE a.id IN (%s)
   AND a.status = 1
   AND a.audit_status = 2
+  AND a.publish_time <= NOW()
   AND a.type IN (1, 2, 3)`, ids)
 	rows, err := r.db.QueryContext(ctx, query, args...)
 	if err != nil {
@@ -522,12 +544,20 @@ func (r *ArticleRepository) FetchDetailArticlesByIDs(ctx context.Context, ids []
 	}
 	query, args := articleIDsQuery(`
 SELECT a.id, a.type, a.title, a.summary, a.content, a.cover,
-       a.author, a.source, a.is_bold, a.default_color,
-       a.url, a.publish_time, a.is_top
+       COALESCE(NULLIF(acp.author, ''), a.author, ''), COALESCE(NULLIF(acp.source, ''), a.source, ''),
+       COALESCE(acp.is_bold, a.is_bold, 0), COALESCE(NULLIF(acp.color, ''), a.default_color, ''),
+       a.url, a.publish_time, COALESCE(acp.is_top, a.is_top, 0)
 FROM {{schema}}.article a
+LEFT JOIN {{schema}}.article_column_publish acp ON acp.id = (
+    SELECT candidate.id FROM {{schema}}.article_column_publish candidate
+    INNER JOIN {{schema}}.`+"`column`"+` c ON c.id = candidate.column_id AND c.status = 1 AND c.template_id = candidate.template_id
+    WHERE candidate.article_id = a.id
+    ORDER BY c.id ASC LIMIT 1
+)
 WHERE a.id IN (%s)
   AND a.status = 1
   AND a.audit_status = 2
+  AND a.publish_time <= NOW()
   AND a.type IN (1, 2)`, ids)
 	rows, err := r.db.QueryContext(ctx, query, args...)
 	if err != nil {
@@ -563,6 +593,7 @@ INNER JOIN {{schema}}.`+"`column`"+` c ON c.id = acp.column_id
 WHERE a.id = ?
   AND a.status = 1
   AND a.audit_status = 2
+  AND a.publish_time <= NOW()
   AND a.type IN (1, 2)
 	AND c.status = 1
 	AND c.template_id = acp.template_id
@@ -651,6 +682,7 @@ FROM (
 INNER JOIN {{schema}}.article a ON a.id = selected.article_id
 WHERE a.status = 1
   AND a.audit_status = 2
+	AND a.publish_time <= NOW()
 	AND a.type IN (1, 2)
 ORDER BY a.is_top DESC, a.publish_time DESC, a.id DESC`)
 	if err != nil {
@@ -724,10 +756,12 @@ func (r *ArticleRepository) FetchByColumn(ctx context.Context, slot config.SlotC
 
 	query := `
 SELECT a.id, a.type, a.title, a.summary, a.content, a.cover,
-       a.author, a.source, a.is_bold, a.default_color,
+       COALESCE(NULLIF(selected.author, ''), a.author, ''), COALESCE(NULLIF(selected.source, ''), a.source, ''),
+       COALESCE(selected.is_bold, 0), COALESCE(NULLIF(selected.color, ''), a.default_color, ''),
        a.url, a.publish_time
 FROM (
-    SELECT candidate.id
+    SELECT candidate.id, acp.is_top, acp.is_bold, acp.color,
+           acp.author, acp.source, acp.created_at
     FROM {{schema}}.article candidate
     INNER JOIN {{schema}}.article_column_publish acp
       ON acp.column_id = ? AND acp.article_id = candidate.id
@@ -737,13 +771,18 @@ FROM (
      AND c.template_id = acp.template_id
     WHERE candidate.status = 1
       AND candidate.audit_status = 2
+      AND candidate.publish_time <= NOW()
       AND candidate.type IN (` + strings.Join(placeholders, ",") + `)
       AND candidate.type IN (1, 2, 3)
-    ORDER BY candidate.is_top DESC, candidate.publish_time DESC, candidate.id DESC
+    ORDER BY acp.is_top DESC,
+             CASE WHEN acp.is_top = 1 THEN COALESCE(acp.created_at, candidate.publish_time) ELSE candidate.publish_time END DESC,
+             candidate.id DESC
     LIMIT ?
 ) selected
 INNER JOIN {{schema}}.article a ON a.id = selected.id
-ORDER BY a.is_top DESC, a.publish_time DESC, a.id DESC
+ORDER BY selected.is_top DESC,
+         CASE WHEN selected.is_top = 1 THEN COALESCE(selected.created_at, a.publish_time) ELSE a.publish_time END DESC,
+         a.id DESC
 `
 
 	rows, err := r.db.QueryContext(ctx, query, args...)
@@ -805,6 +844,7 @@ SELECT a.id, a.type, a.title, a.summary, a.content, a.cover,
 FROM {{schema}}.article a
 WHERE a.status = 1
   AND a.audit_status = 2
+  AND a.publish_time <= NOW()
   AND a.type = 3
   AND a.title = ?`
 	args := []any{strings.TrimSpace(title)}
@@ -967,8 +1007,11 @@ INNER JOIN {{schema}}.`+"`column`"+` c
 WHERE acp.column_id = ?
   AND a.status = 1
   AND a.audit_status = 2
+  AND a.publish_time <= NOW()
   AND a.type IN (1, 2, 3)
-ORDER BY a.is_top DESC, a.publish_time DESC, a.id DESC`, columnID)
+ORDER BY acp.is_top DESC,
+         CASE WHEN acp.is_top = 1 THEN COALESCE(acp.created_at, a.publish_time) ELSE a.publish_time END DESC,
+         a.id DESC`, columnID)
 	if err != nil {
 		return model.Column{}, nil, fmt.Errorf("query column %d articles: %w", columnID, err)
 	}
@@ -993,7 +1036,8 @@ func (r *ArticleRepository) FetchArticle(ctx context.Context, articleID int64) (
 	row := r.db.QueryRowContext(ctx, `
 SELECT acp.column_id,
        a.id, a.type, a.title, a.summary, a.content, a.cover,
-       a.author, a.source, a.is_bold, a.default_color,
+       COALESCE(NULLIF(acp.author, ''), a.author, ''), COALESCE(NULLIF(acp.source, ''), a.source, ''),
+       COALESCE(acp.is_bold, 0), COALESCE(NULLIF(acp.color, ''), a.default_color, ''),
        a.url, a.publish_time
 FROM {{schema}}.article a
 INNER JOIN {{schema}}.article_column_publish acp
@@ -1005,6 +1049,7 @@ INNER JOIN {{schema}}.`+"`column`"+` c
 WHERE a.id = ?
   AND a.status = 1
   AND a.audit_status = 2
+  AND a.publish_time <= NOW()
   AND a.type IN (1, 2)
 ORDER BY acp.column_id ASC
 LIMIT 1`, articleID)
