@@ -978,7 +978,7 @@ func TestGenerateCompletePublicSiteAndMemberShells(t *testing.T) {
 	}
 	organization := source.Items[organizationID][0]
 	organizationHref := fmt.Sprintf("list/%d/1.html", organizationID)
-	if !strings.Contains(homePage, `href="./`+organizationHref+`">组织架构</a>`) {
+	if !strings.Contains(homePage, `href="./`+organizationHref+`">组织机构</a>`) {
 		t.Fatal("primary navigation organization link did not point to its content page")
 	}
 	aboutPage := readGenerated(t, result.Output, "pages/about.html")
@@ -1253,7 +1253,7 @@ func TestGenerateCompletePublicSiteAndMemberShells(t *testing.T) {
 	if count := strings.Count(friendLinks, `<a href=`); count != 8 {
 		t.Fatalf("fixed friend links count = %d, want 8", count)
 	}
-	for _, name := range []string{"中华人民共和国国家发展和改革委员会", "中共中央社会工作部", "中华人民共和国民政部", "中华人民共和国工业和信息化部", "中华人民共和国生态环境部", "中华人民共和国科学技术部", "国家知识产权局", "中国机经网"} {
+	for _, name := range []string{"中华人民共和国国家发展和改革委员会", "中共中央社会工作部", "中华人民共和国财政部", "中华人民共和国民政部", "中华人民共和国工业和信息化部", "中华人民共和国生态环境部", "中华人民共和国科学技术部", "国家知识产权局"} {
 		if !strings.Contains(friendLinks, name) {
 			t.Fatalf("fixed friend links lost %q", name)
 		}
