@@ -309,6 +309,36 @@ func TestCrossPostedColumnKeepsItsOwnPriorityAndStyles(t *testing.T) {
 	}
 }
 
+func TestPinnedColumnArticlesUseActualPublicationOrder(t *testing.T) {
+	source := demo.NewSource()
+	var noticeID int64
+	for _, column := range source.Columns {
+		if column.Code == "news-notice" {
+			noticeID = column.ID
+			break
+		}
+	}
+	if noticeID == 0 || len(source.Items[noticeID]) < 2 {
+		t.Fatal("missing notice articles")
+	}
+	laterPublished, earlierPublished := source.Items[noticeID][0], source.Items[noticeID][1]
+	laterPublished.IsTop, earlierPublished.IsTop = true, true
+	laterPublished.PublishTime = time.Date(2026, 10, 19, 9, 0, 0, 0, time.Local)
+	earlierPublished.PublishTime = time.Date(2026, 10, 20, 9, 0, 0, 0, time.Local)
+	laterPublished.ColumnPublishedAt = time.Date(2026, 10, 22, 9, 0, 0, 0, time.Local)
+	earlierPublished.ColumnPublishedAt = time.Date(2026, 10, 21, 9, 0, 0, 0, time.Local)
+	source.Items[noticeID] = []model.Article{earlierPublished, laterPublished}
+
+	result, err := New(testConfig(t), source).GenerateSite(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	list := readGenerated(t, result.Output, fmt.Sprintf("list/%d/1.html", noticeID))
+	if first, second := strings.Index(list, laterPublished.Title), strings.Index(list, earlierPublished.Title); first < 0 || second < 0 || first >= second {
+		t.Fatalf("later published pinned article should come first: first=%d second=%d", first, second)
+	}
+}
+
 func TestSafeTitleColor(t *testing.T) {
 	cases := map[string]string{
 		"#f00": "#f00", "rgb(255, 34, 0)": "#ff2200",

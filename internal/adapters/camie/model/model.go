@@ -35,18 +35,19 @@ type Attachment struct {
 }
 
 type Article struct {
-	ID           int64
-	ColumnID     int64
-	Type         int
-	Title        string
-	Summary      string
-	Content      string
-	Cover        string
-	Author       string
-	Source       string
-	IsBold       bool
-	IsTop        bool
-	DefaultColor string
-	URL          string
-	PublishTime  time.Time
+	ID                int64
+	ColumnID          int64
+	Type              int
+	Title             string
+	Summary           string
+	Content           string
+	Cover             string
+	Author            string
+	Source            string
+	IsBold            bool
+	IsTop             bool
+	DefaultColor      string
+	URL               string
+	PublishTime       time.Time
+	ColumnPublishedAt time.Time
 }

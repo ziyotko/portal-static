@@ -231,6 +231,18 @@ func (g *Generator) load(ctx context.Context) (*catalog, error) {
 				if a.IsTop != b.IsTop {
 					return a.IsTop
 				}
+				if a.IsTop {
+					aPublishedAt, bPublishedAt := a.ColumnPublishedAt, b.ColumnPublishedAt
+					if aPublishedAt.IsZero() {
+						aPublishedAt = a.PublishTime
+					}
+					if bPublishedAt.IsZero() {
+						bPublishedAt = b.PublishTime
+					}
+					if !aPublishedAt.Equal(bPublishedAt) {
+						return aPublishedAt.After(bPublishedAt)
+					}
+				}
 				if !a.PublishTime.Equal(b.PublishTime) {
 					return a.PublishTime.After(b.PublishTime)
 				}
