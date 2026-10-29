@@ -117,7 +117,7 @@ type Partner struct {
 	Width, Height, DisplayWidth int
 }
 type Page struct {
-	ActiveNav                                string
+	ActiveNavCode                            string
 	Title, Kind, BodyClass, RootPrefix       string
 	StaticBuildID, StaticGeneratedAt         string
 	StaticBuildLabel, StaticGeneratedAtLabel string
@@ -129,7 +129,7 @@ type Page struct {
 	Article, PreviousArticle, NextArticle    *Article
 	Parent                                   *Link
 	Breadcrumbs                              []Link
-	Side, Pages                              []Link
+	Side, Pages, Nav                         []Link
 	Hero                                     []*Article
 	Notices, Topics                          []Group
 	Experts                                  Group
@@ -675,15 +675,15 @@ func side(c *catalog, currentCode string) []Link {
 	return links
 }
 
-func activeNav(c *catalog, p Page) string {
+func activeNavCode(c *catalog, p Page) string {
 	if p.ColumnCode == "about-english" {
 		return ""
 	}
 	if p.Kind == "home" {
-		return "首页"
+		return "home"
 	}
 	if p.Kind == "about" {
-		return "关于协会"
+		return "about"
 	}
 	code := p.ColumnCode
 	if p.Article != nil {
@@ -691,26 +691,56 @@ func activeNav(c *catalog, p Page) string {
 	}
 	switch topColumn(c, code).Code {
 	case "party":
-		return "党建专栏"
+		return "party"
 	case "ministry", "policy-research":
-		return "部委动态"
+		return "ministry"
 	case "news":
-		return "新闻中心"
+		return "news"
 	case "training":
-		return "交流培训"
+		return "training"
 	case "standards":
-		return "科技标准"
+		return "standards"
 	case "about":
-		return "关于协会"
+		return "about"
 	case "about-experts":
 		return ""
 	case "home-fenzhijigou":
-		return "首页"
+		return "home"
 	case "home-expert-insights":
-		return "首页"
+		return "home"
 	default:
-		return "首页"
+		return "home"
 	}
+}
+
+// siteNavigation keeps the site's six public top-level sections while taking
+// labels, order, enabled children and destinations from the current CMS tree.
+func siteNavigation(c *catalog, activeCode string) []Link {
+	links := []Link{{Name: "首页", Href: "index.html", Active: activeCode == "home"}}
+	publicRoots := map[string]bool{
+		"party": true, "ministry": true, "news": true,
+		"training": true, "standards": true, "about": true,
+	}
+	roots := make([]model.Column, 0, len(publicRoots))
+	for _, column := range c.columns {
+		if column.ParentID == 0 && publicRoots[column.Code] {
+			roots = append(roots, column)
+		}
+	}
+	sort.Slice(roots, func(i, j int) bool {
+		if roots[i].Sort != roots[j].Sort {
+			return roots[i].Sort < roots[j].Sort
+		}
+		return roots[i].ID < roots[j].ID
+	})
+	for _, column := range roots {
+		link := Link{Name: column.Name, Href: groupByID(c, column.ID, 0).Href, Active: activeCode == column.Code}
+		for _, child := range publicChildColumns(c, column.ID) {
+			link.Children = append(link.Children, Link{Name: child.Name, Href: groupByID(c, child.ID, 0).Href})
+		}
+		links = append(links, link)
+	}
+	return links
 }
 
 func (g *Generator) GenerateSite(ctx context.Context) (result Result, err error) {
@@ -812,7 +842,8 @@ func (g *Generator) GenerateSite(ctx context.Context) (result Result, err error)
 		if err := ctx.Err(); err != nil {
 			return err
 		}
-		p.ActiveNav = activeNav(c, p)
+		p.ActiveNavCode = activeNavCode(c, p)
+		p.Nav = siteNavigation(c, p.ActiveNavCode)
 		p.StaticBuildID = buildID
 		p.StaticGeneratedAt = generatedAt.Format(time.RFC3339Nano)
 		p.StaticBuildLabel = generatedAt.Format("20060102-150405.000")
@@ -852,7 +883,7 @@ func (g *Generator) GenerateSite(ctx context.Context) (result Result, err error)
 			}
 		}
 		p.Breadcrumbs = ancestors
-		if p.ActiveNav == "党建专栏" {
+		if p.ActiveNavCode == "party" {
 			p.BodyClass += " party-page"
 		}
 		p.RootPrefix = strings.Repeat("../", strings.Count(file, "/"))

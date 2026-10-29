@@ -82,7 +82,7 @@
           ]
         },
         {
-          "name": "标准工作",
+          "name": "标准制修订",
           "code": "standards-work",
           "children": [
             { "name": "通知及动态", "code": "standards-work-notices" },

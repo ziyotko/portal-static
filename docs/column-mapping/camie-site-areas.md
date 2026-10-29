@@ -14,6 +14,8 @@ Dia 把模板作为页面，栏目直接通过 `column.template_id` 归属模板
 | 科技标准 | `camie-standards` | 8 | `pages/standards.html` 及其子栏目 |
 | 关于协会 | `camie-about` | 16 | `pages/about.html` 及其子栏目 |
 
+全站顶部导航保留“首页”和六个公开主栏目入口；主栏目及直接子栏目的名称、顺序和链接在生成时读取启用的栏目数据，按 `column.sort`、`column.id` 排序。其余首页素材、会员、视频、政策研究和英文栏目不进入顶部主导航。后台修改栏目后，执行“生成首页”或“生成全站”，首页、栏目页和文章页的导航会一起更新。
+
 视频专区、政策研究和原会员栏目结构仍属于通用 `camie-list` 模板下的 14 个节点；真正的会员内容取自独立的 `member_column`/`member_content`，不会因为此分组改变。
 
 ## CAAM 后台的页面与栏目参照
@@ -125,7 +127,7 @@ Dia 后台已于 2026-09-21 将页面层合并进模板，使用 `column.templat
 科技标准 standards
   创新成果转化 standards-innovation
     科技成果评价 standards-achievement-evaluation；科技成果转化平台 standards-transfer-platform
-  标准工作 standards-work
+  标准制修订 standards-work
     通知及动态 standards-work-notices；协会标准发布 standards-publications
   绿色技术推广 standards-green-promotion
 关于协会 about

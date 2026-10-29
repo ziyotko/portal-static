@@ -44,6 +44,56 @@ func testConfig(t *testing.T) config.Config {
 	return cfg
 }
 
+func TestFullSiteNavigationFollowsCurrentColumns(t *testing.T) {
+	source := demo.NewSource()
+	var standardsID, workID, detailColumnID int64
+	columns := source.Columns[:0]
+	for _, column := range source.Columns {
+		switch column.Code {
+		case "standards":
+			column.Name = "科技标准新名称"
+			column.Sort = -1
+			standardsID = column.ID
+		case "standards-work":
+			column.Name = "标准制修订新名称"
+			column.Sort = -1
+			workID = column.ID
+		case "standards-work-notices":
+			detailColumnID = column.ID
+		case "standards-green-promotion":
+			continue
+		}
+		columns = append(columns, column)
+	}
+	source.Columns = append(columns, model.Column{
+		ID: 99999, Name: "新增标准栏目", Code: "standards-new-nav", ParentID: standardsID, Sort: 2,
+	})
+	result, err := New(testConfig(t), source).GenerateSite(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	article := source.Items[detailColumnID][0]
+	detailPath := fmt.Sprintf("article/%s/%d.html", article.PublishTime.Format("2006/01"), article.ID)
+	for _, path := range []string{"index.html", fmt.Sprintf("list/%d/1.html", workID), detailPath} {
+		page := readGenerated(t, result.Output, path)
+		nav := regexp.MustCompile(`(?s)<nav class="nav-bar".*?</nav>`).FindString(page)
+		if nav == "" || !strings.Contains(nav, ">科技标准新名称</a>") || !strings.Contains(nav, ">标准制修订新名称</a>") || !strings.Contains(nav, ">新增标准栏目</a>") {
+			t.Fatalf("%s navigation did not use current column names: %s", path, nav)
+		}
+		if strings.Contains(nav, ">绿色技术推广</a>") || strings.Contains(nav, ">会员专区</a>") {
+			t.Fatalf("%s navigation included removed or private column", path)
+		}
+		if strings.Index(nav, ">科技标准新名称</a>") > strings.Index(nav, ">党建专栏</a>") ||
+			strings.Index(nav, ">标准制修订新名称</a>") > strings.Index(nav, ">创新成果转化</a>") {
+			t.Fatalf("%s navigation ignored column sort order", path)
+		}
+	}
+	list := readGenerated(t, result.Output, fmt.Sprintf("list/%d/1.html", workID))
+	if !regexp.MustCompile(`class="nav-item active"><a class="nav-link"[^>]*>科技标准新名称</a>`).MatchString(list) {
+		t.Fatal("renamed top-level column is not active on its child list")
+	}
+}
+
 func TestAboutBranchesDefaultsToFirstBranchIntro(t *testing.T) {
 	g := New(testConfig(t), demo.NewSource())
 	column, total, err := g.Column(context.Background(), "about-branches", 0)
@@ -978,7 +1028,7 @@ func TestGenerateCompletePublicSiteAndMemberShells(t *testing.T) {
 	}
 	organization := source.Items[organizationID][0]
 	organizationHref := fmt.Sprintf("list/%d/1.html", organizationID)
-	if !strings.Contains(homePage, `href="./`+organizationHref+`">组织机构</a>`) {
+	if !strings.Contains(homePage, `href="./`+organizationHref+`">组织架构</a>`) {
 		t.Fatal("primary navigation organization link did not point to its content page")
 	}
 	aboutPage := readGenerated(t, result.Output, "pages/about.html")
