@@ -1,0 +1,407 @@
+.content-list-page,
+.content-detail-page {
+  color: #2d3036;
+  background: #fff;
+}
+
+.content-list-page .main-nav a.active::after,
+.content-detail-page .main-nav a.active::after {
+  height: 5px;
+}
+
+.inner-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 65px;
+  color: #9a9da3;
+  font-size: 16px;
+}
+
+.inner-breadcrumb a:hover {
+  color: var(--blue);
+}
+
+.inner-breadcrumb strong {
+  color: #34363a;
+  font-weight: 700;
+}
+
+/* List */
+.list-main {
+  min-height: 950px;
+  background: #fff;
+}
+
+.list-content {
+  padding-bottom: 77px;
+}
+
+.inner-tabs {
+  display: flex;
+  align-items: baseline;
+  gap: 42px;
+  min-height: 40px;
+  margin-top: 20px;
+}
+
+.inner-tabs a,
+.inner-tabs h1 {
+  flex: 0 0 auto;
+  color: #a1a1a1;
+  font-size: 24px;
+  line-height: 1.25;
+  font-weight: 400;
+}
+
+.inner-tabs a.active,
+.inner-tabs h1 {
+  color: #181818;
+  font-weight: 700;
+}
+
+.list-panel {
+  display: none;
+}
+
+.list-panel.active {
+  display: block;
+}
+
+.full-news-list li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 35px;
+  align-items: center;
+  min-height: 75px;
+  /*padding: 0 10px;*/
+  border-bottom: 1px solid #dcdfe4;
+}
+
+.full-news-list a {
+  overflow: hidden;
+  color: #2c2f34;
+  font-size: 18px;
+  line-height: 1.5;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  transition: color .2s ease;
+}
+
+.full-news-list a:hover {
+  color: var(--blue);
+}
+
+.full-news-list time {
+  color: #62666c;
+  font-size: 17px;
+  white-space: nowrap;
+}
+
+.pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 57px;
+  color: #7e838b;
+  font-size: 15px;
+}
+
+.page-size {
+  position: relative;
+}
+
+.page-size select,
+.page-jump input {
+  height: 34px;
+  color: #72777e;
+  background: #fff;
+  border: 1px solid #dfe3e9;
+  border-radius: 4px;
+}
+
+.page-size select {
+  min-width: 92px;
+  padding: 0 12px;
+}
+
+.pagination-bar button {
+  min-width: 28px;
+  height: 32px;
+  padding: 0 6px;
+  color: #747a83;
+  background: transparent;
+  border: 0;
+}
+
+.pagination-bar button.active {
+  color: #1678ed;
+}
+
+.pagination-bar button:disabled {
+  color: #c6cad0;
+  cursor: default;
+}
+
+.page-jump {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.page-jump input {
+  width: 54px;
+  padding: 0 8px;
+  text-align: center;
+}
+
+/* Detail */
+.content-detail-page {
+  background: #f7f7f7;
+}
+
+.detail-main {
+  padding-bottom: 68px;
+  background: #f7f7f7;
+}
+
+.article-card {
+  padding: 31px 27px 35px;
+  background: #fff;
+  border-radius: 3px;
+}
+
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  color: #1678ed;
+  font-size: 16px;
+}
+
+.back-link span {
+  font-size: 24px;
+  line-height: 1;
+}
+
+.article-header {
+  margin-top: 29px;
+  padding-bottom: 17px;
+  border-bottom: 1px solid #dfe3e9;
+}
+
+.article-header h1 {
+  color: #31343a;
+  font-size: 25px;
+  line-height: 1.45;
+  font-weight: 700;
+}
+
+.article-header p {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  margin-top: 22px;
+  color: #93a6bd;
+  font-size: 16px;
+}
+
+.article-body {
+  padding-top: 24px;
+  color: #3d4a5c;
+  font-size: 16px;
+  line-height: 1.65;
+}
+
+.article-body p {
+  margin: 0 0 10px;
+}
+
+.article-body h2 {
+  margin: 29px 0 2px;
+  color: #31435a;
+  font-size: 17px;
+  line-height: 1.6;
+  font-weight: 700;
+}
+
+.article-actions {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  margin-top: 24px;
+  padding-top: 21px;
+  border-top: 1px solid #dfe3e9;
+}
+
+.article-action-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-width: 96px;
+  height: 38px;
+  padding: 0 18px;
+  border: 1px solid #d7e1ed;
+  border-radius: 20px;
+  background: #fff;
+  color: #52657a;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  transition: border-color 0.2s, background-color 0.2s, color 0.2s, transform 0.2s;
+}
+
+.article-action-button:hover {
+  border-color: #1678ed;
+  color: #1678ed;
+  transform: translateY(-1px);
+}
+
+.article-action-button:focus-visible {
+  outline: 3px solid rgba(22, 120, 237, 0.2);
+  outline-offset: 2px;
+}
+
+.article-action-button svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.article-action-button[aria-pressed="true"] {
+  border-color: #1678ed;
+  background: #edf6ff;
+  color: #1678ed;
+}
+
+.article-action-button[aria-pressed="true"] svg {
+  fill: currentColor;
+}
+
+.article-action-status {
+  position: absolute;
+  top: 67px;
+  left: 50%;
+  z-index: 2;
+  margin: 0;
+  padding: 7px 13px;
+  border-radius: 4px;
+  background: rgba(35, 45, 58, 0.92);
+  color: #fff;
+  font-size: 15px;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, -4px);
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+.article-action-status.is-visible {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+@media (max-width: 900px) {
+  .inner-breadcrumb {
+    min-height: 56px;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  .inner-tabs {
+    min-height: 46px;
+  }
+
+  .inner-tabs a,
+  .inner-tabs h1 {
+    font-size: 21px;
+  }
+
+  .full-news-list li {
+    min-height: 66px;
+  }
+
+  .pagination-bar {
+    flex-wrap: wrap;
+  }
+
+  .article-card {
+    padding: 24px 20px 30px;
+  }
+
+  .article-header h1 {
+    font-size: 22px;
+  }
+}
+
+@media (max-width: 620px) {
+  .list-content {
+    padding-bottom: 50px;
+  }
+
+  .full-news-list li {
+    grid-template-columns: 1fr;
+    gap: 6px;
+    padding: 13px 0;
+  }
+
+  .full-news-list a {
+    font-size: 16px;
+    white-space: normal;
+  }
+
+  .full-news-list time {
+    font-size: 15px;
+  }
+
+  .pagination-bar {
+    justify-content: flex-start;
+    margin-top: 38px;
+  }
+
+  .page-number[data-page="4"],
+  .page-number[data-page="5"],
+  .page-number[data-page="50"],
+  .page-ellipsis,
+  .page-jump {
+    display: none;
+  }
+
+  .detail-main {
+    padding-bottom: 40px;
+  }
+
+  .article-card {
+    max-width: 100%;
+    border-radius: 0;
+  }
+
+  .article-header {
+    margin-top: 22px;
+  }
+
+  .article-header h1 {
+    font-size: 20px;
+  }
+
+  .article-header p {
+    gap: 9px 18px;
+    margin-top: 16px;
+  }
+
+  .article-body {
+    font-size: 15px;
+    line-height: 1.8;
+  }
+
+  .article-action-button {
+    min-width: 92px;
+    padding: 0 16px;
+  }
+}

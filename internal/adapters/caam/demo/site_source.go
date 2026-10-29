@@ -67,6 +67,7 @@ func NewSiteSource(cfg config.Config) *SiteSource {
 		source.columnIDsByArticle[nextArticleID] = []int64{column.ID}
 		source.mappings = append(source.mappings, model.ArticleColumnMapping{
 			ID: nextMappingID, ColumnID: column.ID, ArticleID: nextArticleID,
+			IsTop: article.IsTop, PublishedAt: article.PublishTime,
 		})
 		nextArticleID++
 		nextMappingID++

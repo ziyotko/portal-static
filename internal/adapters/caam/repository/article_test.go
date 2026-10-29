@@ -117,7 +117,7 @@ func TestFetchByColumnUsesPublishedFiltersAndBoundArguments(t *testing.T) {
 		WithArgs(12, slot.Name).
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(91))
 	published := time.Date(2026, 7, 16, 9, 30, 0, 0, time.Local)
-	mock.ExpectQuery(`(?s)SELECT a\.id, a\.type.*FROM \(.*FROM caam_portal\.article candidate.*INNER JOIN caam_portal\.article_column_publish acp.*acp\.column_id = \?.*acp\.article_id = candidate\.id.*candidate\.status = 1.*candidate\.audit_status = 2.*candidate\.type IN \(\?,\?\).*ORDER BY candidate\.is_top DESC, candidate\.publish_time DESC, candidate\.id DESC.*LIMIT \?.*INNER JOIN caam_portal\.article a.*ORDER BY a\.is_top DESC, a\.publish_time DESC, a\.id DESC`).
+	mock.ExpectQuery(`(?s)SELECT a\.id, a\.type.*FROM \(.*FROM caam_portal\.article candidate.*INNER JOIN caam_portal\.article_column_publish acp.*acp\.column_id = \?.*acp\.article_id = candidate\.id.*candidate\.status = 1.*candidate\.audit_status = 2.*candidate\.type IN \(\?,\?\).*ORDER BY acp\.is_top DESC.*LIMIT \?.*INNER JOIN caam_portal\.article a.*ORDER BY selected\.is_top DESC`).
 		WithArgs(int64(91), 1, 2, 5).
 		WillReturnRows(sqlmock.NewRows([]string{
 			"id", "type", "title", "summary", "content", "cover", "author", "source", "is_bold", "default_color", "url", "publish_time",
@@ -218,7 +218,7 @@ func TestFetchPublishedByColumnNameUsesNameAndPublicFilters(t *testing.T) {
 	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, name FROM caam_portal.`column` WHERE name = ? AND status = 1 ORDER BY id ASC")).
 		WithArgs(name).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "name"}).AddRow(91, name))
-	mock.ExpectQuery(`(?s)SELECT acp\.column_id, a\.id.*FROM caam_portal\.article_column_publish acp.*INNER JOIN caam_portal\.article a.*acp\.column_id IN \(\?\).*a\.status = 1.*a\.audit_status = 2.*ORDER BY a\.is_top DESC, a\.publish_time DESC, a\.id DESC`).
+	mock.ExpectQuery(`(?s)SELECT acp\.column_id, a\.id.*FROM caam_portal\.article_column_publish acp.*INNER JOIN caam_portal\.article a.*acp\.column_id IN \(\?\).*a\.status = 1.*a\.audit_status = 2.*ORDER BY acp\.is_top DESC`).
 		WithArgs(int64(91)).
 		WillReturnRows(sqlmock.NewRows([]string{
 			"column_id", "id", "type", "title", "summary", "content", "cover", "author", "source", "is_bold", "default_color", "url", "publish_time",
@@ -265,7 +265,7 @@ func TestFetchPublishedByColumnNameMergesSameNameColumns(t *testing.T) {
 	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, name FROM caam_portal.`column` WHERE name = ? AND status = 1 ORDER BY id ASC")).
 		WithArgs(name).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "name"}).AddRow(44, name).AddRow(48, name))
-	mock.ExpectQuery(`(?s)SELECT acp\.column_id, a\.id.*acp\.column_id IN \(\?,\?\).*ORDER BY a\.is_top DESC, a\.publish_time DESC, a\.id DESC`).
+	mock.ExpectQuery(`(?s)SELECT acp\.column_id, a\.id.*acp\.column_id IN \(\?,\?\).*ORDER BY acp\.is_top DESC`).
 		WithArgs(int64(44), int64(48)).
 		WillReturnRows(sqlmock.NewRows([]string{
 			"column_id", "id", "type", "title", "summary", "content", "cover", "author", "source", "is_bold", "default_color", "url", "publish_time",
@@ -458,7 +458,7 @@ func TestFetchColumnArticlesUsesPublicFiltersAndStableOrder(t *testing.T) {
 		WithArgs(int64(42)).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "name"}).AddRow(42, "行业要闻"))
 	published := time.Date(2026, 7, 24, 9, 0, 0, 0, time.Local)
-	mock.ExpectQuery(`(?s)SELECT a\.id, a\.type.*FROM caam_portal\.article_column_publish acp.*INNER JOIN caam_portal\.article a.*a\.id = acp\.article_id.*acp\.column_id = \?.*a\.status = 1.*a\.audit_status = 2.*ORDER BY a\.is_top DESC, a\.publish_time DESC, a\.id DESC`).
+	mock.ExpectQuery(`(?s)SELECT a\.id, a\.type.*FROM caam_portal\.article_column_publish acp.*INNER JOIN caam_portal\.article a.*a\.id = acp\.article_id.*acp\.column_id = \?.*a\.status = 1.*a\.audit_status = 2.*ORDER BY acp\.is_top DESC`).
 		WithArgs(int64(42)).
 		WillReturnRows(sqlmock.NewRows([]string{
 			"id", "type", "title", "url", "publish_time",
@@ -540,14 +540,14 @@ func TestFetchArticleColumnMappingsBatchUsesPrimaryCursor(t *testing.T) {
 	defer db.Close()
 	mock.ExpectQuery(`(?s)SELECT id, column_id, article_id.*article_column_publish.*id > \?.*ORDER BY id ASC.*LIMIT \?`).
 		WithArgs(int64(2000), 2000).
-		WillReturnRows(sqlmock.NewRows([]string{"id", "column_id", "article_id"}).
-			AddRow(2001, 14, 101).
-			AddRow(2002, 62, 102))
+		WillReturnRows(sqlmock.NewRows([]string{"id", "column_id", "article_id", "is_top", "created_at"}).
+			AddRow(2001, 14, 101, 1, time.Date(2026, 10, 20, 10, 0, 0, 0, time.UTC)).
+			AddRow(2002, 62, 102, 0, time.Date(2026, 10, 21, 10, 0, 0, 0, time.UTC)))
 	mappings, err := NewArticleRepository(db, 12).FetchArticleColumnMappingsBatch(context.Background(), 2000, 2000)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(mappings) != 2 || mappings[0].ID != 2001 || mappings[1].ColumnID != 62 {
+	if len(mappings) != 2 || mappings[0].ID != 2001 || mappings[1].ColumnID != 62 || !mappings[0].IsTop || mappings[1].IsTop || mappings[0].PublishedAt.IsZero() {
 		t.Fatalf("unexpected mappings: %#v", mappings)
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {

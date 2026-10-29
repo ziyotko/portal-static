@@ -46,10 +46,25 @@
   document.addEventListener('click', (event) => {
     const button = event.target.closest('.side-menu button[aria-expanded]');
     if (!button) return;
+    const menu = button.closest('.side-menu');
     const expanded = button.getAttribute('aria-expanded') !== 'true';
+    menu.querySelectorAll('.side-menu-parent > button[aria-expanded="true"]').forEach((other) => {
+      if (other === button) return;
+      other.setAttribute('aria-expanded', 'false');
+      const otherSubmenu = document.getElementById(other.getAttribute('aria-controls'));
+      if (otherSubmenu) otherSubmenu.hidden = true;
+    });
     button.setAttribute('aria-expanded', String(expanded));
     const submenu = document.getElementById(button.getAttribute('aria-controls'));
     if (submenu) submenu.hidden = !expanded;
+  });
+
+  document.addEventListener('click', (event) => {
+    const link = event.target.closest('.side-menu-parent > a');
+    const button = link?.nextElementSibling;
+    if (!button || button.getAttribute('aria-expanded') === 'true') return;
+    event.preventDefault();
+    button.click();
   });
 
   const sectionBreadcrumbNav = document.querySelector('.breadcrumb[data-sync-section]');
@@ -86,7 +101,7 @@
     if (!sectionItem) return;
     document.querySelectorAll('.side-menu > li').forEach((item) => item.classList.remove('is-active'));
     sectionItem.closest('.side-menu > li')?.classList.add('is-active');
-    if (sectionItem.matches('button[aria-expanded]')) sectionItem.setAttribute('aria-expanded', 'true');
+    if (section && sectionItem.matches('button[aria-expanded="false"]')) sectionItem.click();
     syncSectionBreadcrumb(section ? sectionItem : null);
     if (section) {
       const rootLabel = sectionBreadcrumb?.querySelectorAll('li')[1]?.textContent.trim();
@@ -168,8 +183,8 @@
         target.closest('li')?.classList.add('current');
         target.closest('.side-menu > li')?.classList.add('is-active');
         const submenu = target.closest('.side-submenu');
-        submenu?.previousElementSibling?.querySelector('button[aria-expanded]')?.setAttribute('aria-expanded', 'true');
-        if (submenu) submenu.hidden = false;
+        const toggle = submenu?.previousElementSibling?.querySelector('button[aria-expanded="false"]');
+        toggle?.click();
       }
     }
   }

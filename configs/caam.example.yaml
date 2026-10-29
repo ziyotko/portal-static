@@ -20,21 +20,21 @@ server:
   batch_max_duration: 6h
 
 paths:
-  # CAAM 原工程只作为只读页面脚手架。
-  source_root: ../../caam-portal/caam-home
+  # CAAM 页面资源随本仓库维护，运行时无需单独克隆 caam-portal。
+  source_root: ../internal/adapters/caam/site
   dist_root: ../dist/caam-home
   allowed_output_root: ../dist
   preview_root: ../dist/caam-preview
   # preview 使用这些只读文件；production 每次直接从 template 表读取源码。
   templates:
-    home: ../backend/templates/home.html.tmpl
-    list: ../backend/templates/list.html.tmpl
-    article: ../backend/templates/article.html.tmpl
-    about: ../backend/templates/about.html.tmpl
-    work: ../backend/templates/work.html.tmpl
-    stats: ../backend/templates/stats.html.tmpl
-    members: ../backend/templates/members.html.tmpl
-    party: ../backend/templates/party.html.tmpl
+    home: ../testdata/templates/home.html.tmpl
+    list: ../testdata/templates/list.html.tmpl
+    article: ../testdata/templates/article.html.tmpl
+    about: ../testdata/templates/about.html.tmpl
+    work: ../testdata/templates/work.html.tmpl
+    stats: ../testdata/templates/stats.html.tmpl
+    members: ../testdata/templates/members.html.tmpl
+    party: ../testdata/templates/party.html.tmpl
   # 生产模板角色优先按稳定 code 绑定；这些 code 来自 2026-09-21 CAAM 快照。
   template_codes:
     home: sy

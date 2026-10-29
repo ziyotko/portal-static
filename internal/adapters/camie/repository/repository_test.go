@@ -21,8 +21,8 @@ func TestFetchHomeHeroArticlesUsesCurrentManagerAssignments(t *testing.T) {
 			AddRow(66, "轮播图", "home-hero", 9, 65, "", 1))
 	mock.ExpectQuery("(?s)FROM article a.*c.id=\\? AND c.code='home-hero'.*WHERE a.status=1.*AND EXISTS .*FROM article_column ac.*ORDER BY a.is_top DESC").
 		WithArgs(int64(66)).
-		WillReturnRows(sqlmock.NewRows([]string{"id", "type", "title", "summary", "content", "cover", "author", "source", "is_bold", "is_top", "color", "url", "publish_time"}).
-			AddRow(1144, 1, "2026 年通知", "", "", "", "", "", 0, 0, "", "", time.Date(2026, 3, 24, 9, 55, 32, 0, time.Local)))
+		WillReturnRows(sqlmock.NewRows([]string{"id", "type", "title", "summary", "content", "cover", "author", "source", "is_bold", "is_top", "color", "url", "publish_time", "column_published_at"}).
+			AddRow(1144, 1, "2026 年通知", "", "", "", "", "", 0, 0, "", "", time.Date(2026, 3, 24, 9, 55, 32, 0, time.Local), time.Date(2026, 3, 24, 9, 55, 32, 0, time.Local)))
 
 	column, articles, err := New(db, 9).FetchColumnArticles(context.Background(), 66)
 	if err != nil {
@@ -49,9 +49,9 @@ func TestFetchOtherColumnsUsesOnlyDirectArticlesAndCurrentStyles(t *testing.T) {
 			AddRow(37, "国际交流与合作", "training-international", 9, 11, "", 2))
 	mock.ExpectQuery("(?s)^SELECT a.id.*COALESCE\\(acp.is_bold,0\\),COALESCE\\(acp.is_top,0\\),COALESCE\\(NULLIF\\(acp.color,''\\),a.default_color,''\\).*FROM article_column_publish acp INNER JOIN article a.*WHERE acp.column_id=\\? AND a.status=1.*ORDER BY acp.is_top DESC").
 		WithArgs(int64(37)).
-		WillReturnRows(sqlmock.NewRows([]string{"id", "type", "title", "summary", "content", "cover", "author", "source", "is_bold", "is_top", "color", "url", "publish_time"}).
-			AddRow(20038, 1, "国际交流栏目示例", "", "", "", "", "", 1, 1, "#008000", "", time.Date(2026, 3, 24, 9, 55, 32, 0, time.Local)).
-			AddRow(20038, 1, "国际交流栏目示例", "", "", "", "", "", 1, 1, "#008000", "", time.Date(2026, 3, 24, 9, 55, 32, 0, time.Local)))
+		WillReturnRows(sqlmock.NewRows([]string{"id", "type", "title", "summary", "content", "cover", "author", "source", "is_bold", "is_top", "color", "url", "publish_time", "column_published_at"}).
+			AddRow(20038, 1, "国际交流栏目示例", "", "", "", "", "", 1, 1, "#008000", "", time.Date(2026, 3, 24, 9, 55, 32, 0, time.Local), time.Date(2026, 3, 25, 9, 55, 32, 0, time.Local)).
+			AddRow(20038, 1, "国际交流栏目示例", "", "", "", "", "", 1, 1, "#008000", "", time.Date(2026, 3, 24, 9, 55, 32, 0, time.Local), time.Date(2026, 3, 25, 9, 55, 32, 0, time.Local)))
 
 	column, articles, err := New(db, 9).FetchColumnArticles(context.Background(), 37)
 	if err != nil {

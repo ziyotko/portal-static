@@ -55,6 +55,7 @@ func (g *PageGenerator) loadContentSnapshot(ctx context.Context) (*contentSnapsh
 
 	columnIDsByArticle := make(map[int64][]int64)
 	seenPair := make(map[[2]int64]struct{})
+	publicationByPair := make(map[[2]int64]model.ArticleColumnMapping)
 	afterID := int64(0)
 	mappingCount := 0
 	for {
@@ -82,6 +83,7 @@ func (g *PageGenerator) loadContentSnapshot(ctx context.Context) (*contentSnapsh
 				continue
 			}
 			seenPair[pair] = struct{}{}
+			publicationByPair[pair] = mapping
 			columnIDsByArticle[mapping.ArticleID] = append(columnIDsByArticle[mapping.ArticleID], mapping.ColumnID)
 			mappingCount++
 		}
@@ -174,6 +176,9 @@ func (g *PageGenerator) loadContentSnapshot(ctx context.Context) (*contentSnapsh
 			for _, columnID := range columnIDsByArticle[articleID] {
 				item := article
 				item.ColumnID = columnID
+				publication := publicationByPair[[2]int64{articleID, columnID}]
+				item.IsTop = publication.IsTop
+				item.ColumnPublishedAt = publication.PublishedAt
 				listArticlesByColumn[columnID] = append(listArticlesByColumn[columnID], item)
 			}
 		}
@@ -187,6 +192,18 @@ func (g *PageGenerator) loadContentSnapshot(ctx context.Context) (*contentSnapsh
 		sort.SliceStable(articles, func(i, j int) bool {
 			if articles[i].IsTop != articles[j].IsTop {
 				return articles[i].IsTop
+			}
+			if articles[i].IsTop {
+				left, right := articles[i].ColumnPublishedAt, articles[j].ColumnPublishedAt
+				if left.IsZero() {
+					left = articles[i].PublishTime
+				}
+				if right.IsZero() {
+					right = articles[j].PublishTime
+				}
+				if !left.Equal(right) {
+					return left.After(right)
+				}
 			}
 			if !articles[i].PublishTime.Equal(articles[j].PublishTime) {
 				return articles[i].PublishTime.After(articles[j].PublishTime)

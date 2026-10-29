@@ -117,7 +117,7 @@ type Partner struct {
 	Width, Height, DisplayWidth int
 }
 type Page struct {
-	ActiveNav                                string
+	ActiveNavCode                            string
 	Title, Kind, BodyClass, RootPrefix       string
 	StaticBuildID, StaticGeneratedAt         string
 	StaticBuildLabel, StaticGeneratedAtLabel string
@@ -129,7 +129,7 @@ type Page struct {
 	Article, PreviousArticle, NextArticle    *Article
 	Parent                                   *Link
 	Breadcrumbs                              []Link
-	Side, Pages                              []Link
+	Side, Pages, Nav                         []Link
 	Hero                                     []*Article
 	Notices, Topics                          []Group
 	Experts                                  Group
@@ -230,6 +230,18 @@ func (g *Generator) load(ctx context.Context) (*catalog, error) {
 				a, b := items[i], items[j]
 				if a.IsTop != b.IsTop {
 					return a.IsTop
+				}
+				if a.IsTop {
+					aPublishedAt, bPublishedAt := a.ColumnPublishedAt, b.ColumnPublishedAt
+					if aPublishedAt.IsZero() {
+						aPublishedAt = a.PublishTime
+					}
+					if bPublishedAt.IsZero() {
+						bPublishedAt = b.PublishTime
+					}
+					if !aPublishedAt.Equal(bPublishedAt) {
+						return aPublishedAt.After(bPublishedAt)
+					}
 				}
 				if !a.PublishTime.Equal(b.PublishTime) {
 					return a.PublishTime.After(b.PublishTime)
@@ -395,6 +407,19 @@ func (g *Generator) content(raw, prefix string) template.HTML {
 	policy.AllowAttrs("src", "poster", "controls", "preload", "width", "height").OnElements("video")
 	policy.AllowAttrs("src", "type").OnElements("source")
 	policy.AllowAttrs("data-text-align").Matching(regexp.MustCompile(`^(?:left|center|right|justify)$`)).OnElements("p", "div", "section", "h1", "h2", "h3", "h4", "h5", "h6", "td", "th", "img")
+	// 与 Portal 后台富文本预览采用相同的安全样式白名单，避免编辑器的字号、
+	// 字重等在静态化时丢失，使正文标题退回浏览器默认的大号样式。
+	policy.AllowStyles(
+		"color", "background-color",
+		"text-align", "text-indent", "text-decoration",
+		"font-size", "font-family", "font-weight", "font-style",
+		"line-height", "letter-spacing",
+		"margin", "margin-top", "margin-right", "margin-bottom", "margin-left",
+		"padding", "padding-top", "padding-right", "padding-bottom", "padding-left",
+		"border", "border-width", "border-style", "border-color", "border-collapse",
+		"width", "height", "max-width", "min-width",
+		"vertical-align", "white-space", "word-break", "list-style-type",
+	).Globally()
 	policy.AllowRelativeURLs(true)
 	policy.AllowURLSchemes("http", "https")
 	doc, err := html.Parse(strings.NewReader(raw))
@@ -439,9 +464,56 @@ func (g *Generator) content(raw, prefix string) template.HTML {
 		}
 	}
 	visit(doc)
+	// wangEditor 将图片跳转地址写在 img[data-href]；静态页需要真正的链接，
+	// 同时不能把未经校验的 data-href 直接交给浏览器执行。
+	var linkImages func(*html.Node)
+	linkImages = func(parent *html.Node) {
+		for child := parent.FirstChild; child != nil; {
+			next := child.NextSibling
+			if child.Type == html.ElementNode && child.Data == "img" && parent.Data != "a" {
+				for _, attr := range child.Attr {
+					if attr.Key != "data-href" {
+						continue
+					}
+					if href := safeImageHref(attr.Val); href != "" {
+						link := &html.Node{Type: html.ElementNode, Data: "a", Attr: []html.Attribute{{Key: "href", Val: root(Page{RootPrefix: prefix}, href)}}}
+						parent.InsertBefore(link, child)
+						parent.RemoveChild(child)
+						link.AppendChild(child)
+					}
+					break
+				}
+			} else {
+				linkImages(child)
+			}
+			child = next
+		}
+	}
+	linkImages(doc)
 	var b bytes.Buffer
 	_ = html.Render(&b, doc)
 	return template.HTML(policy.Sanitize(b.String()))
+}
+
+func safeImageHref(raw string) string {
+	href := strings.TrimSpace(raw)
+	if href == "" || strings.HasPrefix(href, "//") {
+		return ""
+	}
+	parsed, err := url.Parse(href)
+	if err != nil {
+		return ""
+	}
+	if parsed.IsAbs() {
+		if (parsed.Scheme == "http" || parsed.Scheme == "https") && parsed.Host != "" {
+			return href
+		}
+		return ""
+	}
+	if strings.HasPrefix(href, "/") {
+		return href
+	}
+	return ""
 }
 
 func playableVideoAttachment(attachment model.Attachment) bool {
@@ -603,15 +675,15 @@ func side(c *catalog, currentCode string) []Link {
 	return links
 }
 
-func activeNav(c *catalog, p Page) string {
+func activeNavCode(c *catalog, p Page) string {
 	if p.ColumnCode == "about-english" {
 		return ""
 	}
 	if p.Kind == "home" {
-		return "首页"
+		return "home"
 	}
 	if p.Kind == "about" {
-		return "关于协会"
+		return "about"
 	}
 	code := p.ColumnCode
 	if p.Article != nil {
@@ -619,26 +691,56 @@ func activeNav(c *catalog, p Page) string {
 	}
 	switch topColumn(c, code).Code {
 	case "party":
-		return "党建专栏"
+		return "party"
 	case "ministry", "policy-research":
-		return "部委动态"
+		return "ministry"
 	case "news":
-		return "新闻中心"
+		return "news"
 	case "training":
-		return "交流培训"
+		return "training"
 	case "standards":
-		return "科技标准"
+		return "standards"
 	case "about":
-		return "关于协会"
+		return "about"
 	case "about-experts":
 		return ""
 	case "home-fenzhijigou":
-		return "首页"
+		return "home"
 	case "home-expert-insights":
-		return "首页"
+		return "home"
 	default:
-		return "首页"
+		return "home"
 	}
+}
+
+// siteNavigation keeps the site's six public top-level sections while taking
+// labels, order, enabled children and destinations from the current CMS tree.
+func siteNavigation(c *catalog, activeCode string) []Link {
+	links := []Link{{Name: "首页", Href: "index.html", Active: activeCode == "home"}}
+	publicRoots := map[string]bool{
+		"party": true, "ministry": true, "news": true,
+		"training": true, "standards": true, "about": true,
+	}
+	roots := make([]model.Column, 0, len(publicRoots))
+	for _, column := range c.columns {
+		if column.ParentID == 0 && publicRoots[column.Code] {
+			roots = append(roots, column)
+		}
+	}
+	sort.Slice(roots, func(i, j int) bool {
+		if roots[i].Sort != roots[j].Sort {
+			return roots[i].Sort < roots[j].Sort
+		}
+		return roots[i].ID < roots[j].ID
+	})
+	for _, column := range roots {
+		link := Link{Name: column.Name, Href: groupByID(c, column.ID, 0).Href, Active: activeCode == column.Code}
+		for _, child := range publicChildColumns(c, column.ID) {
+			link.Children = append(link.Children, Link{Name: child.Name, Href: groupByID(c, child.ID, 0).Href})
+		}
+		links = append(links, link)
+	}
+	return links
 }
 
 func (g *Generator) GenerateSite(ctx context.Context) (result Result, err error) {
@@ -740,7 +842,8 @@ func (g *Generator) GenerateSite(ctx context.Context) (result Result, err error)
 		if err := ctx.Err(); err != nil {
 			return err
 		}
-		p.ActiveNav = activeNav(c, p)
+		p.ActiveNavCode = activeNavCode(c, p)
+		p.Nav = siteNavigation(c, p.ActiveNavCode)
 		p.StaticBuildID = buildID
 		p.StaticGeneratedAt = generatedAt.Format(time.RFC3339Nano)
 		p.StaticBuildLabel = generatedAt.Format("20060102-150405.000")
@@ -780,7 +883,7 @@ func (g *Generator) GenerateSite(ctx context.Context) (result Result, err error)
 			}
 		}
 		p.Breadcrumbs = ancestors
-		if p.ActiveNav == "党建专栏" {
+		if p.ActiveNavCode == "party" {
 			p.BodyClass += " party-page"
 		}
 		p.RootPrefix = strings.Repeat("../", strings.Count(file, "/"))
@@ -1084,6 +1187,9 @@ func (g *Generator) GenerateSite(ctx context.Context) (result Result, err error)
 		return result, err
 	}
 	if err = render("pages/member.html", "member-shell", Page{Title: "会员中心", ColumnCode: "member", Kind: "member", BodyClass: "list-page"}); err != nil {
+		return result, err
+	}
+	if err = render("pages/member-statistics.html", "member-statistics-shell", Page{Title: "数据中心", ColumnCode: "member", Kind: "member-statistics"}); err != nil {
 		return result, err
 	}
 	if err = render("pages/member-detail.html", "member-detail-shell", Page{Title: "会员内容", ColumnCode: "member", Kind: "member-detail", BodyClass: "article-page"}); err != nil {

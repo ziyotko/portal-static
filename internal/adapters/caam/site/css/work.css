@@ -1,0 +1,287 @@
+.association-work-page {
+  color: #292929;
+  background: #fff;
+}
+
+.association-work-page .main-nav a.active::after {
+  height: 5px;
+}
+
+.work-main {
+  min-height: 900px;
+}
+
+.work-focus {
+  padding: 47px 0 64px;
+  background:
+    linear-gradient(rgba(255, 255, 255, .88), rgba(255, 255, 255, .97)),
+    url("../assets/bg/pattern.png") center top / 760px auto repeat-x;
+}
+
+.focus-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px;
+}
+
+.focus-card {
+  min-width: 0;
+}
+
+.focus-image {
+  display: block;
+  overflow: hidden;
+  background: #e8edf3;
+}
+
+.focus-image img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 590 / 337;
+  object-fit: cover;
+  transition: transform .35s ease;
+}
+
+.focus-card:hover .focus-image img {
+  transform: scale(1.025);
+}
+
+.focus-card h1 {
+  overflow: hidden;
+  margin-top: 16px;
+  font-size: 20px;
+  line-height: 1.35;
+  font-weight: 700;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.focus-card h1 a:hover,
+.article-lines a:hover {
+  color: var(--blue);
+}
+
+.focus-card p {
+  display: -webkit-box;
+  overflow: hidden;
+  min-height: 52px;
+  margin-top: 13px;
+  padding-top: 14px;
+  color: #8b8b8b;
+  border-top: 1px solid #dedede;
+  font-size: 16px;
+  line-height: 1.8;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.news-board {
+  padding: 0 0 55px;
+  background: #fff;
+}
+
+.news-board-muted {
+  padding: 51px 0 57px;
+  background: #fafafa;
+}
+
+.work-tabs {
+  display: flex;
+  align-items: baseline;
+  gap: 42px;
+  min-height: 45px;
+}
+
+.work-tabs button,
+.work-tabs a {
+  position: relative;
+  margin: 0;
+  padding: 0 0 11px;
+  color: #a1a1a1;
+  background: transparent;
+  border: 0;
+  font-size: 23px;
+  line-height: 1.25;
+  font-weight: 400;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.work-tabs button.active,
+.work-tabs a.active {
+  color: #171717;
+  font-weight: 700;
+}
+
+.work-tabs button.active::after,
+.work-tabs a.active::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: var(--blue);
+  opacity: 0;
+}
+
+.work-tab-panel {
+  display: none;
+}
+
+.work-tab-panel.active {
+  display: block;
+}
+
+.article-lines li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 32px;
+  align-items: center;
+  min-height: 50px;
+  border-bottom: 1px solid #dedede;
+}
+
+.article-lines a {
+  overflow: hidden;
+  color: #5e5e5e;
+  font-size: 16px;
+  line-height: 1.5;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  transition: color .2s ease;
+}
+
+.article-lines time {
+  color: #666;
+  font-size: 16px;
+  white-space: nowrap;
+}
+
+.industry-links {
+  padding: 51px 0 49px;
+  background: #fff;
+}
+
+.industry-links h2 {
+  margin: 0 0 25px;
+  color: #171717;
+  font-size: 25px;
+  line-height: 1.3;
+  font-weight: 700;
+}
+
+.industry-link-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.industry-link-card {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  aspect-ratio: 580 / 142;
+  background: #fff;
+  transition: transform .25s ease, box-shadow .25s ease;
+}
+
+.industry-link-card img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.industry-link-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 24px rgba(19, 54, 93, .15);
+}
+
+.statistics-link {
+  background: #1789d2;
+}
+
+.magazine-link {
+  background: #fff;
+}
+
+.work-empty {
+  grid-column: 1 / -1;
+  padding: 24px 0;
+  color: #999;
+  text-align: center;
+}
+
+@media (max-width: 980px) {
+  .work-focus {
+    padding-top: 32px;
+  }
+
+  .focus-card h1 {
+    font-size: 18px;
+  }
+
+}
+
+@media (max-width: 760px) {
+  .work-focus {
+    padding: 24px 0 42px;
+  }
+
+  .focus-grid,
+  .industry-link-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .focus-grid {
+    gap: 34px;
+  }
+
+  .focus-card h1 {
+    white-space: normal;
+  }
+
+  .work-tabs {
+    gap: 24px;
+    overflow-x: auto;
+  }
+
+  .work-tabs button,
+  .work-tabs a {
+    flex: 0 0 auto;
+    font-size: 20px;
+  }
+
+  .article-lines li {
+    grid-template-columns: 1fr;
+    gap: 5px;
+    padding: 12px 0;
+  }
+
+  .article-lines a {
+    white-space: normal;
+  }
+
+  .article-lines time {
+    font-size: 14px;
+  }
+
+  .news-board,
+  .news-board-muted {
+    padding-bottom: 42px;
+  }
+
+  .news-board-muted,
+  .industry-links {
+    padding-top: 40px;
+  }
+
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .focus-image img,
+  .industry-link-card {
+    transition: none;
+  }
+}

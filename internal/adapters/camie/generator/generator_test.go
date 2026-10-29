@@ -44,6 +44,56 @@ func testConfig(t *testing.T) config.Config {
 	return cfg
 }
 
+func TestFullSiteNavigationFollowsCurrentColumns(t *testing.T) {
+	source := demo.NewSource()
+	var standardsID, workID, detailColumnID int64
+	columns := source.Columns[:0]
+	for _, column := range source.Columns {
+		switch column.Code {
+		case "standards":
+			column.Name = "科技标准新名称"
+			column.Sort = -1
+			standardsID = column.ID
+		case "standards-work":
+			column.Name = "标准制修订新名称"
+			column.Sort = -1
+			workID = column.ID
+		case "standards-work-notices":
+			detailColumnID = column.ID
+		case "standards-green-promotion":
+			continue
+		}
+		columns = append(columns, column)
+	}
+	source.Columns = append(columns, model.Column{
+		ID: 99999, Name: "新增标准栏目", Code: "standards-new-nav", ParentID: standardsID, Sort: 2,
+	})
+	result, err := New(testConfig(t), source).GenerateSite(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	article := source.Items[detailColumnID][0]
+	detailPath := fmt.Sprintf("article/%s/%d.html", article.PublishTime.Format("2006/01"), article.ID)
+	for _, path := range []string{"index.html", fmt.Sprintf("list/%d/1.html", workID), detailPath} {
+		page := readGenerated(t, result.Output, path)
+		nav := regexp.MustCompile(`(?s)<nav class="nav-bar".*?</nav>`).FindString(page)
+		if nav == "" || !strings.Contains(nav, ">科技标准新名称</a>") || !strings.Contains(nav, ">标准制修订新名称</a>") || !strings.Contains(nav, ">新增标准栏目</a>") {
+			t.Fatalf("%s navigation did not use current column names: %s", path, nav)
+		}
+		if strings.Contains(nav, ">绿色技术推广</a>") || strings.Contains(nav, ">会员专区</a>") {
+			t.Fatalf("%s navigation included removed or private column", path)
+		}
+		if strings.Index(nav, ">科技标准新名称</a>") > strings.Index(nav, ">党建专栏</a>") ||
+			strings.Index(nav, ">标准制修订新名称</a>") > strings.Index(nav, ">创新成果转化</a>") {
+			t.Fatalf("%s navigation ignored column sort order", path)
+		}
+	}
+	list := readGenerated(t, result.Output, fmt.Sprintf("list/%d/1.html", workID))
+	if !regexp.MustCompile(`class="nav-item active"><a class="nav-link"[^>]*>科技标准新名称</a>`).MatchString(list) {
+		t.Fatal("renamed top-level column is not active on its child list")
+	}
+}
+
 func TestAboutBranchesDefaultsToFirstBranchIntro(t *testing.T) {
 	g := New(testConfig(t), demo.NewSource())
 	column, total, err := g.Column(context.Background(), "about-branches", 0)
@@ -306,6 +356,36 @@ func TestCrossPostedColumnKeepsItsOwnPriorityAndStyles(t *testing.T) {
 	notice := regexp.MustCompile(`(?s)<ul id="notice-1".*?</ul>`).FindString(home)
 	if first, second := strings.Index(notice, older.Title), strings.Index(notice, newer.Title); first < 0 || second < 0 || first >= second || !styled.MatchString(notice) {
 		t.Fatal("homepage notice tab ignored column-specific order or styles")
+	}
+}
+
+func TestPinnedColumnArticlesUseActualPublicationOrder(t *testing.T) {
+	source := demo.NewSource()
+	var noticeID int64
+	for _, column := range source.Columns {
+		if column.Code == "news-notice" {
+			noticeID = column.ID
+			break
+		}
+	}
+	if noticeID == 0 || len(source.Items[noticeID]) < 2 {
+		t.Fatal("missing notice articles")
+	}
+	laterPublished, earlierPublished := source.Items[noticeID][0], source.Items[noticeID][1]
+	laterPublished.IsTop, earlierPublished.IsTop = true, true
+	laterPublished.PublishTime = time.Date(2026, 10, 19, 9, 0, 0, 0, time.Local)
+	earlierPublished.PublishTime = time.Date(2026, 10, 20, 9, 0, 0, 0, time.Local)
+	laterPublished.ColumnPublishedAt = time.Date(2026, 10, 22, 9, 0, 0, 0, time.Local)
+	earlierPublished.ColumnPublishedAt = time.Date(2026, 10, 21, 9, 0, 0, 0, time.Local)
+	source.Items[noticeID] = []model.Article{earlierPublished, laterPublished}
+
+	result, err := New(testConfig(t), source).GenerateSite(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	list := readGenerated(t, result.Output, fmt.Sprintf("list/%d/1.html", noticeID))
+	if first, second := strings.Index(list, laterPublished.Title), strings.Index(list, earlierPublished.Title); first < 0 || second < 0 || first >= second {
+		t.Fatalf("later published pinned article should come first: first=%d second=%d", first, second)
 	}
 }
 
@@ -872,6 +952,13 @@ func TestVideoHubOnlyUsesVideoNewsColumn(t *testing.T) {
 func TestGenerateCompletePublicSiteAndMemberShells(t *testing.T) {
 	cfg := testConfig(t)
 	source := demo.NewSource()
+	noticeID := branchColumnID(source, "news-notice")
+	noticeItems := source.Items[noticeID]
+	if len(noticeItems) < 3 {
+		t.Fatal("missing notice article fixture")
+	}
+	noticeItems[2].Cover = "https://example.com/conference-cover.jpg"
+	source.Items[noticeID] = noticeItems
 	waterID := branchColumnID(source, "branch-water")
 	waterItems := source.Items[waterID]
 	waterItems[0].Content = "<p>水分会专属简介</p>"
@@ -904,7 +991,7 @@ func TestGenerateCompletePublicSiteAndMemberShells(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, name := range []string{"index.html", "news.html", "videos.html", "search.html", "pages/member.html", "pages/member-detail.html", "js/member.js", "generated-content.js"} {
+	for _, name := range []string{"index.html", "news.html", "videos.html", "search.html", "pages/member.html", "pages/member-statistics.html", "pages/member-detail.html", "css/member-statistics.css", "js/member.js", "js/member-statistics-dashboard.js", "js/member-statistics.js", "assets/images/member-statistics-banner.svg", "generated-content.js"} {
 		if _, err := os.Stat(filepath.Join(result.Output, filepath.FromSlash(name))); err != nil {
 			t.Fatalf("missing %s: %v", name, err)
 		}
@@ -1054,12 +1141,14 @@ func TestGenerateCompletePublicSiteAndMemberShells(t *testing.T) {
 		t.Fatal("member column structure leaked into public page metadata")
 	}
 	for name, markers := range map[string][]string{
-		"index.html":               {`href="#coming-soon"`, `href="./videos.html"`},
-		"videos.html":              {`href="#coming-soon"`, `>会员专享</a>`},
-		"pages/member.html":        {`data-member-list-shell`, `data-member-columns`, `data-member-login-path="/member-entry/login?site=camie"`, `data-member-auth-gate`, `js/member.js`},
-		"pages/member-detail.html": {`data-member-detail-shell`, `data-member-breadcrumb`, `data-member-login-path="/member-entry/login?site=camie"`, `data-member-auth-gate`, `js/member.js`},
-		"js/main.js":               {`a[href="#coming-soon"]`, `showToast('敬请期待')`},
-		"js/member.js":             {`memberSpaceItem`, `我的空间`, `/business_member/member/dashboard`, `location.replace(loginURL())`},
+		"index.html":                   {`href="#coming-soon"`, `>会员中心</a>`, `href="./videos.html"`},
+		"videos.html":                  {`href="#coming-soon"`, `>会员专享</a>`},
+		"pages/member.html":            {`data-member-list-shell`, `data-member-columns`, `data-member-login-path="/member-entry/login?site=camie"`, `data-member-auth-gate`, `js/member.js`},
+		"pages/member-statistics.html": {`data-member-statistics-dashboard`, `data-member-login-path="/member-entry/login?site=camie"`, `data-member-auth-gate`, `js/member-statistics.js`},
+		"pages/member-detail.html":     {`data-member-detail-shell`, `data-member-breadcrumb`, `data-member-login-path="/member-entry/login?site=camie"`, `data-member-auth-gate`, `js/member.js`},
+		"js/main.js":                   {`a[href="#coming-soon"]`, `showToast('敬请期待')`},
+		"js/member.js":                 {`memberSpaceItem`, `我的空间`, `/business_member/member/dashboard`, `member-statistics.html`, `a.target = '_blank'`, `location.replace(loginURL())`},
+		"js/member-statistics.js":      {`/business_portal/api/member-zone/statistics/dashboard`, `/business_member/api/member/profile`, `window.mountEnvironmentDashboard`},
 	} {
 		page := readGenerated(t, result.Output, name)
 		for _, marker := range markers {
@@ -1107,6 +1196,9 @@ func TestGenerateCompletePublicSiteAndMemberShells(t *testing.T) {
 	noticeDetail := readGenerated(t, result.Output, fmt.Sprintf("article/2026/09/%d.html", noticeColumn.ID*1000+3))
 	if !strings.Contains(noticeDetail, `class="article-pager"`) {
 		t.Fatal("article detail lost adjacent article navigation")
+	}
+	if !strings.Contains(noticeDetail, `<div class="article-cover"><img src="https://example.com/conference-cover.jpg"`) {
+		t.Fatal("article detail did not render its real cover before the body")
 	}
 	videoDetail := readGenerated(t, result.Output, "video-detail.html")
 	if !strings.Contains(videoDetail, `class="video-unavailable"`) || strings.Contains(videoDetail, `<video controls`) {
@@ -1211,17 +1303,17 @@ func TestGenerateCompletePublicSiteAndMemberShells(t *testing.T) {
 	if count := strings.Count(friendLinks, `<a href=`); count != 8 {
 		t.Fatalf("fixed friend links count = %d, want 8", count)
 	}
-	for _, name := range []string{"中华人民共和国国家发展和改革委员会", "中共中央社会工作部", "中华人民共和国民政部", "中华人民共和国工业和信息化部", "中华人民共和国生态环境部", "中华人民共和国科学技术部", "国家知识产权局", "中国机经网"} {
+	for _, name := range []string{"中华人民共和国国家发展和改革委员会", "中共中央社会工作部", "中华人民共和国财政部", "中华人民共和国民政部", "中华人民共和国工业和信息化部", "中华人民共和国生态环境部", "中华人民共和国科学技术部", "国家知识产权局"} {
 		if !strings.Contains(friendLinks, name) {
 			t.Fatalf("fixed friend links lost %q", name)
 		}
 	}
-	if count := strings.Count(home, `class="partner-logo"`); count != 24 {
-		t.Fatalf("rendered partner logo count = %d, want 24 including the accessible duplicate tracks", count)
+	if count := strings.Count(home, `class="partner-logo"`); count != 12 {
+		t.Fatalf("rendered partner logo count = %d, want 12", count)
 	}
 	for _, viewBox := range []string{"12 8 219 50", "0 0 183 48", "0 0 785 189", "58 18 136 30", "9 13 224 40", "61 7 122 52", "48 10 148 46", "5 10 166 60", "17 18 209 29", "0 0 418 55", "55 11 136 44", "0 0 169 55"} {
-		if count := strings.Count(home, `viewBox="`+viewBox+`"`); count != 2 {
-			t.Fatalf("partner logo crop %q rendered %d times, want 2", viewBox, count)
+		if count := strings.Count(home, `viewBox="`+viewBox+`"`); count != 1 {
+			t.Fatalf("partner logo crop %q rendered %d times, want 1", viewBox, count)
 		}
 	}
 	if !strings.Contains(home, `href="https://www.bdc.cn/"`) || !strings.Contains(home, `partner-logos/beijing-drainage.png`) {

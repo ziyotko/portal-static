@@ -110,7 +110,7 @@ func (r *Repository) fetchHomeHeroArticles(ctx context.Context, id int64) ([]mod
 	query := `SELECT a.id,a.type,a.title,COALESCE(a.summary,''),COALESCE(a.content,''),COALESCE(a.cover,''),
 COALESCE(a.author,''),COALESCE(a.source,''),
 COALESCE(a.is_bold,0),COALESCE(a.is_top,0),COALESCE(a.default_color,''),
-COALESCE(a.url,''),a.publish_time
+COALESCE(a.url,''),a.publish_time,a.publish_time
 FROM {{schema}}.article a
 INNER JOIN {{schema}}.` + "`column`" + ` c ON c.id=? AND c.code='home-hero' AND c.status=1
 INNER JOIN {{schema}}.template t ON t.id=c.template_id AND t.status=1
@@ -129,12 +129,13 @@ func (r *Repository) fetchColumnArticles(ctx context.Context, id int64, limit in
 	query := `SELECT a.id,a.type,a.title,COALESCE(a.summary,''),COALESCE(a.content,''),COALESCE(a.cover,''),
 COALESCE(NULLIF(acp.author,''),a.author,''),COALESCE(NULLIF(acp.source,''),a.source,''),
 COALESCE(acp.is_bold,0),COALESCE(acp.is_top,0),COALESCE(NULLIF(acp.color,''),a.default_color,''),
-COALESCE(a.url,''),a.publish_time
+COALESCE(a.url,''),a.publish_time,COALESCE(acp.created_at,a.publish_time)
 FROM {{schema}}.article_column_publish acp INNER JOIN {{schema}}.article a ON a.id=acp.article_id
 INNER JOIN {{schema}}.` + "`column`" + ` c ON c.id=acp.column_id AND c.status=1 AND c.template_id=acp.template_id
 INNER JOIN {{schema}}.template t ON t.id=c.template_id AND t.status=1
 WHERE acp.column_id=? AND a.status=1 AND a.audit_status=2 AND a.publish_time<=NOW()
-AND a.type IN (1,2) ORDER BY acp.is_top DESC,a.publish_time DESC,a.id DESC`
+AND a.type IN (1,2) ORDER BY acp.is_top DESC,
+CASE WHEN acp.is_top=1 THEN COALESCE(acp.created_at,a.publish_time) ELSE a.publish_time END DESC,a.id DESC`
 	args := []any{id}
 	if limit > 0 {
 		query += " LIMIT ?"
@@ -250,7 +251,7 @@ WHERE c.status=1 AND ((c.code<>'home-hero' AND EXISTS (
 func (r *Repository) FetchAllArticles(ctx context.Context) ([]model.Article, error) {
 	query := `SELECT a.id,a.type,a.title,COALESCE(a.summary,''),COALESCE(a.content,''),COALESCE(a.cover,''),
 COALESCE(a.author,''),COALESCE(a.source,''),COALESCE(a.is_bold,0),COALESCE(a.is_top,0),
-COALESCE(a.default_color,''),COALESCE(a.url,''),a.publish_time
+COALESCE(a.default_color,''),COALESCE(a.url,''),a.publish_time,a.publish_time
 FROM {{schema}}.article a WHERE a.status=1 AND a.audit_status=2 AND a.publish_time<=NOW() AND a.type IN (1,2)
 AND (EXISTS(SELECT 1 FROM {{schema}}.article_column_publish acp INNER JOIN {{schema}}.` + "`column`" + ` c ON c.id=acp.column_id AND c.code<>'home-hero' AND c.status=1 AND c.template_id=acp.template_id INNER JOIN {{schema}}.template t ON t.id=c.template_id AND t.status=1 WHERE acp.article_id=a.id)
 OR EXISTS(SELECT 1 FROM {{schema}}.article_column ac INNER JOIN {{schema}}.` + "`column`" + ` c ON c.id=ac.column_id AND c.code='home-hero' AND c.status=1 INNER JOIN {{schema}}.template t ON t.id=c.template_id AND t.status=1 WHERE ac.article_id=a.id))
@@ -295,7 +296,7 @@ func (r *Repository) queryArticles(ctx context.Context, query string, args ...an
 	var result []model.Article
 	for rows.Next() {
 		var a model.Article
-		if err := rows.Scan(&a.ID, &a.Type, &a.Title, &a.Summary, &a.Content, &a.Cover, &a.Author, &a.Source, &a.IsBold, &a.IsTop, &a.DefaultColor, &a.URL, &a.PublishTime); err != nil {
+		if err := rows.Scan(&a.ID, &a.Type, &a.Title, &a.Summary, &a.Content, &a.Cover, &a.Author, &a.Source, &a.IsBold, &a.IsTop, &a.DefaultColor, &a.URL, &a.PublishTime, &a.ColumnPublishedAt); err != nil {
 			return nil, err
 		}
 		result = append(result, a)

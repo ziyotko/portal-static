@@ -17,26 +17,29 @@ func HasStaticDetail(articleType int) bool {
 }
 
 type Article struct {
-	ID           string
-	ColumnID     int64
-	Type         int
-	Title        string
-	Summary      string
-	Content      string
-	Cover        string
-	Author       string
-	Source       string
-	IsBold       bool
-	IsTop        bool
-	DefaultColor string
-	URL          string
-	PublishTime  time.Time
+	ID                string
+	ColumnID          int64
+	Type              int
+	Title             string
+	Summary           string
+	Content           string
+	Cover             string
+	Author            string
+	Source            string
+	IsBold            bool
+	IsTop             bool
+	DefaultColor      string
+	URL               string
+	PublishTime       time.Time
+	ColumnPublishedAt time.Time
 }
 
 type ArticleColumnMapping struct {
-	ID        int64
-	ColumnID  int64
-	ArticleID int64
+	ID          int64
+	ColumnID    int64
+	ArticleID   int64
+	IsTop       bool
+	PublishedAt time.Time
 }
 
 type Column struct {
