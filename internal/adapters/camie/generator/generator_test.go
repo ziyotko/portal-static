@@ -1258,12 +1258,12 @@ func TestGenerateCompletePublicSiteAndMemberShells(t *testing.T) {
 			t.Fatalf("fixed friend links lost %q", name)
 		}
 	}
-	if count := strings.Count(home, `class="partner-logo"`); count != 24 {
-		t.Fatalf("rendered partner logo count = %d, want 24 including the accessible duplicate tracks", count)
+	if count := strings.Count(home, `class="partner-logo"`); count != 12 {
+		t.Fatalf("rendered partner logo count = %d, want 12", count)
 	}
 	for _, viewBox := range []string{"12 8 219 50", "0 0 183 48", "0 0 785 189", "58 18 136 30", "9 13 224 40", "61 7 122 52", "48 10 148 46", "5 10 166 60", "17 18 209 29", "0 0 418 55", "55 11 136 44", "0 0 169 55"} {
-		if count := strings.Count(home, `viewBox="`+viewBox+`"`); count != 2 {
-			t.Fatalf("partner logo crop %q rendered %d times, want 2", viewBox, count)
+		if count := strings.Count(home, `viewBox="`+viewBox+`"`); count != 1 {
+			t.Fatalf("partner logo crop %q rendered %d times, want 1", viewBox, count)
 		}
 	}
 	if !strings.Contains(home, `href="https://www.bdc.cn/"`) || !strings.Contains(home, `partner-logos/beijing-drainage.png`) {

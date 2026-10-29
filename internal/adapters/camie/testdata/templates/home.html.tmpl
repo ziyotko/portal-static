@@ -73,10 +73,7 @@
         <h2 class="section-title"><span class="section-title-logo" aria-hidden="true"></span>副会长单位</h2>
         <div class="partner-grid">
           {{range .PartnerRows}}
-          <div class="partner-row"><div class="partner-track">
-            <div class="partner-set">{{range .}}<a class="partner-logo" style="--partner-width:{{.DisplayWidth}}px" href="{{.Href}}" target="_blank" rel="noopener noreferrer" aria-label="访问{{.Name}}官网"><svg class="partner-logo-art" viewBox="{{.ViewBox}}" aria-hidden="true" focusable="false"><image href="{{root $ .Image}}" width="{{.Width}}" height="{{.Height}}"></image></svg></a>{{end}}</div>
-            <div class="partner-set" aria-hidden="true">{{range .}}<a class="partner-logo" style="--partner-width:{{.DisplayWidth}}px" href="{{.Href}}" target="_blank" rel="noopener noreferrer" tabindex="-1"><svg class="partner-logo-art" viewBox="{{.ViewBox}}" aria-hidden="true" focusable="false"><image href="{{root $ .Image}}" width="{{.Width}}" height="{{.Height}}"></image></svg></a>{{end}}</div>
-          </div></div>
+          {{range .}}<a class="partner-logo" href="{{.Href}}" target="_blank" rel="noopener noreferrer" aria-label="访问{{.Name}}官网"><svg class="partner-logo-art" viewBox="{{.ViewBox}}" aria-hidden="true" focusable="false"><image href="{{root $ .Image}}" width="{{.Width}}" height="{{.Height}}"></image></svg></a>{{end}}
           {{end}}
         </div>
       </section>
