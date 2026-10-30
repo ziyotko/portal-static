@@ -359,7 +359,7 @@ func TestCrossPostedColumnKeepsItsOwnPriorityAndStyles(t *testing.T) {
 	}
 }
 
-func TestPinnedColumnArticlesUseActualPublicationOrder(t *testing.T) {
+func TestPinnedColumnArticlesFollowDisplayedPublishDate(t *testing.T) {
 	source := demo.NewSource()
 	var noticeID int64
 	for _, column := range source.Columns {
@@ -371,21 +371,21 @@ func TestPinnedColumnArticlesUseActualPublicationOrder(t *testing.T) {
 	if noticeID == 0 || len(source.Items[noticeID]) < 2 {
 		t.Fatal("missing notice articles")
 	}
-	laterPublished, earlierPublished := source.Items[noticeID][0], source.Items[noticeID][1]
-	laterPublished.IsTop, earlierPublished.IsTop = true, true
-	laterPublished.PublishTime = time.Date(2026, 10, 19, 9, 0, 0, 0, time.Local)
-	earlierPublished.PublishTime = time.Date(2026, 10, 20, 9, 0, 0, 0, time.Local)
-	laterPublished.ColumnPublishedAt = time.Date(2026, 10, 22, 9, 0, 0, 0, time.Local)
-	earlierPublished.ColumnPublishedAt = time.Date(2026, 10, 21, 9, 0, 0, 0, time.Local)
-	source.Items[noticeID] = []model.Article{earlierPublished, laterPublished}
+	olderArticle, newerArticle := source.Items[noticeID][0], source.Items[noticeID][1]
+	olderArticle.IsTop, newerArticle.IsTop = true, true
+	olderArticle.PublishTime = time.Date(2026, 9, 23, 9, 0, 0, 0, time.Local)
+	newerArticle.PublishTime = time.Date(2026, 10, 27, 9, 0, 0, 0, time.Local)
+	olderArticle.ColumnPublishedAt = time.Date(2026, 10, 29, 9, 0, 0, 0, time.Local)
+	newerArticle.ColumnPublishedAt = time.Date(2026, 10, 20, 9, 0, 0, 0, time.Local)
+	source.Items[noticeID] = []model.Article{olderArticle, newerArticle}
 
 	result, err := New(testConfig(t), source).GenerateSite(context.Background())
 	if err != nil {
 		t.Fatal(err)
 	}
 	list := readGenerated(t, result.Output, fmt.Sprintf("list/%d/1.html", noticeID))
-	if first, second := strings.Index(list, laterPublished.Title), strings.Index(list, earlierPublished.Title); first < 0 || second < 0 || first >= second {
-		t.Fatalf("later published pinned article should come first: first=%d second=%d", first, second)
+	if first, second := strings.Index(list, newerArticle.Title), strings.Index(list, olderArticle.Title); first < 0 || second < 0 || first >= second {
+		t.Fatalf("newer displayed publish date should come first: first=%d second=%d", first, second)
 	}
 }
 

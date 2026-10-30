@@ -47,7 +47,7 @@ func TestFetchOtherColumnsUsesOnlyDirectArticlesAndCurrentStyles(t *testing.T) {
 		WithArgs(int64(37)).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "name", "code", "template_id", "parent_id", "description", "sort"}).
 			AddRow(37, "国际交流与合作", "training-international", 9, 11, "", 2))
-	mock.ExpectQuery("(?s)^SELECT a.id.*COALESCE\\(acp.is_bold,0\\),COALESCE\\(acp.is_top,0\\),COALESCE\\(NULLIF\\(acp.color,''\\),a.default_color,''\\).*FROM article_column_publish acp INNER JOIN article a.*WHERE acp.column_id=\\? AND a.status=1.*ORDER BY acp.is_top DESC").
+	mock.ExpectQuery("(?s)^SELECT a.id.*COALESCE\\(acp.is_bold,0\\),COALESCE\\(acp.is_top,0\\),COALESCE\\(NULLIF\\(acp.color,''\\),a.default_color,''\\).*FROM article_column_publish acp INNER JOIN article a.*WHERE acp.column_id=\\? AND a.status=1.*ORDER BY acp.is_top DESC,a.publish_time DESC,a.id DESC").
 		WithArgs(int64(37)).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "type", "title", "summary", "content", "cover", "author", "source", "is_bold", "is_top", "color", "url", "publish_time", "column_published_at"}).
 			AddRow(20038, 1, "国际交流栏目示例", "", "", "", "", "", 1, 1, "#008000", "", time.Date(2026, 3, 24, 9, 55, 32, 0, time.Local), time.Date(2026, 3, 25, 9, 55, 32, 0, time.Local)).

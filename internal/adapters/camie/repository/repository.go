@@ -126,6 +126,7 @@ AND EXISTS (
 }
 
 func (r *Repository) fetchColumnArticles(ctx context.Context, id int64, limit int) ([]model.Article, error) {
+	// The list displays a.publish_time, so pinned rows use that same date for ordering.
 	query := `SELECT a.id,a.type,a.title,COALESCE(a.summary,''),COALESCE(a.content,''),COALESCE(a.cover,''),
 COALESCE(NULLIF(acp.author,''),a.author,''),COALESCE(NULLIF(acp.source,''),a.source,''),
 COALESCE(acp.is_bold,0),COALESCE(acp.is_top,0),COALESCE(NULLIF(acp.color,''),a.default_color,''),
@@ -134,8 +135,7 @@ FROM {{schema}}.article_column_publish acp INNER JOIN {{schema}}.article a ON a.
 INNER JOIN {{schema}}.` + "`column`" + ` c ON c.id=acp.column_id AND c.status=1 AND c.template_id=acp.template_id
 INNER JOIN {{schema}}.template t ON t.id=c.template_id AND t.status=1
 WHERE acp.column_id=? AND a.status=1 AND a.audit_status=2 AND a.publish_time<=NOW()
-AND a.type IN (1,2) ORDER BY acp.is_top DESC,
-CASE WHEN acp.is_top=1 THEN COALESCE(acp.created_at,a.publish_time) ELSE a.publish_time END DESC,a.id DESC`
+AND a.type IN (1,2) ORDER BY acp.is_top DESC,a.publish_time DESC,a.id DESC`
 	args := []any{id}
 	if limit > 0 {
 		query += " LIMIT ?"
