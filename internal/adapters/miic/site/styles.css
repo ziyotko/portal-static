@@ -4100,7 +4100,7 @@ body[data-page="about"] .important-carousel__controls {
 
 /* 关于我们：中心介绍、信息公开与招聘信息重排 */
 body[data-page="about"] .about-layout {
-  align-items: start;
+  align-items: stretch;
   gap: 72px;
   grid-template-columns: minmax(0, 1.25fr) minmax(340px, 0.75fr);
   padding-bottom: 82px;
@@ -4140,65 +4140,62 @@ body[data-page="about"] .about-copy p:last-child {
   margin-bottom: 0;
 }
 
-.about-disclosure {
+.about-side-sections {
+  display: grid;
+  grid-template-rows: repeat(2, 1fr);
+  gap: 24px;
+  min-width: 0;
+}
+
+.about-side-sections > section {
   background: #f4f7fc;
   border-top: 4px solid var(--primary);
   padding: 32px 30px 28px;
 }
 
-.about-disclosure h2 {
+.about-side-sections h2 {
   color: var(--ink);
   font-size: 28px;
   line-height: 1.4;
   margin: 0;
 }
 
-.about-disclosure > h2, .about-recruitment > h2 { margin-bottom: 16px; }
+.about-side-sections h2 { margin-bottom: 16px; }
 
-.about-disclosure .about-entry-list {
+.about-side-sections .about-entry-list {
   border-top: 1px solid #dce4ef;
   gap: 0;
 }
 
-.about-disclosure .about-entry-list li {
+.about-side-sections .about-entry-list li {
   border-top: 0;
   border-bottom: 1px solid #dce4ef;
   display: block;
   padding: 16px 0;
 }
 
-.about-disclosure .disclosure-list li:last-child {
-  border-bottom: 0;
-}
-
-.about-disclosure .about-entry-list li::before {
+.about-side-sections .about-entry-list li::before {
   display: none;
 }
 
-.about-disclosure .about-entry-list a,
-.about-disclosure .about-entry-list span {
+.about-side-sections .about-entry-list a,
+.about-side-sections .about-entry-list span {
   color: #344054;
   display: block;
   font-size: 14px;
   line-height: 1.65;
 }
 
-.about-disclosure .about-entry-list a:hover {
+.about-side-sections .about-entry-list a:hover {
   color: var(--primary);
 }
 
-.about-disclosure .about-entry-list time {
+.about-side-sections .about-entry-list time {
   color: #8c97a8;
   display: block;
   font-family: Arial, sans-serif;
   font-size: 11px;
   margin: 7px 0 0;
-}
-
-.about-recruitment {
-  border-top: 4px solid var(--primary);
-  margin: 30px -30px 0;
-  padding: 30px 30px 0;
 }
 
 .about-recruitment .recruitment-list {
@@ -4228,9 +4225,8 @@ body[data-page="about"] .about-copy p:last-child {
     padding-bottom: 64px;
   }
 
-  .about-disclosure {
+  .about-side-sections {
     margin-top: 48px;
-    position: static;
   }
 }
 
@@ -4248,18 +4244,17 @@ body[data-page="about"] .about-copy p:last-child {
     margin-bottom: 22px;
   }
 
-  .about-disclosure {
+  .about-side-sections {
     margin-top: 38px;
+    gap: 20px;
+  }
+
+  .about-side-sections > section {
     padding: 26px 22px 22px;
   }
 
-  .about-disclosure h2 {
+  .about-side-sections h2 {
     font-size: 24px;
-  }
-
-  .about-recruitment {
-    margin: 24px -22px 0;
-    padding: 24px 22px 0;
   }
 
   .about-recruitment .recruitment-list time,
