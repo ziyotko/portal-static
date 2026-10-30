@@ -10,6 +10,7 @@
 - [Windows 命令行操作手册（无 Docker）](docs/windows-quickstart.md)
 - [macOS 本机傻瓜版操作手册](docs/local-quickstart.md)
 - [部署指南](docs/deployment.md)
+- [MIIC 门户生产部署与运维交接](docs/miic-deployment.md)
 - [管理后台使用指南](docs/admin-workflow.md)
 - [数据库模板管理与运维交接](docs/template-management.md)
 - [总体设计](docs/architecture.md)

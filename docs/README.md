@@ -9,6 +9,7 @@
 | [Windows 命令行操作手册（无 Docker）](windows-quickstart.md) | Windows 测试人员 | 从 Git 克隆四个工程，用命令行联调 CAAM，并测试 MIIC/新门户 |
 | [macOS 本机傻瓜版操作手册](local-quickstart.md) | 当前 Mac 使用者 | 一条命令启动 CAAM，发布并预览内容，以及测试 MIIC/新门户 |
 | [部署指南](deployment.md) | 运维、开发 | 如何构建、配置、以一站一进程方式部署并接入管理后台 |
+| [MIIC 门户生产部署与运维交接](miic-deployment.md) | MIIC 运维、验收 | 生产资源、数据库模板、Dia 对接、全站与栏目列表生成、验收和回滚 |
 | [CAMIE 门户部署与运维交接](camie-deployment.md) | CAMIE 运维、验收 | 双数据库、同源路由、静态化配置、验收和上线阻断项 |
 | [CAMIE 页面区块与栏目维护对照表](column-mapping/camie-site-areas.md) | CAMIE 内容管理员、运维 | 各页面区块在哪个栏目维护，哪些内容固定、静态生成或实时读取 |
 | [管理后台使用指南](admin-workflow.md) | 内容管理员、审核员 | 如何维护、审核、发布、下线内容，以及何时执行哪种静态化操作 |
@@ -26,6 +27,7 @@
 - 单位 Windows 电脑：Windows 命令行操作手册（无 Docker）。
 - 当前 Mac 日常使用：macOS 本机傻瓜版操作手册。
 - 第一次上线：部署指南 → 配置参考 → 管理后台使用指南 → 运维与排障手册。
+- MIIC 交接：MIIC 门户生产部署与运维交接 → MIIC 静态化栏目取数对照表 → 通用部署指南。
 - CAMIE 交接：CAMIE 门户部署与运维交接 → CAMIE 页面区块与栏目维护对照表 → 通用部署指南。
 - 接入新门户：总体设计 → 新门户接入指南 → HTTP API 契约 → 配置参考。
 - 日常内容维护：管理后台使用指南；修改模板时再看数据库模板管理与运维交接。

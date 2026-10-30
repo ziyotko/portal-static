@@ -1,6 +1,6 @@
 # 部署指南
 
-CAMIE 站点还需按 [CAMIE 门户部署与运维交接](camie-deployment.md) 核对双数据库、会员服务、同源路由、栏目映射和上线阻断项。
+MIIC 站点还需按 [MIIC 门户生产部署与运维交接](miic-deployment.md) 核对数据库模板、页面资源、栏目列表生成、同源路由和验收；CAMIE 站点还需按 [CAMIE 门户部署与运维交接](camie-deployment.md) 核对双数据库、会员服务、同源路由、栏目映射和上线阻断项。
 
 ## 1. 部署模型
 
