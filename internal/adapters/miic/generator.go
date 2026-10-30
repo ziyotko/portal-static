@@ -770,6 +770,7 @@ func (g *Generator) writeGeneratedContent(ctx context.Context, root string) erro
 		Important    []importantItem        `json:"importantNews"`
 		ArticlePaths map[string]string      `json:"articlePaths"`
 		ServiceItems map[string]serviceItem `json:"serviceDetails"`
+		Introduction string                 `json:"introduction"`
 		Recruitment  []aboutItem            `json:"recruitment"`
 		Disclosure   []aboutItem            `json:"disclosure"`
 	}{Generated: true, ArticlePaths: map[string]string{}, ServiceItems: map[string]serviceItem{}}
@@ -849,6 +850,21 @@ func (g *Generator) writeGeneratedContent(ctx context.Context, root string) erro
 			result = append(result, aboutItem{ArticleID: article.ID, Title: article.Title, Summary: article.Summary, Date: view.DateISO, Href: href, External: external})
 		}
 		return result, nil
+	}
+	_, introductions, err := g.source.FetchPageColumnArticles(ctx, g.cfg.About.PageName, g.cfg.About.IntroductionName, 1)
+	if errors.Is(err, repository.ErrColumnNotFound) || errors.Is(err, repository.ErrTemplateNotFound) {
+		introductions = nil
+		err = nil
+	}
+	if err != nil {
+		return err
+	}
+	if len(introductions) > 0 {
+		content := g.sanitizer.Sanitize(introductions[0].Content)
+		if strings.TrimSpace(content) == "" && strings.TrimSpace(introductions[0].Summary) != "" {
+			content = "<p>" + template.HTMLEscapeString(introductions[0].Summary) + "</p>"
+		}
+		payload.Introduction = g.media.RewriteHTML(content)
 	}
 	payload.Recruitment, err = loadAbout(g.cfg.About.RecruitmentName)
 	if err != nil {

@@ -1,0 +1,29 @@
+Unsplash 图片来源记录
+====================
+
+以下图片均从 Unsplash 照片页下载并保存为本地优化版本。页面上线前请保留本文件，便于后续核对来源与更新素材。
+
+unsplash-robot-factory.jpg — Simon Kadula — https://unsplash.com/photos/8gr6bObQLOI
+unsplash-appliance-line.jpg — Homa Appliances — https://unsplash.com/photos/sz1CHL7Pky0
+unsplash-machine-line.jpg — ZHENYU LUO — https://unsplash.com/photos/kE0JmtbvXxM
+unsplash-data-center.jpg — Taylor Vick — https://unsplash.com/photos/M5tzZtFCOfs
+unsplash-precision-engineering.jpg — Cemrecan Yurtman — https://unsplash.com/photos/thdb7o0nLyc
+unsplash-precision-lab.jpg — Greg Rosenke — https://unsplash.com/photos/b9IDXH4XW5M
+unsplash-engineering-meeting.jpg — Dylan Gillis — https://unsplash.com/photos/KdeqA3aTnBY
+unsplash-industry-research.jpg — ThisisEngineering — https://unsplash.com/photos/xYCBw1uIP_M
+unsplash-conference.jpg — Headway — https://unsplash.com/photos/F2KRf_QfCqw
+unsplash-gears.jpg — Tim Mossholder — https://unsplash.com/photos/GmvH5v9l3K4
+unsplash-research-building.jpg — Declan Sun — https://unsplash.com/photos/ifiQ73AE_XQ
+unsplash-modern-building.jpg — Xingchen Yan — https://unsplash.com/photos/gqb10HlVNQE
+unsplash-data-dashboard.jpg — Carlos Muza — https://unsplash.com/photos/hpjSkU2UYSU
+unsplash-data-analysis.jpg — Stephen Dawson — https://unsplash.com/photos/qwtCeJ5cLYs
+unsplash-software-development.jpg — Christopher Gower — https://unsplash.com/photos/m_HRfLhgABo
+unsplash-manufacturing-worker.jpg — Josh Beech — https://unsplash.com/photos/tXJhAFVOHVk
+unsplash-monitoring.jpg — Nicolas Gonzalez — https://unsplash.com/photos/183F_vNaN8A
+unsplash-cloud-server.jpg — Growtika — https://unsplash.com/photos/Am6pBe2FpJw
+unsplash-newsroom-1.jpg — Vanilla Bear Films — https://unsplash.com/photos/JEwNQerg3Hs
+unsplash-newsroom-2.jpg — Felicia Buitenwerf — https://unsplash.com/photos/GlRvKMJSTyo
+unsplash-newsroom-3.jpg — Markus Winkler — https://unsplash.com/photos/SMcjAxzG-Ws
+unsplash-manufacturing-team.jpg — TruckRun — https://unsplash.com/photos/XBWF6_TEsFM
+
+Unsplash 许可说明：https://unsplash.com/license

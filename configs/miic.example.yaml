@@ -20,20 +20,20 @@ server:
   batch_max_duration: 6h
 
 paths:
-  # 原工程只作为只读页面脚手架；portal-static 不会写入该目录。
-  source_root: ../../miic-portal
+  # MIIC 页面资源随本仓库维护，运行时无需单独克隆 miic-portal。
+  source_root: ../internal/adapters/miic/site
   dist_root: ../dist/miic-portal
   allowed_output_root: ../dist
   preview_root: ../dist/miic-preview
   # preview 使用这些只读文件；production 每次直接从 template 表读取源码。
   # MIIC 确认生产 template.code 后可增加 template_codes 显式绑定；未配置时使用下方页面唯一名称。
   templates:
-    news: backend/templates/news.html.tmpl
+    news: ../testdata/templates/news.html.tmpl
     business: business.html
     platforms: platforms.html
     about: about.html
-    list: backend/templates/list.html.tmpl
-    article: backend/templates/article.html.tmpl
+    list: ../testdata/templates/list.html.tmpl
+    article: ../testdata/templates/article.html.tmpl
 
 media:
   # 同源模式避免把生产域名写死在生成结果中。
@@ -59,5 +59,6 @@ adapter:
     page_name: 核心业务
   about:
     page_name: 关于我们
+    introduction_name: 中心介绍
     recruitment_name: 招聘信息
     disclosure_name: 信息公开

@@ -205,25 +205,10 @@ func (g *Generator) refreshRelatedArticleDetails(ctx context.Context, root strin
 	if err != nil {
 		return 0, fmt.Errorf("resolve related article categories: %w", err)
 	}
-	detailColumns := columns
-	for _, column := range columns {
-		if column.TemplateName != g.cfg.Site.PageName {
-			continue
-		}
-		newsColumns, err := g.source.FetchPageColumns(ctx, g.cfg.Site.PageName, 0)
-		if err != nil {
-			return 0, fmt.Errorf("load news columns for related articles: %w", err)
-		}
-		detailColumns = mergeColumns(detailColumns, newsColumns)
-		break
-	}
 	columnItems := make(map[int64][]model.Article)
 	seen := make(map[int64]bool)
 	generated := 0
-	for _, affectedColumn := range detailColumns {
-		if !g.articleSidebarColumn(affectedColumn) {
-			continue
-		}
+	for _, affectedColumn := range columns {
 		_, candidates, err := g.source.FetchColumnArticles(ctx, affectedColumn.ID)
 		if err != nil {
 			return 0, fmt.Errorf("load related article column %d: %w", affectedColumn.ID, err)

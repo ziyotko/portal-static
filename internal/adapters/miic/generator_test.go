@@ -118,6 +118,9 @@ func TestPreviewGeneratesCompleteSite(t *testing.T) {
 	if !strings.Contains(string(manifest), `"category":"中心动态"`) {
 		t.Fatal("important news did not retain its editorial category")
 	}
+	if !strings.Contains(string(manifest), `"introduction":"`) || !strings.Contains(string(manifest), "机械工业信息中心成立于1973年") {
+		t.Fatal("about introduction did not use the first published column article")
+	}
 	articleText := string(article)
 	if !strings.Contains(articleText, `<span>中心动态</span>`) {
 		t.Fatal("article did not use preferred editorial category")
@@ -131,8 +134,36 @@ func TestPreviewGeneratesCompleteSite(t *testing.T) {
 	if !strings.Contains(articleText, `<h1>聚焦行业数智化转型，构建机械工业高质量发展新动能</h1>`) {
 		t.Fatal("article title missing from detail content")
 	}
-	if !strings.Contains(articleText, `class="article-cover"`) {
-		t.Fatal("article cover missing from detail content")
+	if strings.Contains(articleText, `class="article-cover"`) {
+		t.Fatal("article cover should not appear in detail content")
+	}
+	if !strings.Contains(articleText, `>相关资讯</h2>`) || !strings.Contains(articleText, `该栏目暂无其他资讯`) {
+		t.Fatal("same-column related information missing")
+	}
+}
+
+func TestRelatedArticlesStayInCurrentColumn(t *testing.T) {
+	cfg, err := LoadLegacyConfig(filepath.Join("testdata", "config.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	g, err := New(cfg, demo.NewSource(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	column, items, err := g.source.FetchColumnArticles(context.Background(), 21)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(items) != 1 {
+		t.Fatalf("fixture column has %d articles, want 1", len(items))
+	}
+	related, err := g.loadRelatedArticleItems(context.Background(), column)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(related) != 1 || related[0].ID != 1001 {
+		t.Fatalf("related article source crossed column boundary: %+v", related)
 	}
 }
 

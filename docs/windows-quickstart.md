@@ -1,6 +1,6 @@
 # Windows 命令行操作手册（无 Docker）
 
-这份手册用于在单位 Windows 电脑上从 Git 重新搭建测试环境。它不依赖 Docker；CAAM 页面资源已随 `portal-static` 提供，无需克隆 `caam-portal`。构建结果、后台上传文件和静态网站都写在 `portal-static` 的 `.local` 或 `dist` 中。
+这份手册用于在单位 Windows 电脑上从 Git 重新搭建测试环境。它不依赖 Docker；CAAM 和 MIIC 页面资源已随 `portal-static` 提供，无需克隆原门户工程。构建结果、后台上传文件和静态网站都写在 `portal-static` 的 `.local` 或 `dist` 中。
 
 CAAM 可以使用 SQL 中的真实数据与管理后台联调。MIIC 可以直接生成 demo；真实 MIIC 联调还需要对应数据库。
 
@@ -30,15 +30,14 @@ redis-cli ping
 
 最后一条应返回 `PONG`。后台启动时必须能同时连接 MySQL 和 Redis。
 
-## 2. 克隆三个同级仓库
+## 2. 克隆两个同级仓库
 
 目录必须类似：
 
 ```text
 D:\portal-work\
 ├── portal-static
-├── dia-platform
-└── miic-portal
+└── dia-platform
 ```
 
 执行：
@@ -49,7 +48,6 @@ Set-Location D:\portal-work
 
 git clone https://github.com/ziyotko/portal-static.git
 git clone https://miic.com.cn/zhangpeng/dia-platform
-git clone https://github.com/ziyotko/miic-portal.git
 ```
 
 单位 Git 服务如果要求登录、VPN 或证书，先完成单位网络认证。

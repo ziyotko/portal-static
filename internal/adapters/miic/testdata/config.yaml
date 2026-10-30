@@ -19,5 +19,6 @@ business:
   page_name: 核心业务
 about:
   page_name: 关于我们
+  introduction_name: 中心介绍
   recruitment_name: 招聘信息
   disclosure_name: 信息公开

@@ -26,6 +26,7 @@ func NewSource() *Source {
 		{ID: 24, Name: "成果发布", Code: "results", TemplateID: 1, TemplateName: "资讯动态", Sort: 50},
 		{ID: 31, Name: "信息技术服务", Code: "it-services", TemplateID: 2, TemplateName: "核心业务", Sort: 10},
 		{ID: 32, Name: "软件产品及定制开发服务", Code: "software", TemplateID: 2, TemplateName: "核心业务", ParentID: 31, Sort: 10},
+		{ID: 40, Name: "中心介绍", Code: "introduction", TemplateID: 4, TemplateName: "关于我们", Sort: 0},
 		{ID: 41, Name: "招聘信息", Code: "recruitment", TemplateID: 4, TemplateName: "关于我们", Sort: 10},
 		{ID: 42, Name: "信息公开", Code: "disclosure", TemplateID: 4, TemplateName: "关于我们", Sort: 20},
 	}
@@ -41,6 +42,8 @@ func NewSource() *Source {
 	service := makeArticle(2001, 32, 20, "软件产品及定制开发服务", "面向机关单位与行业协会提供标准化软件产品、定制开发及实施服务。", "assets/unsplash-software-development.jpg")
 	service.Content = ""
 	recruitment := makeArticle(3001, 41, 19, "前端工程师", "招聘状态以后台发布信息为准。", "")
+	introduction := makeArticle(3003, 40, 21, "中心介绍", "机械工业信息中心简介。", "")
+	introduction.Content = "<p>机械工业信息中心成立于1973年，是长期服务于机械行业的中央事业单位。</p>"
 	recruitment.Content = "<h2>岗位职责</h2><p>负责门户及业务系统前端开发。</p>"
 	disclosure := makeArticle(3002, 42, 18, "2026年机械工业信息中心部门预算", "部门预算公开文件。", "")
 	disclosure.URL = "https://www.miic.com.cn/api/v1/file/info?filePath=inforurl/202604/01f84cf78400200e.pdf"
@@ -50,7 +53,7 @@ func NewSource() *Source {
 	}
 	return &Source{columns: columns, articles: map[int64][]model.Article{
 		11: important, 20: {a1, a2, a3, a4}, 21: {a1}, 22: {a2}, 23: {a3}, 24: {a4},
-		32: {service}, 41: {recruitment}, 42: {disclosure},
+		32: {service}, 40: {introduction}, 41: {recruitment}, 42: {disclosure},
 	}}
 }
 

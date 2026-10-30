@@ -54,9 +54,10 @@ type BusinessConfig struct {
 }
 
 type AboutConfig struct {
-	PageName        string `yaml:"page_name"`
-	RecruitmentName string `yaml:"recruitment_name"`
-	DisclosureName  string `yaml:"disclosure_name"`
+	PageName         string `yaml:"page_name"`
+	IntroductionName string `yaml:"introduction_name"`
+	RecruitmentName  string `yaml:"recruitment_name"`
+	DisclosureName   string `yaml:"disclosure_name"`
 }
 
 type SlotConfig struct {
@@ -90,6 +91,9 @@ func FromSnapshot(snapshot coreconfig.Snapshot) (Config, error) {
 	decoder.KnownFields(true)
 	if err := decoder.Decode(&adapter); err != nil {
 		return Config{}, fmt.Errorf("parse miic adapter config: %w", err)
+	}
+	if adapter.About.IntroductionName == "" {
+		adapter.About.IntroductionName = "中心介绍"
 	}
 	cfg := Config{
 		Site: SiteConfig{
@@ -125,6 +129,9 @@ func LoadLegacyConfig(path string) (Config, error) {
 	decoder.KnownFields(false)
 	if err := decoder.Decode(&legacy); err != nil {
 		return Config{}, fmt.Errorf("parse config: %w", err)
+	}
+	if legacy.About.IntroductionName == "" {
+		legacy.About.IntroductionName = "中心介绍"
 	}
 	base, err := filepath.Abs(filepath.Dir(path))
 	if err != nil {

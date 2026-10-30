@@ -27,7 +27,7 @@ README 保留平台定位和快速入口；部署、使用、设计和接入细�
 - 一套接口：统一鉴权、任务队列、取消、超时、灰度、输出路径和错误响应。
 - 一站一配置、一站一进程：不同门户使用独立配置、端口和输出目录。
 - 完整预览：每个适配器的 `preview` 都必须生成主页面、栏目列表、文章详情和所需静态资源，不能只生成首页。
-- 原工程只读：门户源工程只提供静态资源和迁移参考；Portal CMS 生产模板以数据库为准，产物写入本工程的 `dist/` 或请求指定的隔离目录。
+- 站点资源随仓库维护：MIIC、CAAM、CAMIE 的页面脚手架均由本工程提供；Portal CMS 生产模板以数据库为准，产物写入本工程的 `dist/` 或请求指定的隔离目录。
 
 ## 三层架构
 
@@ -93,7 +93,7 @@ go run ./cmd/portal-static serve --config configs/<site>.yaml
 
 当前站点：
 
-- `driver: miic`：示例配置 `configs/miic.example.yaml`，默认监听 `127.0.0.1:9143`。
+- `driver: miic`：示例配置 `configs/miic.example.yaml`，默认监听 `127.0.0.1:9143`；页面资源已复制到 `internal/adapters/miic/site`，运行时无需 `miic-portal` 工程。
 - `driver: caam`：示例配置 `configs/caam.example.yaml`，默认监听 `127.0.0.1:9142`；页面资源已复制到 `internal/adapters/caam/site`，运行时无需 `caam-portal` 工程。
 - `driver: camie`：示例配置 `configs/camie.example.yaml`，默认监听 `127.0.0.1:9144`；会员内容仅生成动态壳，不进入静态正文和搜索索引。
 

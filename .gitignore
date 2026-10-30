@@ -5,4 +5,5 @@ dist/
 .DS_Store
 .idea/
 .local/
+.go-cache/
 /portal-static
